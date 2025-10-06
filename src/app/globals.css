@@ -1,26 +1,116 @@
+/* Import Google Font first */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
+
+/* Tailwind import */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
+ 
+  /* ================= Default (Light) Theme ================= */
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 100%; 
+    --foreground: 0 0% 0%; /* normal text black */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 183 95% 32%; /* Sky Blue default primary */
+    --primary-light: 183 95% 80%; /* Sky Blue default primary */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0, 0%, 50%;
+    --secondary-foreground: 0 0% 0%;
+    --accent: 183 95% 32%;; /* Sky Blue accent */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 10%;
+    --input: 0 0% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* ================= Palettes ================= */
+  [data-theme="default"] {
+    --primary: 183 95% 32%; /* Sky Blue */
+    --accent: 183 95% 32%;
+    --foreground: 0 0% 0%; /* Text black */
+    --border: 0 0% 20%;
+  }
+
+  [data-theme="red"] {
+    --primary: 0 84% 60%;
+    --accent: 0 84% 60%;
+    --foreground: 0 0% 0%; /* Text black */
+    --border: 0 0% 20%;
+  }
+
+  [data-theme="green-yellow"] {
+    --primary: 90 50% 40%;
+    --accent: 90 50% 40%;
+    --foreground: 0 0% 0%;
+    --border: 0 0% 20%;
+  }
+
+  [data-theme="purple-pink"] {
+    --primary: 270 80% 60%;
+    --accent: 270 80% 60%;
+    --foreground: 0 0% 0%;
+    --border: 0 0% 20%;
+  }
+
+  [data-theme="orange-teal"] {
+    --primary: 30 80% 55%;
+    --accent: 30 80% 55%;
+    --foreground: 0 0% 0%;
+    --border: 0 0% 20%;
+  }
+
+  [data-theme="navy-gold"] {
+    --primary: 220 60% 35%;
+    --accent: 220 60% 35%;
+    --foreground: 0 0% 0%;
+    --border: 0 0% 20%;
+  }
+
+  /* ================= Base Styles ================= */
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background)); /* Always white */
+    color: hsl(var(--foreground)); /* Text changes based on palette */
+    font-family: "Inter", sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Logos, icons, buttons using primary color */
+  .text-primary {
+    color: hsl(var(--primary)) !important;
+  }
+
+  .bg-primary {
+    background-color: hsl(var(--primary)) !important;
+  }
+
+  .bg-primary-light {
+    background-color: hsl(var(--primary-light)) !important;
+  }
+
+  .border-primary {
+    border-color: hsl(var(--primary)) !important;
+  }
+
+  .text-accent {
+    color: hsl(var(--accent)) !important;
+  }
+
+  .bg-accent {
+    background-color: hsl(var(--accent)) !important;
+  }
+
+  .border-accent {
+    border-color: hsl(var(--accent)) !important;
+  }
 }
