@@ -55,29 +55,28 @@ const timelineData = [
 
 export default function AboutPage() {
   return (
-    <div className="fon md:ml-2 md:p-16t-sans">
+    <main className="w-full bg-background text-foreground">
       <SEOHead
         title="About ACME Protection"
         description="Learn about ACME Protection Services Pvt. Ltd.—our mission, values, and journey."
       />
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-white to-slate-50">
-        <div className="container py-20 text-center relative">
-          <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 relative z-10">
+      <section className="relative bg-gradient-to-br from-primary/10 via-white to-slate-50 border-b border-border">
+        <div className="container mx-auto px-4 py-20 text-center">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-foreground">
             About <span className="text-primary">ACME Protection</span>
           </h1>
-          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/10 to-transparent z-0 rounded-b-xl"></div>
-          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg relative z-10">
+          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg">
             Safeguarding businesses, communities, and people with trusted
             security solutions since 2016.
           </p>
-          <div className="w-20 h-1 bg-primary mx-auto mt-6 rounded-full relative z-10"></div>
+          <div className="w-20 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
         </div>
       </section>
 
       {/* Mission / Vision / Services */}
-      <section className="container py-20 grid md:grid-cols-3 gap-10 text-center">
+      <section className="container mx-auto px-4 py-20 grid md:grid-cols-3 gap-10 text-center">
         <OverviewCard
           icon={<Shield className="h-6 w-6" />}
           title="Our Mission"
@@ -96,10 +95,10 @@ export default function AboutPage() {
       </section>
 
       {/* Leadership Section */}
-      <section className="py-24">
-        <div className="container">
+      <section className=" border-border bg-background">
+        <div className="container mx-auto px-4 py-24">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
               Meet Our Leadership
             </h2>
             <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
@@ -112,7 +111,7 @@ export default function AboutPage() {
           </div>
 
           {/* Founder Spotlight */}
-          <div className="flex flex-col md:flex-row items-center gap-10 bg-white rounded-2xl shadow-xl p-8 md:p-12 mb-20">
+          <div className="flex flex-col md:flex-row items-center gap-10 bg-card rounded-2xl shadow-xl p-8 md:p-12 mb-20">
             <div className="flex-shrink-0">
               <img
                 src="/founder.png"
@@ -121,16 +120,16 @@ export default function AboutPage() {
               />
             </div>
             <div className="text-center md:text-left">
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 className="text-2xl font-bold text-foreground">
                 Mr. V.P Lohiya
               </h3>
               <p className="text-primary font-medium">Founder & Chairman</p>
-              <p className="mt-4 text-gray-600 text-sm leading-relaxed">
+              <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
                 ACME was founded with a mission to provide complete, timely, and
                 objective security services. We treat clients as business
                 associates and work tirelessly for their well-being.
               </p>
-              <p className="mt-3 text-gray-600 text-sm leading-relaxed">
+              <p className="mt-3 text-muted-foreground text-sm leading-relaxed">
                 By employing a unique mix of investigative skills, business
                 research, and management techniques, we ensure uncompromised
                 protection. All security personnel are trained at ACME Training
@@ -161,9 +160,9 @@ export default function AboutPage() {
       </section>
 
       {/* Journey Timeline */}
-      <section className="py-24 px-4 sm:px-6 lg:px-20 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 mb-16">
+      <section className=" border-border bg-card">
+        <div className="container mx-auto px-4 py-24">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-foreground mb-16">
             Our Journey
           </h2>
 
@@ -210,10 +209,10 @@ export default function AboutPage() {
                 <p className="text-primary text-sm font-semibold">
                   {item.year}
                 </p>
-                <h3 className="text-lg font-bold text-gray-900 mt-1 mb-2">
+                <h3 className="text-lg font-bold text-foreground mt-1 mb-2">
                   {item.title}
                 </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   {item.description}
                 </p>
               </div>
@@ -223,8 +222,8 @@ export default function AboutPage() {
       </section>
 
       {/* Core Values */}
-      <section className="container py-24">
-        <h2 className="text-3xl font-bold text-center mb-12">
+      <section className="container mx-auto px-4 py-24">
+        <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
           Our Core Values
         </h2>
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
@@ -252,8 +251,8 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section className="bg-primary/20">
-        <div className="container py-20 grid sm:grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <section className="bg-primary/10 border-t border-border">
+        <div className="container mx-auto px-4 py-20 grid sm:grid-cols-2 md:grid-cols-4 gap-8 text-center">
           <StatCard number="10+" label="Years of Experience" />
           <StatCard number="500+" label="Corporate Clients" />
           <StatCard number="2000+" label="Trained Professionals" />
@@ -262,8 +261,10 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="container text-center py-24">
-        <h2 className="text-3xl font-bold">Partner with ACME Protection</h2>
+      <section className="container mx-auto px-4 text-center py-24">
+        <h2 className="text-3xl font-bold text-foreground">
+          Partner with ACME Protection
+        </h2>
         <p className="text-muted-foreground max-w-xl mx-auto mt-3">
           From enterprises to residential communities, we provide peace of mind
           through uncompromised security solutions.
@@ -272,18 +273,18 @@ export default function AboutPage() {
           Request a Consultation
         </Button>
       </section>
-    </div>
+    </main>
   );
 }
 
 /* ----- Components ----- */
 function OverviewCard({ icon, title, text }) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-xl hover:shadow-xl transition-transform hover:-translate-y-0.5">
+    <div className="rounded-2xl bg-card p-6 shadow-lg hover:shadow-xl transition-transform hover:-translate-y-0.5">
       <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-primary text-white mb-3">
         {icon}
       </div>
-      <h3 className="font-semibold text-lg">{title}</h3>
+      <h3 className="font-semibold text-lg text-foreground">{title}</h3>
       <p className="text-sm text-muted-foreground mt-2">{text}</p>
     </div>
   );
@@ -292,15 +293,15 @@ function OverviewCard({ icon, title, text }) {
 function TimelineCard({ item, align }) {
   return (
     <div
-      className={`bg-white p-6 rounded-xl shadow-xl max-w-md w-full text-${
+      className={`bg-card p-6 rounded-xl shadow-xl max-w-md w-full text-${
         align === "right" ? "right" : "left"
       }`}
     >
       <p className="text-primary text-sm font-semibold">{item.year}</p>
-      <h3 className="text-lg font-bold text-gray-900 mt-1 mb-2">
+      <h3 className="text-lg font-bold text-foreground mt-1 mb-2">
         {item.title}
       </h3>
-      <p className="text-gray-600 text-sm leading-relaxed">
+      <p className="text-muted-foreground text-sm leading-relaxed">
         {item.description}
       </p>
     </div>
@@ -309,11 +310,11 @@ function TimelineCard({ item, align }) {
 
 function ValueCard({ icon, title, text }) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-xl hover:shadow-xl transition-transform hover:-translate-y-0.5 text-center">
+    <div className="rounded-2xl bg-card p-6 shadow-lg hover:shadow-xl transition-transform hover:-translate-y-0.5 text-center">
       <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-primary text-white">
         {icon}
       </div>
-      <h3 className="mt-4 font-semibold text-lg">{title}</h3>
+      <h3 className="mt-4 font-semibold text-lg text-foreground">{title}</h3>
       <p className="text-sm text-muted-foreground mt-1">{text}</p>
     </div>
   );
@@ -321,7 +322,7 @@ function ValueCard({ icon, title, text }) {
 
 function StatCard({ number, label }) {
   return (
-    <div className="bg-primary/20 rounded-xl py-8">
+    <div className="bg-card rounded-xl py-8 shadow-md">
       <h3 className="text-4xl font-extrabold text-primary">{number}</h3>
       <p className="mt-2 text-sm text-muted-foreground">{label}</p>
     </div>
@@ -330,13 +331,13 @@ function StatCard({ number, label }) {
 
 function LeaderCard({ img, name, role }) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-xl text-center hover:shadow-xl transition">
+    <div className="bg-card p-6 rounded-xl shadow-lg text-center hover:shadow-xl transition">
       <img
         src={img}
         alt={name}
         className="w-28 h-28 mx-auto rounded-full object-cover mb-4 shadow-xl"
       />
-      <h4 className="font-semibold text-gray-900">{name}</h4>
+      <h4 className="font-semibold text-foreground">{name}</h4>
       <p className="text-sm text-muted-foreground">{role}</p>
     </div>
   );

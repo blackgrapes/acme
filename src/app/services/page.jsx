@@ -95,7 +95,7 @@ export default function WeProvide() {
   ];
 
   return (
-    <div className="font-sans md:p-12 px-4">
+    <div className="font-sans">
       <SEOHead
         title="We Provide — ACME"
         description="Personal Security Officers, Security Guards, Supervisors, Gunmen, Lady Guards & more."
@@ -103,7 +103,7 @@ export default function WeProvide() {
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-primary/10 via-background to-card  border-border">
-        <div className="container text-center py-12 sm:py-16 md:py-20">
+        <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground">
             We <span className="text-primary">Provide</span>
           </h1>
@@ -119,79 +119,86 @@ export default function WeProvide() {
       </section>
 
       {/* Services Grid */}
-      <section className="container py-12 sm:py-16 md:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-8 justify-items-center max-w-7xl mx-auto">
-          {services.map((s) => {
-            const Icon = s.icon;
-            return (
-              <article
-                key={s.slug}
-                className="group relative rounded-2xl  border-border bg-card/90 backdrop-blur-sm shadow-lg hover:shadow-2xl hover:-translate-y-2 hover:border-primary/40 transition-all duration-500 overflow-hidden w-full sm:w-[320px] md:w-[360px] lg:w-[380px] flex flex-col"
-              >
-                {/* Image */}
-                <div className="relative h-56 w-full overflow-hidden">
-                  <img
-                    src={s.img}
-                    alt={s.title}
-                    className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
-                  <div className="absolute top-4 left-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg">
-                    <Icon className="h-6 w-6" />
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-primary transition">
-                      {s.title}
-                    </h2>
-                    <p className="mt-2 text-sm text-secondary line-clamp-3">
-                      {s.summary}
-                    </p>
-
-                    <ul className="mt-3 text-sm text-secondary space-y-1">
-                      {s.benefits.map((b) => (
-                        <li key={b} className="flex items-start gap-2">
-                          <span className="text-primary mt-1">✔</span>
-                          <span>{b}</span>
-                        </li>
-                      ))}
-                    </ul>
+      <section className="py-12 sm:py-16 lg:py-20">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {services.map((s) => {
+              const Icon = s.icon;
+              return (
+                <article
+                  key={s.slug}
+                  className="group relative rounded-2xl  border-border bg-card/90 backdrop-blur-sm shadow-lg hover:shadow-2xl hover:-translate-y-2 hover:border-primary/40 transition-all duration-500 overflow-hidden w-full flex flex-col"
+                >
+                  {/* Image */}
+                  <div className="relative h-48 sm:h-56 w-full overflow-hidden">
+                    <img
+                      src={s.img}
+                      alt={s.title}
+                      className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
+                    <div className="absolute top-4 left-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg">
+                      <Icon className="h-6 w-6" />
+                    </div>
                   </div>
 
-                  <Link
-                    href={`/services/${s.slug}`}
-                    className="inline-flex items-center gap-2 text-primary text-sm font-semibold mt-4 sm:mt-6 group-hover:underline"
-                  >
-                    View details
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      className="h-4 w-4"
+                  {/* Content */}
+                  <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between">
+                    <div className="min-w-0">
+                      <h2 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-primary transition line-clamp-2">
+                        {s.title}
+                      </h2>
+                      <p className="mt-2 text-sm text-secondary line-clamp-3">
+                        {s.summary}
+                      </p>
+
+                      <ul className="mt-3 text-sm text-secondary space-y-1">
+                        {s.benefits.map((b) => (
+                          <li
+                            key={b}
+                            className="flex items-start gap-2 line-clamp-1"
+                          >
+                            <span className="text-primary mt-1 flex-shrink-0">
+                              ✔
+                            </span>
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <Link
+                      href={`/services/${s.slug}`}
+                      className="inline-flex items-center gap-2 text-primary text-sm font-semibold mt-4 sm:mt-6 group-hover:underline"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M13.5 4.5l6 6-6 6M4.5 12h15"
-                      />
-                    </svg>
-                  </Link>
-                </div>
-              </article>
-            );
-          })}
+                      View details
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        className="h-4 w-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M13.5 4.5l6 6-6 6M4.5 12h15"
+                        />
+                      </svg>
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="relative bg-gradient-to-r from-primary/5 via-background to-card border-t border-border">
-        <div className="container text-center py-12 sm:py-16 md:py-20">
+      <section className="relative bg-gradient-to-r from-primary/5 via-background to-card  border-border">
+        <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20 text-center">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Your Safety, Our <span className="text-primary">Priority</span>
           </h2>

@@ -79,87 +79,95 @@ export default function Gallery() {
       />
 
       {/* Header */}
-      <header className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 text-center py-8 sm:py-12 md:py-16">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight">
-          Our <span className="text-primary">Gallery</span>
-        </h1>
-        <p className="mt-3 text-base sm:text-lg text-secondary max-w-3xl mx-auto">
-          Explore highlights from events, trainings, and patrols.
-        </p>
-        <div className="w-16 sm:w-20 h-1 bg-primary mx-auto mt-4 sm:mt-5 rounded-full"></div>
-      </header>
+      <section className="py-8 sm:py-12 lg:py-16">
+        <div className="container mx-auto px-4 text-center max-w-3xl">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight">
+            Our <span className="text-primary">Gallery</span>
+          </h1>
+          <p className="mt-3 text-base sm:text-lg text-secondary">
+            Explore highlights from events, trainings, and patrols.
+          </p>
+          <div className="w-16 sm:w-20 h-1 bg-primary mx-auto mt-4 sm:mt-5 rounded-full"></div>
+        </div>
+      </section>
 
       {/* Filters */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mb-8 sm:mb-12 flex flex-wrap justify-center gap-2 sm:gap-3">
-        {TAGS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setActive(t)}
-            className={`relative h-9 sm:h-10 px-4 sm:px-6 rounded-full border text-sm font-medium transition-all 
-              ${
-                active === t
-                  ? "bg-primary text-primary-foreground border-primary shadow-md"
-                  : "bg-card text-secondary hover:bg-card/50 border-border"
-              }`}
-          >
-            {t}
-            {active === t && (
-              <motion.div
-                layoutId="active-pill"
-                className="absolute inset-0 rounded-full bg-primary/20 -z-10"
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              />
-            )}
-          </button>
-        ))}
+      <section className="py-8 sm:py-12 mb-8 sm:mb-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+            {TAGS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setActive(t)}
+                className={`relative h-9 sm:h-10 px-4 sm:px-6 rounded-full border text-sm font-medium transition-all 
+                  ${
+                    active === t
+                      ? "bg-primary text-white border-primary shadow-md"
+                      : "bg-card text-secondary hover:bg-card/50 border-border"
+                  }`}
+              >
+                {t}
+                {active === t && (
+                  <motion.div
+                    layoutId="active-pill"
+                    className="absolute inset-0 rounded-full bg-primary/20 -z-10"
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Masonry Gallery */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-4 py-8 sm:py-12 md:py-16">
-        <motion.div
-          layout
-          className="columns-1 sm:columns-2 lg:columns-3 gap-4 sm:gap-6 [column-fill:_balance]"
-        >
-          <AnimatePresence>
-            {filtered.map((i) => (
-              <motion.figure
-                key={i.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="mb-4 sm:mb-6 break-inside-avoid w-full"
-              >
-                <button
-                  onClick={() => {
-                    setCurrent(i);
-                    setOpen(true);
-                  }}
-                  className="group relative block w-full overflow-hidden rounded-2xl border border-border bg-card shadow-md hover:shadow-xl transition-all"
+      <section className="py-8 sm:py-12 lg:py-16">
+        <div className="container mx-auto px-4">
+          <motion.div
+            layout
+            className="columns-1 sm:columns-2 lg:columns-3 gap-4 sm:gap-6 [column-fill:_balance]"
+          >
+            <AnimatePresence>
+              {filtered.map((i) => (
+                <motion.figure
+                  key={i.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="mb-4 sm:mb-6 break-inside-avoid w-full"
                 >
-                  <img
-                    src={i.src}
-                    alt={i.caption}
-                    loading="lazy"
-                    className="w-full h-auto transition-transform duration-500 group-hover:scale-110"
-                  />
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-3 sm:p-4">
-                    <span className="text-primary-foreground text-xs sm:text-sm font-medium drop-shadow">
-                      {i.caption}
-                    </span>
-                  </div>
-                  {i.type === "video" && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <PlayCircle className="h-12 sm:h-16 w-12 sm:w-16 text-primary-foreground/90 drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <button
+                    onClick={() => {
+                      setCurrent(i);
+                      setOpen(true);
+                    }}
+                    className="group relative block w-full overflow-hidden rounded-2xl border border-border bg-card shadow-md hover:shadow-xl transition-all"
+                  >
+                    <img
+                      src={i.src}
+                      alt={i.caption}
+                      loading="lazy"
+                      className="w-full h-auto transition-transform duration-500 group-hover:scale-110"
+                    />
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-3 sm:p-4">
+                      <span className="text-primary-foreground text-xs sm:text-sm font-medium drop-shadow">
+                        {i.caption}
+                      </span>
                     </div>
-                  )}
-                </button>
-              </motion.figure>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+                    {i.type === "video" && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <PlayCircle className="h-12 sm:h-16 w-12 sm:w-16 text-primary-foreground/90 drop-shadow-lg group-hover:scale-110 transition-transform" />
+                      </div>
+                    )}
+                  </button>
+                </motion.figure>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        </div>
       </section>
 
       {/* Modal */}

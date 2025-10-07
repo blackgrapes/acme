@@ -113,4 +113,23 @@
   .border-accent {
     border-color: hsl(var(--accent)) !important;
   }
+
+  /* ================= Gradient helpers ================= */
+  .bg-gradient-primary {
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--primary) / 0.1),
+      hsl(var(--background)),
+      hsl(var(--card))
+    );
+  }
+
+  .bg-gradient-primary-light {
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--primary-light) / 0.1),
+      hsl(var(--background)),
+      hsl(var(--card))
+    );
+  }
 }
