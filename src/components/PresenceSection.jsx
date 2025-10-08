@@ -18,7 +18,7 @@ export function PresenceSection() {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid md:grid-cols-2 gap-12 sm:gap-16 lg:gap-20 items-center">
+        <div className="grid md:grid-cols-2 gap-12 sm:gap-16 lg:gap-20 items-start">
           {/* Left: Image */}
           <div className="relative order-2 md:order-1">
             <img
@@ -28,10 +28,10 @@ export function PresenceSection() {
               loading="lazy"
             />
             <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/80 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg text-center">
-              <h3 className="text-lg sm:text-xl font-bold text-foreground">
+              <h3 className="text-lg sm:text-xl font-bold text-white">
                 Mumbai
               </h3>
-              <p className="text-secondary text-xs sm:text-sm">
+              <p className="text-white text-xs sm:text-sm">
                 Our Home Base of Operations
               </p>
             </div>

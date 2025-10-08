@@ -1,7 +1,5 @@
 "use client";
 
-
-import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Shield,
@@ -13,9 +11,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-
-export default function ServiceDetail() {
-  const { slug } = useParams();
+export default function ServiceDetail({ params }) {
+  const { slug } = params || {};
 
   const services = {
     guarding: {
@@ -100,7 +97,7 @@ export default function ServiceDetail() {
     },
   };
 
-  const service = services[slug || ""] || services.guarding;
+  const service = services[slug || "guarding"];
   const Icon = service.icon;
 
   return (
@@ -108,7 +105,7 @@ export default function ServiceDetail() {
       <div className="bg-primary/5 py-16">
         <div className="container mx-auto px-4">
           <Link
-            to="/services"
+            href="/services"
             className="inline-flex items-center gap-2 text-primary hover:underline mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -130,7 +127,7 @@ export default function ServiceDetail() {
               <Icon className="h-20 w-20 text-primary mb-6" />
               <h2 className="text-3xl font-bold mb-4">Service Features</h2>
               <ul className="space-y-3">
-                {service.features.map((feature: string, index: number) => (
+                {service.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span className="text-muted-foreground">{feature}</span>
@@ -144,7 +141,7 @@ export default function ServiceDetail() {
             <div className="mb-8">
               <h2 className="text-3xl font-bold mb-4">Key Benefits</h2>
               <ul className="space-y-3">
-                {service.benefits.map((benefit: string, index: number) => (
+                {service.benefits.map((benefit, index) => (
                   <li key={index} className="flex items-start gap-3">
                     <div className="h-2 w-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                     <span className="text-muted-foreground">{benefit}</span>
@@ -173,3 +170,5 @@ export default function ServiceDetail() {
     </div>
   );
 }
+
+export const dynamic = "force-dynamic";
