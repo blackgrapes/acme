@@ -302,9 +302,12 @@ export default function AdminPanel() {
                   </nav>
                 </SheetContent>
               </Sheet>
-              <h1 className="text-xl font-bold text-foreground md:ml-0">
-                Admin Panel
-              </h1>
+              <div className="flex items-center gap-2">
+                <Shield className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-bold text-foreground">
+                  Admin Panel
+                </h1>
+              </div>
             </div>
           </div>
         </div>
@@ -317,45 +320,70 @@ export default function AdminPanel() {
             <div className="space-y-1">
               <Button
                 variant={activeTab === "dashboard" ? "default" : "ghost"}
-                className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary"
+                className={`w-full justify-start shadow-sm ${
+                  activeTab === "dashboard"
+                    ? "bg-primary text-white"
+                    : "text-primary-foreground"
+                }`}
                 onClick={() => setActiveTab("dashboard")}
               >
                 <Shield className="h-4 w-4 mr-2" />
                 Dashboard
               </Button>
+
               <Button
                 variant={activeTab === "clients" ? "default" : "ghost"}
-                className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary"
+                className={`w-full justify-start shadow-sm ${
+                  activeTab === "clients"
+                    ? "bg-primary text-white"
+                    : "text-primary-foreground"
+                }`}
                 onClick={() => setActiveTab("clients")}
               >
                 <Users className="h-4 w-4 mr-2" />
                 Client Management
               </Button>
+
               <Button
                 variant={activeTab === "documents" ? "default" : "ghost"}
-                className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary"
+                className={`w-full justify-start shadow-sm ${
+                  activeTab === "documents"
+                    ? "bg-primary text-white"
+                    : "text-primary-foreground"
+                }`}
                 onClick={() => setActiveTab("documents")}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Document Management
               </Button>
+
               <Button
                 variant={activeTab === "reports" ? "default" : "ghost"}
-                className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary"
+                className={`w-full justify-start shadow-sm ${
+                  activeTab === "reports"
+                    ? "bg-primary text-white"
+                    : "text-primary-foreground"
+                }`}
                 onClick={() => setActiveTab("reports")}
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
                 System Reports
               </Button>
+
               <Button
                 variant={activeTab === "settings" ? "default" : "ghost"}
-                className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary"
+                className={`w-full justify-start shadow-sm ${
+                  activeTab === "settings"
+                    ? "bg-primary text-white"
+                    : "text-primary-foreground"
+                }`}
                 onClick={() => setActiveTab("settings")}
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
             </div>
+
             {/* User Profile - Desktop */}
             <div className="mt-auto pt-4 border-t border-border">
               <div className="flex items-center space-x-3 mb-4">
@@ -682,110 +710,213 @@ export default function AdminPanel() {
                       </div>
                     </CardHeader>
                     <CardContent className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="min-w-[150px]">
-                              Client
-                            </TableHead>
-                            <TableHead className="min-w-[120px]">
-                              Organization
-                            </TableHead>
-                            <TableHead className="min-w-[150px]">
-                              Email
-                            </TableHead>
-                            <TableHead className="min-w-[100px]">
-                              Phone
-                            </TableHead>
-                            <TableHead className="min-w-[100px]">
-                              Joined
-                            </TableHead>
-                            <TableHead className="min-w-[100px]">
-                              Last Login
-                            </TableHead>
-                            <TableHead className="min-w-[100px]">
-                              Account Status
-                            </TableHead>
-                            <TableHead className="min-w-[120px]">
-                              Actions
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                      <div className="block md:table md:w-full">
+                        <div className="md:hidden">
                           {dummyClients.map((client) => (
-                            <TableRow key={client.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                    <Users className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-foreground block sm:inline">
-                                      {client.name}
-                                    </span>
-                                    <Badge
-                                      variant={
-                                        client.status === "Active"
-                                          ? "default"
-                                          : "secondary"
-                                      }
-                                      className="ml-2 mt-1 block sm:inline"
-                                    >
-                                      {client.status}
-                                    </Badge>
-                                  </div>
+                            <div
+                              key={client.id}
+                              className="flex flex-col space-y-2 p-4 border-b border-border last:border-b-0"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <Users className="h-5 w-5 text-primary" />
                                 </div>
-                              </TableCell>
-                              <TableCell className="text-foreground truncate">
-                                {client.org}
-                              </TableCell>
-                              <TableCell className="text-foreground truncate">
-                                {client.email}
-                              </TableCell>
-                              <TableCell className="text-foreground">
-                                {client.phone}
-                              </TableCell>
-                              <TableCell className="text-foreground">
-                                {client.joined}
-                              </TableCell>
-                              <TableCell className="text-foreground">
-                                {client.lastLogin}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant="default"
-                                  className="bg-primary text-primary-foreground"
-                                >
-                                  Active
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="space-x-1">
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-foreground font-medium">
+                                    {client.name}
+                                  </span>
+                                  <Badge
+                                    variant={
+                                      client.status === "Active"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className="ml-2"
+                                  >
+                                    {client.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="space-y-1 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">
+                                    Organization:
+                                  </span>
+                                  <span className="text-foreground font-medium truncate">
+                                    {client.org}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">Email:</span>
+                                  <span className="text-foreground font-medium truncate">
+                                    {client.email}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">Phone:</span>
+                                  <span className="text-foreground">
+                                    {client.phone}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">
+                                    Joined:
+                                  </span>
+                                  <span className="text-foreground">
+                                    {client.joined}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">
+                                    Last Login:
+                                  </span>
+                                  <span className="text-foreground">
+                                    {client.lastLogin}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">
+                                    Account Status:
+                                  </span>
+                                  <Badge
+                                    variant="default"
+                                    className="bg-primary text-primary-foreground"
+                                  >
+                                    Active
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex space-x-1 pt-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="shadow-sm"
+                                  className="shadow-sm flex-1"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="shadow-sm"
+                                  className="shadow-sm flex-1"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="shadow-sm"
+                                  className="shadow-sm flex-1"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
-                              </TableCell>
-                            </TableRow>
+                              </div>
+                            </div>
                           ))}
-                        </TableBody>
-                      </Table>
+                        </div>
+                        <Table className="hidden md:table">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[150px]">
+                                Client
+                              </TableHead>
+                              <TableHead className="min-w-[120px]">
+                                Organization
+                              </TableHead>
+                              <TableHead className="min-w-[150px]">
+                                Email
+                              </TableHead>
+                              <TableHead className="min-w-[100px]">
+                                Phone
+                              </TableHead>
+                              <TableHead className="min-w-[100px]">
+                                Joined
+                              </TableHead>
+                              <TableHead className="min-w-[100px]">
+                                Last Login
+                              </TableHead>
+                              <TableHead className="min-w-[100px]">
+                                Account Status
+                              </TableHead>
+                              <TableHead className="min-w-[120px]">
+                                Actions
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {dummyClients.map((client) => (
+                              <TableRow key={client.id}>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                      <Users className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="text-foreground block sm:inline">
+                                        {client.name}
+                                      </span>
+                                      <Badge
+                                        variant={
+                                          client.status === "Active"
+                                            ? "default"
+                                            : "secondary"
+                                        }
+                                        className="ml-2 mt-1 block sm:inline"
+                                      >
+                                        {client.status}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-foreground truncate">
+                                  {client.org}
+                                </TableCell>
+                                <TableCell className="text-foreground truncate">
+                                  {client.email}
+                                </TableCell>
+                                <TableCell className="text-foreground">
+                                  {client.phone}
+                                </TableCell>
+                                <TableCell className="text-foreground">
+                                  {client.joined}
+                                </TableCell>
+                                <TableCell className="text-foreground">
+                                  {client.lastLogin}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="default"
+                                    className="bg-primary text-primary-foreground"
+                                  >
+                                    Active
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shadow-sm"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shadow-sm"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shadow-sm"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -860,96 +991,188 @@ export default function AdminPanel() {
                       </div>
                     </CardHeader>
                     <CardContent className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="min-w-[200px]">
-                              Document
-                            </TableHead>
-                            <TableHead className="min-w-[80px]">Type</TableHead>
-                            <TableHead className="min-w-[100px]">
-                              Uploaded
-                            </TableHead>
-                            <TableHead className="min-w-[80px]">Size</TableHead>
-                            <TableHead className="min-w-[100px]">
-                              Uploader
-                            </TableHead>
-                            <TableHead className="min-w-[100px]">
-                              Client Access
-                            </TableHead>
-                            <TableHead className="min-w-[120px]">
-                              Actions
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                      <div className="block md:table md:w-full">
+                        <div className="md:hidden">
                           {dummyDocuments.map((doc) => (
-                            <TableRow key={doc.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center space-x-3">
-                                  <FileText className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
-                                  <div className="min-w-0">
-                                    <span className="text-foreground block sm:inline">
-                                      {doc.name}
-                                    </span>
-                                    <Badge
-                                      variant="secondary"
-                                      className="ml-2 mt-1 block sm:inline"
-                                    >
-                                      {doc.type}
-                                    </Badge>
-                                  </div>
+                            <div
+                              key={doc.id}
+                              className="flex flex-col space-y-2 p-4 border-b border-border last:border-b-0"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <FileText className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-foreground font-medium">
+                                    {doc.name}
+                                  </span>
+                                  <Badge variant="secondary" className="ml-2">
+                                    {doc.type}
+                                  </Badge>
                                 </div>
-                              </TableCell>
-                              <TableCell className="text-foreground">
-                                {doc.type}
-                              </TableCell>
-                              <TableCell className="text-foreground">
-                                {doc.uploaded}
-                              </TableCell>
-                              <TableCell className="text-foreground">
-                                {doc.size}
-                              </TableCell>
-                              <TableCell className="text-foreground">
-                                {doc.uploader}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{doc.access}</Badge>
-                              </TableCell>
-                              <TableCell className="space-x-1">
+                              </div>
+                              <div className="space-y-1 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">Type:</span>
+                                  <span className="text-foreground font-medium">
+                                    {doc.type}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">
+                                    Uploaded:
+                                  </span>
+                                  <span className="text-foreground">
+                                    {doc.uploaded}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">Size:</span>
+                                  <span className="text-foreground">
+                                    {doc.size}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">
+                                    Uploader:
+                                  </span>
+                                  <span className="text-foreground font-medium truncate">
+                                    {doc.uploader}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-secondary">
+                                    Client Access:
+                                  </span>
+                                  <Badge variant="outline">{doc.access}</Badge>
+                                </div>
+                              </div>
+                              <div className="flex space-x-1 pt-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="shadow-sm"
+                                  className="shadow-sm flex-1"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="shadow-sm"
+                                  className="shadow-sm flex-1"
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="shadow-sm"
+                                  className="shadow-sm flex-1"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="shadow-sm"
+                                  className="shadow-sm flex-1"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
-                              </TableCell>
-                            </TableRow>
+                              </div>
+                            </div>
                           ))}
-                        </TableBody>
-                      </Table>
+                        </div>
+                        <Table className="hidden md:table">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[200px]">
+                                Document
+                              </TableHead>
+                              <TableHead className="min-w-[80px]">
+                                Type
+                              </TableHead>
+                              <TableHead className="min-w-[100px]">
+                                Uploaded
+                              </TableHead>
+                              <TableHead className="min-w-[80px]">
+                                Size
+                              </TableHead>
+                              <TableHead className="min-w-[100px]">
+                                Uploader
+                              </TableHead>
+                              <TableHead className="min-w-[100px]">
+                                Client Access
+                              </TableHead>
+                              <TableHead className="min-w-[120px]">
+                                Actions
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {dummyDocuments.map((doc) => (
+                              <TableRow key={doc.id}>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center space-x-3">
+                                    <FileText className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
+                                    <div className="min-w-0">
+                                      <span className="text-foreground block sm:inline">
+                                        {doc.name}
+                                      </span>
+                                      <Badge
+                                        variant="secondary"
+                                        className="ml-2 mt-1 block sm:inline"
+                                      >
+                                        {doc.type}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-foreground">
+                                  {doc.type}
+                                </TableCell>
+                                <TableCell className="text-foreground">
+                                  {doc.uploaded}
+                                </TableCell>
+                                <TableCell className="text-foreground">
+                                  {doc.size}
+                                </TableCell>
+                                <TableCell className="text-foreground">
+                                  {doc.uploader}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{doc.access}</Badge>
+                                </TableCell>
+                                <TableCell className="space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shadow-sm"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shadow-sm"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shadow-sm"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shadow-sm"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -1189,7 +1412,7 @@ export default function AdminPanel() {
                               defaultValue={companyInfo.address}
                             />
                           </div>
-                          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm">
+                          <Button className="bg-primary text-white hover:bg-primary/90 shadow-sm">
                             Save Changes
                           </Button>
                         </CardContent>
@@ -1251,7 +1474,7 @@ export default function AdminPanel() {
                               className="w-24"
                             />
                           </div>
-                          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm">
+                          <Button className="bg-primary text-white hover:bg-primary/90 shadow-sm">
                             Save Changes
                           </Button>
                         </CardContent>
@@ -1331,7 +1554,7 @@ export default function AdminPanel() {
                               defaultValue={notificationSettings.adminEmail}
                             />
                           </div>
-                          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm">
+                          <Button className="bg-primary text-white hover:bg-primary/90 shadow-sm">
                             Save Changes
                           </Button>
                         </CardContent>

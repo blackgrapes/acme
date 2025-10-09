@@ -8,9 +8,7 @@ const nextConfig = {
   },
 
   // ✅ TEMP FIX for prerender bug in Next.js 15
-  devIndicators: {
-    buildActivity: false,
-  },
+ 
   eslint: {
     ignoreDuringBuilds: true,
   },
