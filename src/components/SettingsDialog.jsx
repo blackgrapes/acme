@@ -17,7 +17,7 @@ export function SettingsDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-white">
+      <DialogContent className="sm:max-w-md text-black">
         <DialogHeader>
           <DialogTitle className="text-lg">Settings</DialogTitle>
           <DialogDescription className="text-base">
@@ -32,11 +32,13 @@ export function SettingsDialog({ open, onOpenChange }) {
               <button
                 key={key}
                 onClick={() => setPalette(key)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border bg-background hover:bg-accent transition-colors text-white ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border bg-background hover:bg-accent transition-colors text-black ${
                   palette === key ? "border-primary" : "border-border"
                 }`}
               >
-                <span className="text-base font-medium">{name}</span>
+                <span className="text-base font-medium">
+                  <b>{name}</b>
+                </span>
                 {palette === key && <Check className="h-4 w-4 text-primary" />}
               </button>
             ))}
