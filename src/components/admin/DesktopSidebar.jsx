@@ -1,3 +1,4 @@
+// File: src/component/admin/DesktopSidebar.jsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import {
   Palette,
   Mail,
   Settings,
+  LogOut,
 } from "lucide-react";
 
 export default function DesktopSidebar({ activeTab, setActiveTab }) {
@@ -111,6 +113,15 @@ export default function DesktopSidebar({ activeTab, setActiveTab }) {
           >
             <Settings className="h-4 w-4 mr-2" />
             Settings
+          </Button>
+        </div>
+        <div className="mt-auto space-y-1 pt-4 border-t border-border">
+          <Button
+            variant="ghost"
+            className="w-full justify-start shadow-sm text-white bg-parimary"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
           </Button>
         </div>
       </nav>

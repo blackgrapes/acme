@@ -1,8 +1,9 @@
+// File: src/component/admin/Header.jsx
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
-import { LogOut, Settings, Shield, User } from "lucide-react";
+import { Settings, Shield, User } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog"; // Assuming this is external
 import MobileMenu from "./MobileMenu";
 import { useState } from "react";
@@ -55,10 +56,6 @@ export default function Header({
                 <p className="text-xs text-secondary">Administrator</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm">
-              <LogOut className="h-4 w-4 mr-2 text-primary" />
-              <span className="hidden md:inline">Sign Out</span>
-            </Button>
           </div>
         </div>
       </div>

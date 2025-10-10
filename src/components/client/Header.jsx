@@ -1,4 +1,4 @@
-// Updated File: components/client/ClientHeader.jsx
+// File: src/component/client/Header.jsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -94,10 +94,6 @@ export default function Header({ activeTab, setActiveTab }) {
                 <p className="text-xs text-secondary">Client</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm">
-              <LogOut className="h-4 w-4 mr-2 text-primary" />
-              <span className="hidden md:inline">Sign Out</span>
-            </Button>
           </div>
         </div>
       </div>

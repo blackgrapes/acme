@@ -1,4 +1,4 @@
-// File: components/client/MobileSidebar.jsx
+// File: src/component/client/MobileSidebar.jsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ export default function MobileSidebar({ activeTab, setActiveTab }) {
             <FileText className="h-4 w-4 mr-2" />
             Service Reports
           </Button>
-         
+
           <Button
             variant={activeTab === "documents" ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
@@ -75,7 +75,15 @@ export default function MobileSidebar({ activeTab, setActiveTab }) {
             Management
           </Button>
         </div>
-       
+        <div className="mt-auto space-y-1 pt-4 border-t border-border">
+          <Button
+            variant="ghost"
+            className="w-full justify-start shadow-sm text-white bg-primary"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
       </nav>
     </SheetContent>
   );

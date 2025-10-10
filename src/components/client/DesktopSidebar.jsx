@@ -1,9 +1,15 @@
-// File: components/client/DesktopSidebar.jsx
+// File: src/component/client/DesktopSidebar.jsx
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Home, FileText, AlertTriangle, Folder, Users } from "lucide-react";
-import { User } from "lucide-react";
+import {
+  Home,
+  FileText,
+  AlertTriangle,
+  Folder,
+  Users,
+  LogOut,
+} from "lucide-react";
 
 export default function DesktopSidebar({ activeTab, setActiveTab }) {
   const userInfo = {
@@ -41,8 +47,6 @@ export default function DesktopSidebar({ activeTab, setActiveTab }) {
             Service Reports
           </Button>
 
-         
-
           <Button
             variant={activeTab === "documents" ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
@@ -71,7 +75,16 @@ export default function DesktopSidebar({ activeTab, setActiveTab }) {
         </div>
 
         {/* User Profile - Desktop - Without Sign Out */}
-        
+
+        <div className="mt-auto space-y-1 pt-4 border-t border-border">
+          <Button
+            variant="ghost"
+            className="w-full justify-start shadow-sm text-white bg-primary"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
       </nav>
     </aside>
   );

@@ -1,3 +1,4 @@
+// File: src/component/admin/MobileMenu.jsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import {
   Mail,
   Settings,
   Menu,
+  LogOut,
 } from "lucide-react";
 
 export default function MobileMenu({ activeTab, setActiveTab }) {
@@ -90,6 +92,15 @@ export default function MobileMenu({ activeTab, setActiveTab }) {
             >
               <Settings className="h-4 w-4 mr-2" />
               Settings
+            </Button>
+          </div>
+          <div className="mt-auto space-y-1 pt-4 border-t border-border">
+            <Button
+              variant="ghost"
+              className="w-full justify-start shadow-sm text-white bg-primary"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
             </Button>
           </div>
         </nav>
