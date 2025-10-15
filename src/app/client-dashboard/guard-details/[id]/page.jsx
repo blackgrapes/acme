@@ -1,14 +1,16 @@
 // Updated File: app/client-dashboard/guard-details/[id]/page.jsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   Table,
@@ -20,33 +22,139 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  Eye,
+  Download,
+  Mail,
+  Phone,
+  Calendar,
+  MapPin,
+  Shield,
+  FileText,
+  User,
+  Clock,
+  CheckCircle2,
+  Star,
+  TrendingUp,
+  History,
+  Activity,
+  Target,
+  GraduationCap,
+  MessageCircle,
+  Edit2,
+  Trash2,
+  ArrowLeft,
+  BarChart3,
+  Award,
+  Users,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import Header from "@/components/client/Header";
 import DesktopSidebar from "@/components/client/DesktopSidebar";
 
+// Dummy document categories for consistency
+const dummyDocumentCategories = [
+  { id: "agreement", name: "Agreement" },
+  { id: "attendance", name: "Attendance" },
+  { id: "bills", name: "Bills" },
+  { id: "salary-slips", name: "Salary Slips" },
+  { id: "pay-slips", name: "Pay Slips" },
+  { id: "esi", name: "ESI" },
+  { id: "pf", name: "PF" },
+  { id: "employee-details", name: "Employee Details" },
+  { id: "training", name: "Training" },
+  { id: "night-checking", name: "Night Checking" },
+  { id: "paid-gst", name: "Paid GST" },
+  {
+    id: "company-documents",
+    name: "Company Documents",
+    children: ["MSME", "GST", "Pasara", "PAN", "Profile", "Bank Details"],
+  },
+];
+
+// Dummy data
 const dummyGuardDetails = {
   id: 1,
-  name: "Guard A",
-  email: "guardA@example.com",
-  phone: "(555) 111-2222",
+  image: null,
+  name: "Rajesh Kumar",
+  email: "rajesh@securitypro.com",
+  phone: "+91 98765 43210",
   status: "Active",
   assignedDate: "2025-01-01",
+  type: "Security Officer",
+  experience: "8 years",
+  rating: 4.7,
+  location: "Mumbai",
+  address: "123 Security Quarters, Andheri East, Mumbai - 400069",
+  specialization: [
+    "Crowd Control",
+    "Executive Protection",
+    "Emergency Response",
+    "Surveillance",
+  ],
+  certifications: [
+    "CPR & First Aid Certified",
+    "Security Guard License",
+    "Firearms Permit",
+  ],
+  performance: {
+    totalAssignments: 5,
+    completedAssignments: 4,
+    successRate: 90,
+    averageRating: 4.7,
+    clientSatisfaction: 95,
+  },
+  assignmentHistory: [
+    {
+      id: 1,
+      clientName: "TechCorp Inc.",
+      startDate: "2024-01-01",
+      endDate: "2024-12-31",
+      status: "Active",
+      rating: 4.8,
+    },
+  ],
   documents: [
     {
       id: 1,
-      name: "Certification",
+      name: "Certification.pdf",
       type: "Certificate",
       uploaded: "2025-01-01",
       size: "500 KB",
+      category: "Training",
       description: "Security certification.",
     },
     {
       id: 2,
-      name: "Training Report",
+      name: "Training Report.pdf",
       type: "Report",
       uploaded: "2025-01-05",
       size: "1.2 MB",
+      category: "Training",
       description: "Latest training completion report.",
+    },
+  ],
+  activity: [
+    {
+      id: 1,
+      type: "Shift Completed",
+      description: "Daily security shift at TechCorp HQ",
+      date: "2025-01-15",
+    },
+    {
+      id: 2,
+      type: "Training Session",
+      description: "Attended emergency response training",
+      date: "2025-01-10",
     },
   ],
 };
@@ -55,9 +163,14 @@ export default function GuardDetails() {
   const params = useParams();
   const guardId = parseInt(params.id);
   const router = useRouter();
-  const guard = dummyGuardDetails; // In real app, fetch based on id
+  const [guard, setGuard] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
-  const activeTab = "management";
+  useEffect(() => {
+    // Simulate fetch
+    setGuard(dummyGuardDetails);
+  }, [guardId]);
+
   const handleTabChange = () => {
     router.push("/client-dashboard");
   };
@@ -65,15 +178,27 @@ export default function GuardDetails() {
   if (!guard) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <Header activeTab={activeTab} setActiveTab={handleTabChange} />
+        <Header
+          activeTab="management"
+          setActiveTab={handleTabChange}
+          documentCategories={dummyDocumentCategories}
+        />
         <div className="flex flex-1">
           <DesktopSidebar
-            activeTab={activeTab}
+            activeTab="management"
             setActiveTab={handleTabChange}
+            documentCategories={dummyDocumentCategories}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
-              <p className="text-foreground">Guard not found</p>
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">
+                    Loading guard details...
+                  </p>
+                </div>
+              </div>
             </div>
           </main>
         </div>
@@ -81,112 +206,586 @@ export default function GuardDetails() {
     );
   }
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Active":
+        return (
+          <Badge
+            variant="default"
+            className="rounded-full bg-success text-success-foreground"
+          >
+            Active
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header activeTab={activeTab} setActiveTab={handleTabChange} />
+      <Header
+        activeTab="management"
+        setActiveTab={handleTabChange}
+        documentCategories={dummyDocumentCategories}
+      />
       <div className="flex flex-1">
-        <DesktopSidebar activeTab={activeTab} setActiveTab={handleTabChange} />
-        <main className="flex-1">
-          <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-6 text-foreground">
-              Guard Details: {guard.name}
-            </h1>
+        <DesktopSidebar
+          activeTab="management"
+          setActiveTab={handleTabChange}
+          documentCategories={dummyDocumentCategories}
+        />
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto px-4 py-6 sm:py-8 lg:py-12 max-w-7xl">
+            {/* Page Header with Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.back()}
+                  className="rounded-xl hover:bg-muted"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                    Guard Profile
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    {guard.type} • {guard.location}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="rounded-xl">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Send Message
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Send Message to {guard.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input placeholder="Type your message..." />
+                      <Button className="w-full">Send</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button variant="outline" size="sm" className="rounded-xl">
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Request Change
+                </Button>
+              </div>
+            </div>
 
-            <Card className="mb-6 shadow-md border-0">
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+            {/* Profile Section */}
+            <Card className="rounded-3xl border-border/70 shadow-xl overflow-hidden mb-8">
+              <CardHeader className="p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                  <div className="flex flex-col sm:flex-row items-center gap-6 flex-1">
+                    <div className="relative">
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center border-4 border-white/20 shadow-lg">
+                        {guard.image ? (
+                          <Image
+                            src={guard.image}
+                            alt={guard.name}
+                            width={128}
+                            height={128}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-16 w-16 text-primary/60" />
+                        )}
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 bg-success rounded-full p-2">
+                        <CheckCircle2 className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-bold text-foreground">
+                          {guard.name}
+                        </h2>
+                        {getStatusBadge(guard.status)}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <Shield className="h-4 w-4" />
+                          {guard.type}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 fill-current text-warning" />
+                          {guard.rating} ({guard.experience})
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {guard.location}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full lg:w-auto space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-center p-3 rounded-xl bg-muted/50">
+                        <div className="text-2xl font-bold text-primary">
+                          {guard.performance.totalAssignments}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Assignments
+                        </div>
+                      </div>
+                      <div className="text-center p-3 rounded-xl bg-muted/50">
+                        <div className="text-2xl font-bold text-success">
+                          {guard.performance.successRate}%
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Success Rate
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4 p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-secondary font-medium">Email</p>
-                    <p className="text-foreground">{guard.email}</p>
+              <CardContent className="p-6 space-y-6">
+                {/* Contact Info */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Mail className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground">Email</div>
+                        <div className="text-sm text-muted-foreground">
+                          {guard.email}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                      <div className="p-2 bg-success/10 rounded-lg">
+                        <Phone className="h-4 w-4 text-success" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground">Phone</div>
+                        <div className="text-sm text-muted-foreground">
+                          {guard.phone}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-secondary font-medium">Phone</p>
-                    <p className="text-foreground">{guard.phone}</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                      <div className="p-2 bg-warning/10 rounded-lg">
+                        <Calendar className="h-4 w-4 text-warning" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground">
+                          Assigned
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatDate(guard.assignedDate)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                      <div className="p-2 bg-info/10 rounded-lg">
+                        <MapPin className="h-4 w-4 text-info" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground">
+                          Address
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {guard.address}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-secondary font-medium">Status</p>
-                    <p className="text-foreground">
-                      <Badge variant="default">{guard.status}</Badge>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-secondary font-medium">
-                      Assigned Date
-                    </p>
-                    <p className="text-foreground">{guard.assignedDate}</p>
-                  </div>
+                </div>
+                {/* Specializations and Certifications */}
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <Card className="rounded-2xl border-border/50">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Target className="h-4 w-4" />
+                        Specializations
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-2">
+                      {guard.specialization.map((skill, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="rounded-full"
+                        >
+                          {skill}
+                        </Badge>
+                      ))}
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-2xl border-border/50">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <GraduationCap className="h-4 w-4" />
+                        Certifications
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-2">
+                      {guard.certifications.map((cert, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="rounded-full"
+                        >
+                          {cert}
+                        </Badge>
+                      ))}
+                    </CardContent>
+                  </Card>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="shadow-md border-0">
-              <CardHeader>
-                <CardTitle>Documents</CardTitle>
-                <CardDescription>
-                  View guard's associated documents and certifications.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                {guard.documents.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Uploaded</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {guard.documents.map((doc) => (
-                        <TableRow key={doc.id}>
-                          <TableCell className="font-medium">
-                            {doc.name}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{doc.type}</Badge>
-                          </TableCell>
-                          <TableCell className="text-foreground">
-                            {doc.uploaded}
-                          </TableCell>
-                          <TableCell className="text-foreground">
-                            {doc.size}
-                          </TableCell>
-                          <TableCell className="text-foreground max-w-[200px] truncate">
-                            {doc.description}
-                          </TableCell>
-                          <TableCell className="space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+            {/* Main Content Tabs */}
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="space-y-6"
+            >
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 h-12 rounded-2xl bg-muted/40 p-1 shadow-inner">
+                {[
+                  { value: "overview", label: "Overview", icon: BarChart3 },
+                  { value: "documents", label: "Documents", icon: FileText },
+                  {
+                    value: "performance",
+                    label: "Performance",
+                    icon: TrendingUp,
+                  },
+                  { value: "history", label: "History", icon: History },
+                ].map(({ value, label, icon: Icon }) => (
+                  <TabsTrigger
+                    key={value}
+                    value={value}
+                    className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md flex items-center gap-2"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <Card className="rounded-3xl border-border/70 shadow-xl">
+                    <CardHeader className="p-6">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <TrendingUp className="h-5 w-5 text-success" />
+                        Performance Overview
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Total Assignments
+                          </div>
+                          <div className="text-2xl font-bold text-foreground">
+                            {guard.performance.totalAssignments}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Completed
+                          </div>
+                          <div className="text-2xl font-bold text-success">
+                            {guard.performance.completedAssignments}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Success Rate
+                          </div>
+                          <div className="text-2xl font-bold text-primary">
+                            {guard.performance.successRate}%
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Avg Rating
+                          </div>
+                          <div className="text-2xl font-bold text-warning">
+                            {guard.performance.averageRating}
+                          </div>
+                        </div>
+                      </div>
+                      <Progress
+                        value={guard.performance.clientSatisfaction}
+                        className="h-3"
+                      />
+                      <div className="text-center text-sm text-muted-foreground">
+                        Client Satisfaction:{" "}
+                        {guard.performance.clientSatisfaction}%
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="rounded-3xl border-border/70 shadow-xl">
+                    <CardHeader className="p-6">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Award className="h-5 w-5 text-warning" />
+                        Ratings Breakdown
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                      <div className="space-y-3">
+                        {[5, 4, 3, 2, 1].map((star) => (
+                          <div
+                            key={star}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="flex">
+                                {Array.from({ length: star }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className="h-3 w-3 fill-current text-warning"
+                                  />
+                                ))}
+                                {Array.from({ length: 5 - star }).map(
+                                  (_, i) => (
+                                    <Star
+                                      key={i}
+                                      className="h-3 w-3 text-muted-foreground"
+                                    />
+                                  )
+                                )}
+                              </div>
+                              <span className="text-sm text-muted-foreground">
+                                ({Math.floor(Math.random() * 10) + 1})
+                              </span>
+                            </div>
+                            <div className="w-24">
+                              <Progress
+                                value={Math.random() * 100}
+                                className="h-2"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Documents Tab */}
+              <TabsContent value="documents" className="space-y-6">
+                <Card className="rounded-3xl border-border/70 shadow-xl">
+                  <CardHeader className="p-6">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Guard Documents
+                    </CardTitle>
+                    <CardDescription>
+                      View and download guard's certifications and reports.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {guard.documents.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Uploaded</TableHead>
+                            <TableHead>Size</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {guard.documents.map((doc) => (
+                            <TableRow key={doc.id}>
+                              <TableCell className="font-medium">
+                                {doc.name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="secondary"
+                                  className="rounded-full text-xs"
+                                >
+                                  {doc.type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {doc.category}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {formatDate(doc.uploaded)}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {doc.size}
+                              </TableCell>
+                              <TableCell className="text-foreground max-w-[200px] truncate">
+                                {doc.description}
+                              </TableCell>
+                              <TableCell className="space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        No documents available for this guard.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Performance Tab */}
+              <TabsContent value="performance" className="space-y-6">
+                <Card className="rounded-3xl border-border/70 shadow-xl">
+                  <CardHeader className="p-6">
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Performance Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Success Rate
+                        </span>
+                        <span className="text-2xl font-bold">
+                          {guard.performance.successRate}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={guard.performance.successRate}
+                        className="h-2"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Client Satisfaction
+                        </span>
+                        <span className="text-2xl font-bold">
+                          {guard.performance.clientSatisfaction}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={guard.performance.clientSatisfaction}
+                        className="h-2"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* History Tab */}
+              <TabsContent value="history" className="space-y-6">
+                <Card className="rounded-3xl border-border/70 shadow-xl">
+                  <CardHeader className="p-6">
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5" />
+                      Activity Timeline
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="space-y-4">
+                      {guard.activity.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-start gap-4 p-4 rounded-xl bg-muted/30"
+                        >
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <Activity className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">{item.type}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.description}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatDate(item.date)}
+                            </p>
+                          </div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-center text-secondary py-8">
-                    No documents available for this guard.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                    {/* Assignment History */}
+                    {guard.assignmentHistory.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-border/50">
+                        <h3 className="font-semibold mb-4">
+                          Assignment History
+                        </h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Duration</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Rating</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {guard.assignmentHistory.map((assignment) => (
+                              <TableRow key={assignment.id}>
+                                <TableCell>{assignment.clientName}</TableCell>
+                                <TableCell>
+                                  {formatDate(assignment.startDate)} -{" "}
+                                  {formatDate(assignment.endDate)}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary">
+                                    {assignment.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{assignment.rating}/5</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>

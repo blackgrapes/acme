@@ -1,6 +1,7 @@
+// File: src/app/admin-dashboard/page.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Shield, User, LogOut, Plus, Eye } from "lucide-react";
@@ -12,11 +13,11 @@ import ClientManagement from "@/components/admin/ClientManagement";
 import DocumentManagement from "@/components/admin/DocumentManagement";
 import RequestReports from "@/components/admin/RequestReports";
 import GuardManagement from "@/components/admin/GuardManagement";
-import FrontendManagement from "@/components/admin/FrontendManagement";
 import ContactManagement from "@/components/admin/ContactManagement";
 import SettingsManagement from "@/components/admin/SettingsManagement";
 import AdminProfileDialog from "@/components/admin/AdminProfileDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import RoleManagement from "@/components/admin/RoleManagement";
 
 const dummyClients = [
   {
@@ -103,7 +104,7 @@ const dummyDocuments = [
   {
     id: 1,
     name: "Service Agreement Template",
-    type: "template",
+    type: "agreement",
     uploaded: "2024-12-01",
     size: "2.1 MB",
     uploader: "Admin",
@@ -114,7 +115,7 @@ const dummyDocuments = [
   {
     id: 2,
     name: "Company Privacy Policy",
-    type: "policy",
+    type: "attendance",
     uploaded: "2024-11-15",
     size: "1.5 MB",
     uploader: "Legal Team",
@@ -125,7 +126,7 @@ const dummyDocuments = [
   {
     id: 3,
     name: "Insurance Certificate 2025",
-    type: "certificate",
+    type: "bills",
     uploaded: "2024-12-20",
     size: "85 KB",
     uploader: "Admin",
@@ -136,12 +137,24 @@ const dummyDocuments = [
   {
     id: 4,
     name: "Monthly Operations Report",
-    type: "report",
+    type: "salary slips",
     uploaded: "2025-01-01",
     size: "3.2 MB",
     uploader: "Operations Manager",
     access: "Specific",
     description: "Q4 2024 operations summary.",
+    actions: true,
+  },
+  // Added one for child category
+  {
+    id: 5,
+    name: "MSME Certificate",
+    type: "msme",
+    uploaded: "2025-01-05",
+    size: "500 KB",
+    uploader: "Admin",
+    access: "Admin",
+    description: "MSME registration document.",
     actions: true,
   },
 ];
@@ -168,47 +181,52 @@ const dummyWeProvideServices = [
   {
     id: 1,
     title: "Personal Security Officer",
-    summary:
-      "24x7 personal protection — escorting clients like a shadow while respecting personal & professional space.",
-    benefits: [
-      "Crowd control & family protection",
-      "Extreme security coverage",
-      "Discreet presence",
-    ],
-    img: "/Personal.jpg",
+    summary: "Professional personal security for high-profile individuals.",
+    benefits: ["24/7 Protection", "Trained Personnel", "Discreet Service"],
+    img: true,
     slug: "pso",
     showOnHome: true,
   },
   {
     id: 2,
     title: "Security Guard",
-    summary:
-      "On-site guards ensuring rules, laws, and company policies are enforced with quick response.",
-    benefits: ["Protect property", "Emergency handling", "Access control"],
-    img: "/SecurityGuard.jpg",
+    summary: "Reliable on-site security for businesses and events.",
+    benefits: ["Uniformed Guards", "Patrol Services", "Access Control"],
+    img: true,
     slug: "guard",
     showOnHome: true,
   },
-  // Add more as per WeProvide
+  // Add more as needed
 ];
 
 const dummyGalleryItems = [
   {
     id: 1,
-    tag: "Events",
-    caption: "Corporate event security",
-    src: "url1",
+    caption: "Security Training Session",
+    tag: "training",
     type: "image",
     showOnHome: true,
+  },
+  {
+    id: 2,
+    caption: "Event Security Deployment",
+    tag: "events",
+    type: "video",
+    showOnHome: false,
   },
 ];
 
 const dummyFrontendClients = [
   {
     id: 1,
-    name: "Client 1",
-    logo: "url1",
-    quote: "ACME elevated...",
+    name: "ABC Corporation",
+    quote: "Excellent security services!",
+    showOnHome: true,
+  },
+  {
+    id: 2,
+    name: "TechCorp",
+    quote: "Reliable and professional.",
     showOnHome: true,
   },
 ];
@@ -216,40 +234,54 @@ const dummyFrontendClients = [
 const dummyTestimonials = [
   {
     id: 1,
-    quote: "Reliable team...",
-    author: "Operations Head",
+    quote: "Best security team we've worked with.",
+    author: "John D.",
     showOnHome: true,
+  },
+  {
+    id: 2,
+    quote: "Highly recommend for corporate needs.",
+    author: "Jane S.",
+    showOnHome: false,
   },
 ];
 
 const dummyContactSubmissions = [
   {
     id: 1,
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "+91 1234567890",
-    message: "Inquiry about security services...",
-    date: "2025-01-15",
+    name: "Alice Brown",
+    email: "alice@example.com",
+    phone: "(555) 111-1111",
+    message: "Interested in security services for our event.",
+    date: "2025-01-13",
+  },
+  {
+    id: 2,
+    name: "Bob Wilson",
+    email: "bob@example.com",
+    phone: "(555) 222-2222",
+    message: "Need quote for residential security.",
+    date: "2025-01-12",
   },
 ];
 
+// Settings dummy data
 const companyInfo = {
-  name: "Elite Security",
+  name: "Elite Security Services",
   email: "info@elitesecurity.com",
-  phone: "(555) 123-4567",
-  address: "123 Security Blvd, City, ST 2345",
+  phone: "(555) 000-0000",
+  address: "123 Security Blvd, Secure City, SC 12345",
 };
 
 const securitySettings = {
   twoFactor: true,
-  sessionTimeout: 60,
-  loginAlerts: true,
+  sessionTimeout: 30,
+  loginAttempts: 5,
 };
 
 const notificationSettings = {
-  newClient: true,
-  incidentReports: true,
-  maintenance: true,
+  emailAlerts: true,
+  smsAlerts: false,
   adminEmail: "admin@elitesecurity.com",
 };
 
@@ -260,101 +292,169 @@ const emailSettings = {
   useSSL: true,
 };
 
-const systemMaintenance = {
-  lastBackup: "January 15, 2025 at 3:00 AM",
-  nextBackup: "January 16, 2025 at 3:00 AM",
-};
+const documentCategories = [
+  {
+    id: 1,
+    name: "Agreements",
+    children: ["Service Agreements", "NDAs"],
+  },
+  {
+    id: 2,
+    name: "Attendance",
+    children: ["Timesheets", "Leave Requests"],
+  },
+  {
+    id: 3,
+    name: "Bills",
+    children: ["Invoices", "Receipts"],
+  },
+  {
+    id: 4,
+    name: "Salary Slips",
+  },
+  {
+    id: 5,
+    name: "MSME Documents",
+    children: ["MSME Certificate", "GST Returns"],
+  },
+];
 
-export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [frontendTab, setFrontendTab] = useState("weprovide");
-  const [contactTab, setContactTab] = useState("submissions");
-  const [openAdminDialog, setOpenAdminDialog] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+const frontendCategories = [
+  { id: "weprovide", name: "We Provide" },
+  { id: "gallery", name: "Gallery" },
+  { id: "clients", name: "Clients" },
+  { id: "testimonials", name: "Testimonials" },
+];
+
+export default function AdminDashboard() {
   const router = useRouter();
-
-  const [selectedGuards, setSelectedGuards] = useState([]);
-  const [showSpecificClients, setShowSpecificClients] = useState(false);
-  const [guardDocuments, setGuardDocuments] = useState([]);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [openAdminDialog, setOpenAdminDialog] = useState(false);
   const [guardSearch, setGuardSearch] = useState("");
   const [docGuardSearch, setDocGuardSearch] = useState("");
+  const [selectedGuards, setSelectedGuards] = useState([]);
   const [selectedDocGuards, setSelectedDocGuards] = useState([]);
-  const [filteredGuards, setFilteredGuards] = useState(dummyGuards);
+  const [showSpecificClients, setShowSpecificClients] = useState(false);
+  const [contactTab, setContactTab] = useState("submissions");
+  const [guardDocuments, setGuardDocuments] = useState([]);
+  const [documentCategoriesState, setDocumentCategoriesState] =
+    useState(documentCategories);
+
+  const filteredClientGuards = useMemo(() => {
+    return dummyGuards.filter(
+      (guard) =>
+        guard.name.toLowerCase().includes(guardSearch.toLowerCase()) ||
+        guard.email.toLowerCase().includes(guardSearch.toLowerCase())
+    );
+  }, [guardSearch]);
+
+  const filteredDocGuards = useMemo(() => {
+    return dummyGuards.filter(
+      (guard) =>
+        guard.name.toLowerCase().includes(docGuardSearch.toLowerCase()) ||
+        guard.email.toLowerCase().includes(docGuardSearch.toLowerCase())
+    );
+  }, [docGuardSearch]);
+
+  const handleGuardSearch = (e, type) => {
+    if (type === "client") {
+      setGuardSearch(e.target.value);
+    } else if (type === "doc") {
+      setDocGuardSearch(e.target.value);
+    }
+  };
+
+  const toggleGuardSelection = (guardId, type) => {
+    setSelectedGuards((prev) =>
+      type === "client"
+        ? prev.includes(guardId)
+          ? prev.filter((id) => id !== guardId)
+          : [...prev, guardId]
+        : prev
+    );
+    setSelectedDocGuards((prev) =>
+      type === "doc"
+        ? prev.includes(guardId)
+          ? prev.filter((id) => id !== guardId)
+          : [...prev, guardId]
+        : prev
+    );
+  };
 
   const handleClientRowClick = (clientId) => {
     router.push(`/admin-dashboard/client-details/${clientId}`);
   };
 
   const handleGuardRowClick = (guardId) => {
-    // Optional
+    router.push(`/admin-dashboard/guard/${guardId}`);
   };
 
   const handleAddGuardDocuments = (e) => {
     const files = Array.from(e.target.files);
-    setGuardDocuments(
-      files.map((file) => ({
+    setGuardDocuments((prev) => [
+      ...prev,
+      ...files.map((file) => ({
         name: file.name,
-        size: (file.size / 1024).toFixed(2) + "KB",
-        file,
-      }))
-    );
+        size: (file.size / 1024).toFixed(0) + "KB",
+      })),
+    ]);
   };
 
-  const handleGuardSearch = (e, searchType = "client") => {
-    const value = e.target.value.toLowerCase();
-    if (searchType === "client") {
-      setGuardSearch(value);
-    } else {
-      setDocGuardSearch(value);
-    }
-    const filtered = dummyGuards.filter(
-      (guard) =>
-        guard.name.toLowerCase().includes(value) ||
-        guard.email.toLowerCase().includes(value)
-    );
-    if (searchType === "client") {
-      setFilteredGuards(filtered);
-    } else {
-      setFilteredGuards(filtered); // Reuse for doc as well
-    }
+  const addNewCategory = (newCategoryName) => {
+    setDocumentCategoriesState((prev) => [
+      ...prev,
+      { id: prev.length + 1, name: newCategoryName },
+    ]);
   };
 
-  const toggleGuardSelection = (guardId, searchType = "client") => {
-    setSelectedGuards((prev) =>
-      prev.includes(guardId)
-        ? prev.filter((id) => id !== guardId)
-        : [...prev, guardId]
-    );
-    if (searchType === "doc") {
-      setSelectedDocGuards((prev) =>
-        prev.includes(guardId)
-          ? prev.filter((id) => id !== guardId)
-          : [...prev, guardId]
-      );
+  const currentCategory = useMemo(() => {
+    if (activeTab === "documents-all") return null;
+    if (activeTab === "documents-add-tab") return "add-tab";
+    const slug = activeTab.replace("documents-", "");
+    const deSlugged = slug.replace(/-/g, " ");
+    for (let cat of documentCategoriesState) {
+      if (cat.children) {
+        const child = cat.children.find((c) => c.toLowerCase() === deSlugged);
+        if (child) {
+          return { name: cat.name, child };
+        }
+      } else if (cat.name.toLowerCase() === deSlugged) {
+        return cat;
+      }
     }
-  };
-
-  const filteredClientGuards = guardSearch
-    ? dummyGuards.filter(
-        (guard) =>
-          guard.name.toLowerCase().includes(guardSearch.toLowerCase()) ||
-          guard.email.toLowerCase().includes(guardSearch.toLowerCase())
-      )
-    : dummyGuards;
-
-  const filteredDocGuards = docGuardSearch
-    ? dummyGuards.filter(
-        (guard) =>
-          guard.name.toLowerCase().includes(docGuardSearch.toLowerCase()) ||
-          guard.email.toLowerCase().includes(docGuardSearch.toLowerCase())
-      )
-    : dummyGuards;
+    return null;
+  }, [activeTab, documentCategoriesState]);
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return <DashboardContent dummyClients={dummyClients} dummyDocuments={dummyDocuments} />;
-      case "clients":
+    switch (true) {
+      case activeTab.startsWith("documents"):
+        return (
+          <DocumentManagement
+            dummyDocuments={dummyDocuments}
+            showSpecificClients={showSpecificClients}
+            setShowSpecificClients={setShowSpecificClients}
+            docGuardSearch={docGuardSearch}
+            handleGuardSearch={handleGuardSearch}
+            selectedDocGuards={selectedDocGuards}
+            toggleGuardSelection={toggleGuardSelection}
+            filteredDocGuards={filteredDocGuards}
+            currentCategory={currentCategory}
+            addNewCategory={addNewCategory}
+            documentCategories={documentCategoriesState}
+          />
+        );
+      // ... other cases ...
+      case activeTab === "roles":
+        return <RoleManagement />;
+      case activeTab === "dashboard":
+        return (
+          <DashboardContent
+            dummyClients={dummyClients}
+            dummyDocuments={dummyDocuments}
+          />
+        );
+      case activeTab === "clients":
         return (
           <ClientManagement
             dummyClients={dummyClients}
@@ -366,22 +466,9 @@ export default function AdminPanel() {
             handleClientRowClick={handleClientRowClick}
           />
         );
-      case "documents":
-        return (
-          <DocumentManagement
-            dummyDocuments={dummyDocuments}
-            showSpecificClients={showSpecificClients}
-            setShowSpecificClients={setShowSpecificClients}
-            docGuardSearch={docGuardSearch}
-            handleGuardSearch={handleGuardSearch}
-            selectedDocGuards={selectedDocGuards}
-            toggleGuardSelection={toggleGuardSelection}
-            filteredDocGuards={filteredDocGuards}
-          />
-        );
-      case "requests":
+      case activeTab === "requests":
         return <RequestReports dummyRequests={dummyRequests} />;
-      case "guards":
+      case activeTab === "guards":
         return (
           <GuardManagement
             dummyGuards={dummyGuards}
@@ -390,12 +477,30 @@ export default function AdminPanel() {
             handleGuardRowClick={handleGuardRowClick}
           />
         );
-      case "frontend":
-        return <FrontendManagement frontendTab={frontendTab} setFrontendTab={setFrontendTab} dummyWeProvideServices={dummyWeProvideServices} dummyGalleryItems={dummyGalleryItems} dummyFrontendClients={dummyFrontendClients} dummyTestimonials={dummyTestimonials} />;
-      case "contact":
-        return <ContactManagement contactTab={contactTab} setContactTab={setContactTab} dummyContactSubmissions={dummyContactSubmissions} />;
-      case "settings":
-        return <SettingsManagement companyInfo={companyInfo} securitySettings={securitySettings} notificationSettings={notificationSettings} emailSettings={emailSettings} systemMaintenance={systemMaintenance} />;
+      case activeTab === "roles":
+        return <RoleManagement />;
+      case activeTab === "contact":
+        return (
+          <ContactManagement
+            contactTab={contactTab}
+            setContactTab={setContactTab}
+            dummyContactSubmissions={dummyContactSubmissions}
+          />
+        );
+      case activeTab === "settings":
+        return (
+          <SettingsManagement
+            companyInfo={companyInfo}
+            securitySettings={securitySettings}
+            notificationSettings={notificationSettings}
+            emailSettings={emailSettings}
+            frontendCategories={frontendCategories}
+            dummyWeProvideServices={dummyWeProvideServices}
+            dummyGalleryItems={dummyGalleryItems}
+            dummyFrontendClients={dummyFrontendClients}
+            dummyTestimonials={dummyTestimonials}
+          />
+        );
       default:
         return null;
     }
@@ -410,18 +515,34 @@ export default function AdminPanel() {
         setSettingsOpen={setSettingsOpen}
         openAdminDialog={openAdminDialog}
         setOpenAdminDialog={setOpenAdminDialog}
+        documentCategories={documentCategoriesState}
       />
+
       <div className="flex flex-1">
-        <DesktopSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex-1">
-          <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <DesktopSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          documentCategories={documentCategoriesState}
+          setDocumentCategories={setDocumentCategoriesState}
+        />
+
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto px-4 py-6 sm:py-8 lg:py-12 max-w-7xl">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               {renderTabContent()}
             </Tabs>
           </div>
         </main>
       </div>
-      <AdminProfileDialog open={openAdminDialog} onOpenChange={setOpenAdminDialog} />
+
+      <AdminProfileDialog
+        open={openAdminDialog}
+        onOpenChange={setOpenAdminDialog}
+      />
     </div>
   );
 }

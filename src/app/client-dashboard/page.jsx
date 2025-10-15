@@ -1,4 +1,4 @@
-// Updated File: app/client-dashboard/page.jsx (Updated main Client Panel file)
+// File: app/client-dashboard/page.jsx
 "use client";
 
 import { useState } from "react";
@@ -10,6 +10,25 @@ import ClientOverview from "@/components/client/ClientOverview";
 import ServiceReports from "@/components/client/ServiceReports";
 import ClientDocuments from "@/components/client/ClientDocuments";
 import ClientManagement from "@/components/client/ClientManagement";
+
+const documentCategories = [
+  { id: "agreement", name: "Agreement" },
+  { id: "attendance", name: "Attendance" },
+  { id: "bills", name: "Bills" },
+  { id: "salary-slips", name: "Salary Slips" },
+  { id: "pay-slips", name: "Pay Slips" },
+  { id: "esi", name: "ESI" },
+  { id: "pf", name: "PF" },
+  { id: "employee-details", name: "Employee Details" },
+  { id: "training", name: "Training" },
+  { id: "night-checking", name: "Night Checking" },
+  { id: "paid-gst", name: "Paid GST" },
+  {
+    id: "company-documents",
+    name: "Company Documents",
+    children: ["MSME", "GST", "Pasara", "PAN", "Profile", "Bank Details"],
+  },
+];
 
 const dummyServiceReports = [
   {
@@ -83,7 +102,7 @@ const dummyDocuments = [
   {
     id: 1,
     name: "Service Agreement 2025",
-    type: "Contract",
+    type: "agreement",
     uploaded: "2025-01-01",
     size: "2.4 MB",
     category: "Contracts",
@@ -93,7 +112,7 @@ const dummyDocuments = [
   {
     id: 2,
     name: "Monthly Security Report - December",
-    type: "Report",
+    type: "report",
     uploaded: "2024-12-31",
     size: "1.8 MB",
     category: "Reports",
@@ -103,7 +122,7 @@ const dummyDocuments = [
   {
     id: 3,
     name: "Insurance Certificate",
-    type: "Certificate",
+    type: "msme",
     uploaded: "2024-12-15",
     size: "85 KB",
     category: "Certificates",
@@ -113,7 +132,7 @@ const dummyDocuments = [
   {
     id: 4,
     name: "Invoice - January 2025",
-    type: "Invoice",
+    type: "bills",
     uploaded: "2025-01-01",
     size: "3.4 MB",
     category: "Invoices",
@@ -173,37 +192,69 @@ export default function ClientPortal() {
   };
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "overview":
-        return (
-          <ClientOverview
-            dummyServiceReports={dummyServiceReports}
-            dummyIncidentReports={dummyIncidentReports}
-            dummyDocuments={dummyDocuments}
-          />
+    if (activeTab === "overview") {
+      return (
+        <ClientOverview
+          dummyServiceReports={dummyServiceReports}
+          dummyIncidentReports={dummyIncidentReports}
+          dummyDocuments={dummyDocuments}
+        />
+      );
+    } else if (activeTab === "service-reports") {
+      return <ServiceReports dummyServiceReports={dummyServiceReports} />;
+    } else if (activeTab.startsWith("documents")) {
+      const sub =
+        activeTab === "documents"
+          ? "documents"
+          : activeTab.substring("documents-".length);
+      let currentCategory = null;
+      if (sub !== "documents") {
+        const companyCat = documentCategories.find(
+          (c) => c.id === "company-documents"
         );
-      case "service-reports":
-        return <ServiceReports dummyServiceReports={dummyServiceReports} />;
-      case "documents":
-        return <ClientDocuments dummyDocuments={dummyDocuments} />;
-      case "management":
-        return (
-          <ClientManagement
-            dummyGuards={dummyGuards}
-            dummyRequests={dummyRequests}
-            handleGuardClick={handleGuardClick}
-          />
+        const child = companyCat?.children.find(
+          (ch) => ch.replace(/\s+/g, "-").toLowerCase() === sub
         );
-      default:
-        return null;
+        if (child) {
+          currentCategory = { name: "Company Documents", child };
+        } else {
+          currentCategory = documentCategories.find(
+            (c) => c.name.replace(/\s+/g, "-").toLowerCase() === sub
+          );
+        }
+      }
+      return (
+        <ClientDocuments
+          dummyDocuments={dummyDocuments}
+          currentCategory={currentCategory || "documents"}
+        />
+      );
+    } else if (activeTab === "management") {
+      return (
+        <ClientManagement
+          dummyGuards={dummyGuards}
+          dummyRequests={dummyRequests}
+          dummyDocuments={dummyDocuments}
+          handleGuardClick={handleGuardClick}
+        />
+      );
     }
+    return null;
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        documentCategories={documentCategories}
+      />
       <div className="flex flex-1">
-        <DesktopSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <DesktopSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          documentCategories={documentCategories}
+        />
         <main className="flex-1">
           <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
             <Tabs

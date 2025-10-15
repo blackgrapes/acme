@@ -11,13 +11,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 
 export default function AdminProfileDialog({ open, onOpenChange }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Admin Profile</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="/avatar.jpg" />
+              <AvatarFallback>
+                <User className="h-4 w-4" />
+              </AvatarFallback>
+            </Avatar>
+            Admin Profile
+          </DialogTitle>
           <DialogDescription>Edit your admin details.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -41,8 +51,10 @@ export default function AdminProfileDialog({ open, onOpenChange }) {
             <Label htmlFor="adminImage">Profile Image</Label>
             <Input id="adminImage" type="file" accept="image/*" />
           </div>
-          <DialogFooter>
-            <Button type="submit">Save Changes</Button>
+          <DialogFooter className="mt-6">
+            <Button type="submit" className="w-full shadow-lg">
+              Save Changes
+            </Button>
           </DialogFooter>
         </div>
       </DialogContent>

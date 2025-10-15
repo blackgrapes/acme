@@ -1,4 +1,4 @@
-// File: src/component/client/Header.jsx
+// File: src/components/client/Header.jsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import RequestDocumentDialog from "./RequestDocumentDialog";
 import ContactSupportDialog from "./ContactSupportDialog";
 import { useState } from "react";
 
-export default function Header({ activeTab, setActiveTab }) {
+export default function Header({ activeTab, setActiveTab, documentCategories }) {
   const [openMobile, setOpenMobile] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -40,6 +40,7 @@ export default function Header({ activeTab, setActiveTab }) {
               <MobileSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                documentCategories={documentCategories}
               />
             </Sheet>
             <div className="flex items-center gap-2">

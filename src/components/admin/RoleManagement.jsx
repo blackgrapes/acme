@@ -1,0 +1,1238 @@
+// Enhanced File: src/components/admin/RoleManagement.jsx
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Key,
+  Users,
+  Shield,
+  Mail,
+  Clock,
+  AlertCircle,
+  UserPlus,
+  Minus,
+  RefreshCw,
+  Search,
+  Filter,
+  MoreVertical,
+  Eye,
+  Copy,
+  Check,
+  Download,
+  Upload,
+  BarChart3,
+  FileText,
+  UserCheck,
+  Settings,
+  Palette,
+  Phone,
+  Building,
+  X,
+  ArrowLeft,
+} from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+
+const dummyRoles = [
+  {
+    id: 1,
+    name: "Super Admin",
+    description: "Full access to all admin features and tabs",
+    permissions: [
+      "dashboard-read",
+      "clients-create",
+      "clients-read",
+      "clients-update",
+      "clients-delete",
+      "documents-create",
+      "documents-read",
+      "documents-update",
+      "documents-delete",
+      "requests-create",
+      "requests-read",
+      "requests-update",
+      "requests-delete",
+      "guards-create",
+      "guards-read",
+      "guards-update",
+      "guards-delete",
+      "frontend-create",
+      "frontend-read",
+      "frontend-update",
+      "frontend-delete",
+      "roles-create",
+      "roles-read",
+      "roles-update",
+      "roles-delete",
+      "contact-create",
+      "contact-read",
+      "contact-update",
+      "contact-delete",
+      "settings-create",
+      "settings-read",
+      "settings-update",
+      "settings-delete",
+    ],
+    users: 1,
+    created: "2025-01-01",
+    status: "Active",
+  },
+  {
+    id: 2,
+    name: "Frontend Editor",
+    description: "Limited access to frontend management and dashboard",
+    permissions: [
+      "dashboard-read",
+      "frontend-create",
+      "frontend-read",
+      "frontend-update",
+    ],
+    users: 2,
+    created: "2025-01-10",
+    status: "Active",
+  },
+  {
+    id: 3,
+    name: "Guard Supervisor",
+    description: "Access to guards, requests, and dashboard only",
+    permissions: [
+      "dashboard-read",
+      "guards-read",
+      "guards-update",
+      "requests-read",
+      "requests-create",
+    ],
+    users: 0,
+    created: "2025-01-15",
+    status: "Inactive",
+  },
+];
+
+const dummyUsers = [
+  {
+    id: 1,
+    name: "Sarah Johnson",
+    email: "sarah@elite.com",
+    role: "Super Admin",
+    status: "Active",
+    lastLogin: "2025-01-15",
+    joinDate: "2024-01-15",
+    password: "TempPass2025!x7kP9#mQ",
+    avatar: "SJ",
+  },
+  {
+    id: 2,
+    name: "Mike Davis",
+    email: "mike@elite.com",
+    role: "Frontend Editor",
+    status: "Active",
+    lastLogin: "2025-01-14",
+    joinDate: "2024-02-20",
+    password: "TempPass2025!aB3nM8#vL",
+    avatar: "MD",
+  },
+];
+
+const dummyPasswordRequests = [
+  {
+    id: 1,
+    userEmail: "user1@company.com",
+    userName: "John Smith",
+    requestedAt: "2025-10-14 10:30 AM",
+    status: "Pending Verification",
+    verificationCodeSent: true,
+    expiresIn: "10 minutes",
+  },
+  {
+    id: 2,
+    userEmail: "user2@company.com",
+    userName: "Emily Wilson",
+    requestedAt: "2025-10-13 15:45 PM",
+    status: "Approved - Temp Password Sent",
+    verificationCodeSent: true,
+    expiresIn: "N/A",
+  },
+];
+
+const tabPermissions = [
+  {
+    id: "dashboard",
+    name: "Dashboard",
+    description: "Analytics and overview access",
+    actions: [
+      {
+        id: "read",
+        name: "View",
+        icon: Eye,
+        description: "Access dashboard analytics",
+      },
+    ],
+  },
+  {
+    id: "clients",
+    name: "Client Management",
+    description: "Manage client records",
+    actions: [
+      {
+        id: "create",
+        name: "Create",
+        icon: Plus,
+        description: "Add new clients",
+      },
+      {
+        id: "read",
+        name: "Read",
+        icon: Eye,
+        description: "View client details",
+      },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Edit client information",
+      },
+      {
+        id: "delete",
+        name: "Delete",
+        icon: Trash2,
+        description: "Remove clients",
+      },
+    ],
+  },
+  {
+    id: "documents",
+    name: "Document Management",
+    description: "Handle documents",
+    actions: [
+      {
+        id: "create",
+        name: "Create",
+        icon: Plus,
+        description: "Upload documents",
+      },
+      { id: "read", name: "Read", icon: Eye, description: "View documents" },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Edit document metadata",
+      },
+      {
+        id: "delete",
+        name: "Delete",
+        icon: Trash2,
+        description: "Delete documents",
+      },
+    ],
+  },
+  {
+    id: "requests",
+    name: "Request Reports",
+    description: "Manage requests",
+    actions: [
+      {
+        id: "create",
+        name: "Create",
+        icon: Plus,
+        description: "Submit new requests",
+      },
+      { id: "read", name: "Read", icon: Eye, description: "View requests" },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Update request status",
+      },
+      {
+        id: "delete",
+        name: "Delete",
+        icon: Trash2,
+        description: "Cancel requests",
+      },
+    ],
+  },
+  {
+    id: "guards",
+    name: "Guard Management",
+    description: "Manage guards",
+    actions: [
+      {
+        id: "create",
+        name: "Create",
+        icon: Plus,
+        description: "Add new guards",
+      },
+      {
+        id: "read",
+        name: "Read",
+        icon: Eye,
+        description: "View guard profiles",
+      },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Edit guard details",
+      },
+      {
+        id: "delete",
+        name: "Delete",
+        icon: Trash2,
+        description: "Remove guards",
+      },
+    ],
+  },
+  {
+    id: "frontend",
+    name: "Frontend Management",
+    description: "Edit public content",
+    actions: [
+      {
+        id: "create",
+        name: "Create",
+        icon: Plus,
+        description: "Add frontend content",
+      },
+      {
+        id: "read",
+        name: "Read",
+        icon: Eye,
+        description: "View frontend sections",
+      },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Edit frontend content",
+      },
+      {
+        id: "delete",
+        name: "Delete",
+        icon: Trash2,
+        description: "Remove frontend items",
+      },
+    ],
+  },
+  {
+    id: "roles",
+    name: "Roles & Users",
+    description: "Manage permissions",
+    actions: [
+      {
+        id: "create",
+        name: "Create",
+        icon: Plus,
+        description: "Create roles/users",
+      },
+      { id: "read", name: "Read", icon: Eye, description: "View roles/users" },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Edit roles/users",
+      },
+      {
+        id: "delete",
+        name: "Delete",
+        icon: Trash2,
+        description: "Delete roles/users",
+      },
+    ],
+  },
+  {
+    id: "contact",
+    name: "Contact Management",
+    description: "Handle inquiries",
+    actions: [
+      {
+        id: "create",
+        name: "Create",
+        icon: Plus,
+        description: "Add contact notes",
+      },
+      { id: "read", name: "Read", icon: Eye, description: "View contacts" },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Update contact status",
+      },
+      {
+        id: "delete",
+        name: "Delete",
+        icon: Trash2,
+        description: "Archive contacts",
+      },
+    ],
+  },
+  {
+    id: "settings",
+    name: "Settings",
+    description: "System configurations",
+    actions: [
+      { id: "read", name: "Read", icon: Eye, description: "View settings" },
+      {
+        id: "update",
+        name: "Update",
+        icon: Edit2,
+        description: "Modify settings",
+      },
+    ],
+  },
+];
+
+export default function RoleManagement() {
+  const [activeTab, setActiveTab] = useState("roles");
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [selectedUserEmail, setSelectedUserEmail] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copiedPassword, setCopiedPassword] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [formData, setFormData] = useState({
+    roleName: "",
+    roleDescription: "",
+    userName: "",
+    userEmail: "",
+    userPhone: "",
+  });
+
+  const handlePermissionToggle = (permissionId) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(permissionId)
+        ? prev.filter((id) => id !== permissionId)
+        : [...prev, permissionId]
+    );
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log(
+      "Creating role:",
+      formData,
+      "with permissions:",
+      selectedPermissions
+    );
+    // Reset form
+    setFormData({
+      roleName: "",
+      roleDescription: "",
+      userName: "",
+      userEmail: "",
+      userPhone: "",
+    });
+    setSelectedPermissions([]);
+    setShowCreateForm(false);
+  };
+
+  const handlePasswordReset = (email) => {
+    setSelectedUserEmail(email);
+    setResetDialogOpen(true);
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedPassword(text);
+    setTimeout(() => setCopiedPassword(""), 2000);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusBadge = (status) => {
+    const variants = {
+      Active: { className: "bg-green-500 text-white rounded-full" },
+      Inactive: {
+        className: "bg-red-500 text-white rounded-full",
+      },
+      "Pending Verification": {
+        className: "bg-yellow-500 text-white rounded-full",
+      },
+      "Approved - Temp Password Sent": {
+        className: "bg-blue-500 text-white rounded-full",
+      },
+      Expired: { className: "bg-gray-500 text-white rounded-full" },
+    };
+    const config = variants[status] || {
+      className: "bg-gray-500 text-white rounded-full",
+    };
+    return (
+      <Badge variant="default" className={config.className}>
+        {status}
+      </Badge>
+    );
+  };
+
+  // Filter users based on search and role filter
+  const filteredUsers = dummyUsers.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
+
+  // Statistics
+  const stats = {
+    totalUsers: dummyUsers.length,
+    activeUsers: dummyUsers.filter((u) => u.status === "Active").length,
+    totalRoles: dummyRoles.length,
+    pendingRequests: dummyPasswordRequests.filter(
+      (r) => r.status === "Pending Verification"
+    ).length,
+  };
+
+  // Count permissions per role for display
+  const getPermissionCount = (permissions) => {
+    const uniqueTabs = [...new Set(permissions.map((p) => p.split("-")[0]))]
+      .length;
+    return `${permissions.length} actions (${uniqueTabs} tabs)`;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+            Roles & User Management
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Create roles with granular CRUD permissions for each tab and manage
+            user access with secure authentication
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="border-primary/20 hover:bg-primary/5"
+          >
+            <Download className="h-4 w-4 mr-2 text-primary" />
+            Export
+          </Button>
+          <Button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm flex items-center gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            Create Role & User
+          </Button>
+        </div>
+      </div>
+
+      {/* Create Role & User Form - Inline */}
+      {showCreateForm && (
+        <Card className="border-0 shadow-lg rounded-3xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/20 rounded-2xl">
+                  <Shield className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-foreground text-xl">
+                    Create New Role & Assign User
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Define role with granular CRUD permissions per tab and
+                    create a user with auto-generated temporary password
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCreateForm(false)}
+                className="text-foreground hover:bg-primary/10 rounded-xl"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <form onSubmit={handleSubmit} className="space-y-8 p-6 lg:p-8">
+              {/* Step 1: Role Details */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 border-b border-border pb-4">
+                  <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                    <span className="text-blue-500 font-bold text-sm">1</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Role Details
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="roleName"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Role Name *
+                    </Label>
+                    <Input
+                      id="roleName"
+                      name="roleName"
+                      value={formData.roleName}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Content Editor"
+                      className="rounded-xl border-primary/20 focus:border-primary h-11"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="roleDescription"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Description
+                    </Label>
+                    <Textarea
+                      id="roleDescription"
+                      name="roleDescription"
+                      value={formData.roleDescription}
+                      onChange={handleInputChange}
+                      placeholder="Brief role summary"
+                      className="rounded-xl border-primary/20 focus:border-primary min-h-[80px] resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Permissions with CRUD */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 border-b border-border pb-4">
+                  <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                    <span className="text-blue-500 font-bold text-sm">2</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Granular Permissions (CRUD per Tab)
+                  </h3>
+                </div>
+                <div className="space-y-4 max-h-96 overflow-y-auto p-4 rounded-xl bg-muted/30">
+                  {tabPermissions.map((tab) => (
+                    <div
+                      key={tab.id}
+                      className="space-y-3 border-b border-border/50 pb-4 last:border-b-0"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4 text-primary" />{" "}
+                          {/* Placeholder icon */}
+                          <span className="font-medium text-foreground">
+                            {tab.name}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {tab.actions.length} actions
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {tab.actions.map((action) => {
+                          const fullId = `${tab.id}-${action.id}`;
+                          return (
+                            <div
+                              key={fullId}
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              <Checkbox
+                                id={fullId}
+                                checked={selectedPermissions.includes(fullId)}
+                                onCheckedChange={() =>
+                                  handlePermissionToggle(fullId)
+                                }
+                                className="mt-0.5"
+                              />
+                              <label
+                                htmlFor={fullId}
+                                className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
+                              >
+                                <action.icon className="h-3 w-3 text-primary flex-shrink-0" />
+                                <div className="text-xs">
+                                  <div className="font-medium text-foreground truncate">
+                                    {action.name}
+                                  </div>
+                                  <div className="text-muted-foreground truncate">
+                                    {action.description}
+                                  </div>
+                                </div>
+                              </label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground text-center">
+                  {selectedPermissions.length} of{" "}
+                  {tabPermissions.reduce((acc, t) => acc + t.actions.length, 0)}{" "}
+                  permissions selected
+                </div>
+              </div>
+
+              {/* Step 3: User Assignment */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 border-b border-border pb-4">
+                  <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                    <span className="text-blue-500 font-bold text-sm">3</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    User Assignment
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="userName"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      User Full Name *
+                    </Label>
+                    <Input
+                      id="userName"
+                      name="userName"
+                      value={formData.userName}
+                      onChange={handleInputChange}
+                      placeholder="e.g., John Doe"
+                      className="rounded-xl border-primary/20 focus:border-primary h-11"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="userEmail"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Email Address *
+                    </Label>
+                    <Input
+                      id="userEmail"
+                      name="userEmail"
+                      type="email"
+                      value={formData.userEmail}
+                      onChange={handleInputChange}
+                      placeholder="user@company.com"
+                      className="rounded-xl border-primary/20 focus:border-primary h-11"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label
+                      htmlFor="userPhone"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Phone Number (Optional)
+                    </Label>
+                    <Input
+                      id="userPhone"
+                      name="userPhone"
+                      value={formData.userPhone}
+                      onChange={handleInputChange}
+                      placeholder="+1 (555) 123-4567"
+                      className="rounded-xl border-primary/20 focus:border-primary h-11"
+                    />
+                  </div>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Temporary Password
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Will be auto-generated and sent via secure email upon
+                        creation
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateForm(false)}
+                  className="rounded-xl flex-1"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex-1 flex items-center justify-center gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  Create Role & User
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 bg-gradient-to-r from-muted/50 to-muted/30 rounded-2xl p-1 shadow-lg">
+          <TabsTrigger
+            value="roles"
+            className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Roles ({dummyRoles.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="users"
+            className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Users ({dummyUsers.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Roles Tab */}
+        <TabsContent value="roles" className="mt-0 space-y-6">
+          {/* Roles Table */}
+          <Card className="shadow-md border-0 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-primary/10">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-foreground">
+                      Role Permissions
+                    </CardTitle>
+                    <CardDescription>
+                      Manage role-based CRUD access control for admin tabs
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="rounded-xl">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b border-primary/10">
+                    <TableHead className="text-left font-semibold text-foreground">
+                      Role
+                    </TableHead>
+                    <TableHead className="text-left font-semibold text-foreground hidden md:table-cell">
+                      Description
+                    </TableHead>
+                    <TableHead className="text-center font-semibold text-foreground">
+                      Permissions
+                    </TableHead>
+                    <TableHead className="text-center font-semibold text-foreground">
+                      Users
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-foreground">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-foreground">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dummyRoles.map((role) => (
+                    <TableRow
+                      key={role.id}
+                      className="hover:bg-primary/5 transition-colors border-b border-border/20"
+                    >
+                      <TableCell>
+                        <div className="font-medium text-foreground">
+                          {role.name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="text-sm text-muted-foreground">
+                          {role.description}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="text-xs">
+                          {getPermissionCount(role.permissions)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary" className="text-xs">
+                          {role.users}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center">
+                          {getStatusBadge(role.status)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="mt-0 space-y-6">
+          {/* Users Header with Search & Filter */}
+          <Card className="shadow-md border-0 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-primary/10 p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-foreground">
+                      User Management
+                    </CardTitle>
+                    <CardDescription>
+                      View and manage all registered users
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 rounded-xl h-11"
+                    />
+                  </div>
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger className="w-full sm:w-auto rounded-xl h-11">
+                      <SelectValue placeholder="Filter by role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="Super Admin">Super Admin</SelectItem>
+                      <SelectItem value="Frontend Editor">
+                        Frontend Editor
+                      </SelectItem>
+                      <SelectItem value="Guard Supervisor">
+                        Guard Supervisor
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Users Table */}
+          <Card className="shadow-md border-0 rounded-2xl overflow-hidden">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b border-primary/10">
+                    <TableHead className="text-left font-semibold text-foreground">
+                      User
+                    </TableHead>
+                    <TableHead className="text-left font-semibold text-foreground hidden lg:table-cell">
+                      Email
+                    </TableHead>
+                    <TableHead className="text-left font-semibold text-foreground">
+                      Role
+                    </TableHead>
+                    <TableHead className="text-center font-semibold text-foreground">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-left font-semibold text-foreground hidden xl:table-cell">
+                      Last Login
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-foreground">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow
+                      key={user.id}
+                      className="hover:bg-primary/5 transition-colors border-b border-border/20"
+                    >
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary">
+                              {user.avatar}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground">
+                              {user.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground lg:hidden">
+                              {user.email}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="text-sm text-muted-foreground">
+                          {user.email}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="rounded-full border-primary/20"
+                        >
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center">
+                          {getStatusBadge(user.status)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        <div className="text-sm text-muted-foreground">
+                          {formatDate(user.lastLogin)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                            onClick={() => handlePasswordReset(user.email)}
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-12">
+              <Users className="h-16 w-16 mx-auto mb-4 text-primary/30" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                No users found
+              </h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search or filters
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Password Reset Requests Section */}
+      <Card className="shadow-md border-0 rounded-2xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-warning/10 to-warning/5 border-b border-warning/20">
+          <CardTitle className="text-foreground flex items-center gap-2">
+            <Key className="h-5 w-5 text-warning" />
+            Password Reset Requests
+          </CardTitle>
+          <CardDescription>
+            Handle password reset requests securely with verification and
+            temporary passwords
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {dummyPasswordRequests.map((req) => (
+              <div
+                key={req.id}
+                className="flex items-start gap-4 p-4 rounded-2xl bg-muted/30 border border-border/20 hover:bg-muted/40 transition-colors"
+              >
+                <div className="flex-shrink-0 rounded-full p-3 bg-warning/20">
+                  <Key className="h-5 w-5 text-warning" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-foreground">
+                        {req.userName}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {req.userEmail}
+                      </p>
+                    </div>
+                    {getStatusBadge(req.status)}
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDate(req.requestedAt)}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Expires: {req.expiresIn}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl gap-2 px-3 border-primary/20 hover:bg-primary/5"
+                    onClick={() => handlePasswordReset(req.userEmail)}
+                    disabled={req.status !== "Pending Verification"}
+                  >
+                    <Mail className="h-4 w-4" />
+                    Approve
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent className="rounded-3xl p-8 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-3 justify-center text-warning">
+              <Key className="h-6 w-6" />
+              Reset for {selectedUserEmail}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 rounded-2xl bg-warning/10 text-center border border-warning/30">
+              <p className="font-mono font-semibold text-lg bg-secondary/30 p-3 rounded-xl mb-2">
+                TempPass2025!x7kP9#mQvL
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Generated • Expires 24h • Copy & Email
+              </p>
+              <Progress value={100} className="h-1 mt-2 rounded-full" />
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-success/10 border border-success/20">
+              <Mail className="h-4 w-4 text-success" />
+              <span className="text-sm text-success">
+                Send via encrypted email
+              </span>
+            </div>
+          </div>
+          <DialogFooter className="gap-3">
+            <Button
+              variant="outline"
+              className="rounded-2xl flex-1"
+              onClick={() => setResetDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-2xl bg-gradient-to-r from-warning to-warning/80 shadow-lg flex-1 gap-2"
+              onClick={() => {
+                console.log(`Temp password sent to ${selectedUserEmail}`);
+                setResetDialogOpen(false);
+              }}
+            >
+              <Mail className="h-4 w-4" />
+              Send Securely
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
