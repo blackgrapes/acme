@@ -47,13 +47,22 @@ export default function MobileMenu({
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="w-64 p-0 bg-card border-r border-border shadow-sm"
+        className="w-64 p-0 bg-primary border-r border-border shadow-sm"
       >
-        <nav className="p-4 space-y-1 flex flex-col h-full">
+        <nav className="p-4 space-y-1 flex flex-col h-full overflow-y-auto">
+          {/* User Info Header - Optional, but adding for consistency if needed */}
+          {/* <div className="mb-8">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-primary-foreground">Admin User</h4>
+              <p className="text-xs text-muted-foreground">admin@example.com</p>
+            </div>
+            <Separator className="my-4 bg-border" />
+          </div> */}
+
           <div className="space-y-1 mb-8">
             <Button
               variant={isActive("dashboard") ? "default" : "ghost"}
-              className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
               onClick={() => setActiveTab("dashboard")}
             >
               <Shield className="h-4 w-4 mr-2" />
@@ -62,7 +71,7 @@ export default function MobileMenu({
 
             <Button
               variant={isActive("clients") ? "default" : "ghost"}
-              className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
               onClick={() => setActiveTab("clients")}
             >
               <Users className="h-4 w-4 mr-2" />
@@ -75,7 +84,7 @@ export default function MobileMenu({
                 variant={
                   activeTab.startsWith("documents") ? "default" : "ghost"
                 }
-                className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+                className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
                 onClick={handleDocumentClick}
               >
                 <FileText className="h-4 w-4 mr-2" />
@@ -106,7 +115,7 @@ export default function MobileMenu({
                           <Button
                             key={`${category.id}-${index}`}
                             variant={isActive ? "default" : "ghost"}
-                            className="w-full justify-start text-sm shadow-sm text-white data-[variant=default]:bg-primary"
+                            className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
                             onClick={() =>
                               setActiveTab(`documents-${childSlug}`)
                             }
@@ -126,7 +135,7 @@ export default function MobileMenu({
                             ? "default"
                             : "ghost"
                         }
-                        className="w-full justify-start text-sm shadow-sm text-white data-[variant=default]:bg-primary"
+                        className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
                         onClick={() =>
                           setActiveTab(
                             `documents-${category.name
@@ -143,10 +152,11 @@ export default function MobileMenu({
                     variant={
                       activeTab === "documents-add-tab" ? "default" : "ghost"
                     }
-                    className="w-full justify-start text-sm shadow-sm text-white data-[variant=default]:bg-primary"
+                    className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
                     onClick={() => setActiveTab("documents-add-tab")}
                   >
-                    + Add New Tab
+                    <Plus className="h-3 w-3 mr-2" />
+                    Add New Tab
                   </Button>
                 </div>
               </div>
@@ -154,7 +164,7 @@ export default function MobileMenu({
 
             <Button
               variant={isActive("requests") ? "default" : "ghost"}
-              className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
               onClick={() => setActiveTab("requests")}
             >
               <FileText className="h-4 w-4 mr-2" />
@@ -163,7 +173,7 @@ export default function MobileMenu({
 
             <Button
               variant={isActive("guards") ? "default" : "ghost"}
-              className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
               onClick={() => setActiveTab("guards")}
             >
               <UserPlus className="h-4 w-4 mr-2" />
@@ -172,7 +182,7 @@ export default function MobileMenu({
 
             <Button
               variant={isActive("roles") ? "default" : "ghost"}
-              className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
               onClick={() => setActiveTab("roles")}
             >
               <Users2 className="h-4 w-4 mr-2" />
@@ -181,7 +191,7 @@ export default function MobileMenu({
 
             <Button
               variant={isActive("contact") ? "default" : "ghost"}
-              className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
               onClick={() => setActiveTab("contact")}
             >
               <Mail className="h-4 w-4 mr-2" />
@@ -190,7 +200,7 @@ export default function MobileMenu({
 
             <Button
               variant={isActive("settings") ? "default" : "ghost"}
-              className="w-full justify-start shadow-sm text-white data-[variant=default]:bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
               onClick={() => setActiveTab("settings")}
             >
               <Settings className="h-4 w-4 mr-2" />
@@ -198,10 +208,10 @@ export default function MobileMenu({
             </Button>
           </div>
 
-          <div className="mt-auto space-y-1 pt-4 border-t border-border">
+          <div className="mt-auto space-y-1 pt-4 border-t border-border/50">
             <Button
               variant="ghost"
-              className="w-full justify-start shadow-sm text-white bg-primary"
+              className="w-full justify-start shadow-sm text-primary-foreground hover:bg-primary/10 data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
