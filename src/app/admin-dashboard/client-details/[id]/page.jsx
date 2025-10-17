@@ -1,4 +1,4 @@
-// Updated File: src/app/admin-dashboard/client-details/[id]/page.jsx
+// File: src/app/admin-dashboard/client-details/[id]/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -92,11 +92,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import Header from "@/components/admin/Header";
 import DesktopSidebar from "@/components/admin/DesktopSidebar";
-import MobileMenu from "@/components/admin/MobileMenu";
 import AdminProfileDialog from "@/components/admin/AdminProfileDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 
-// Dummy data for categories to fix undefined error
+// Dummy data for categories
 const dummyDocumentCategories = [
   { id: "1", name: "Agreements", children: ["Service Agreement", "NDA"] },
   { id: "2", name: "Attendance", children: [] },
@@ -153,149 +152,329 @@ const dummyGuards = [
   },
 ];
 
-const dummyClientDocuments = [
-  {
-    id: 1,
-    name: "Client Service Agreement.pdf",
-    type: "Contract",
-    uploaded: "2025-01-01",
-    size: "2.4 MB",
-    access: "Specific",
-    category: "Legal",
-    uploadedBy: "Admin User",
-  },
-  {
-    id: 2,
-    name: "Invoice January 2025.pdf",
-    type: "Invoice",
-    uploaded: "2025-01-15",
-    size: "1.2 MB",
-    access: "Specific",
-    category: "Financial",
-    uploadedBy: "Finance Team",
-  },
-  {
-    id: 3,
-    name: "Security Assessment Report.pdf",
-    type: "Report",
-    uploaded: "2025-01-10",
-    size: "3.1 MB",
-    access: "Specific",
-    category: "Operational",
-    uploadedBy: "Operations",
-  },
-];
-
-const dummyRequests = [
-  {
-    id: 1,
-    type: "Invoice Copy",
-    status: "Pending",
-    date: "2025-01-15",
-    priority: "High",
-    description: "Required for accounting purposes",
-  },
-  {
-    id: 2,
-    type: "Guard Performance Report",
-    status: "Fulfilled",
-    date: "2025-01-14",
-    priority: "Medium",
-    description: "Monthly performance review",
-  },
-];
-
-const dummyClientActivity = [
-  {
-    id: 1,
-    type: "Assignment Update",
-    description: "Guard assignment updated for TechCorp Inc.",
-    date: "2025-01-15",
-    status: "Completed",
-  },
-  {
-    id: 2,
-    type: "Invoice Generated",
-    description: "January 2025 invoice sent to client.",
-    date: "2025-01-10",
-    status: "Sent",
-  },
-  {
-    id: 3,
-    type: "Request Fulfilled",
-    description: "Client request for performance report completed.",
-    date: "2025-01-05",
-    status: "Fulfilled",
-  },
-];
-
-const dummyClient = {
-  id: 1,
-  name: "John Smith",
-  org: "TechCorp Solutions Pvt. Ltd.",
-  email: "john.smith@techcorp.com",
-  phone: "+91 98765 43210",
-  plan: "Enterprise Security",
-  duration: { from: "2025-01-01", to: "2025-12-31" },
-  status: "Active",
-  joined: "2024-01-15",
-  lastLogin: "2025-01-15 14:30",
-  currentGuards: [1, 2],
-  previousGuards: [3],
-  address: "123 Business Park, Andheri East, Mumbai - 400069",
-  contactPerson: "John Smith",
-  billingCycle: "Monthly",
-  totalGuardsAssigned: 8,
-  activeSince: "12 months",
-  satisfaction: 4.5,
-  monthlyRevenue: "₹2,85,000",
-  performance: {
-    totalRequests: 15,
-    fulfilledRequests: 14,
-    satisfactionRate: 93,
-    averageRating: 4.5,
-    retention: 95,
-  },
-  assignmentHistory: [
-    {
-      id: 1,
-      guards: 2,
-      duration: "6 months",
-      type: "Corporate Security",
-      startDate: "2024-07-01",
-      endDate: "2024-12-31",
-      status: "Active",
-      rating: 4.6,
-    },
-    {
-      id: 2,
-      guards: 3,
-      duration: "12 months",
-      type: "Event Security",
-      startDate: "2023-07-01",
-      endDate: "2024-06-30",
-      status: "Completed",
-      rating: 4.7,
-    },
-  ],
-};
-
 export default function ClientDetails() {
   const params = useParams();
-  const clientId = parseInt(params.id);
+  const clientId = params.id;
   const [client, setClient] = useState(null);
+  const [clientDocuments, setClientDocuments] = useState([]);
+  const [clientRequests, setClientRequests] = useState([]);
+  const [clientActivity, setClientActivity] = useState([]);
   const [showSpecificAccess, setShowSpecificAccess] = useState(false);
   const [openAdminDialog, setOpenAdminDialog] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
-    // Simulate fetch
-    setClient(dummyClient);
+    if (clientId) {
+      fetchClientDetails();
+    }
   }, [clientId]);
 
-  if (!client) {
+  const fetchClientDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch client data from API
+      const clientResponse = await fetch(`/api/auth/client/${clientId}`);
+      
+      if (!clientResponse.ok) {
+        throw new Error(`Failed to fetch client: ${clientResponse.status}`);
+      }
+
+      const clientData = await clientResponse.json();
+      
+      if (!clientData.client) {
+        throw new Error("Client not found");
+      }
+
+      setClient(clientData.client);
+
+      // Fetch related data
+      await fetchRelatedData(clientData.client._id);
+
+    } catch (error) {
+      console.error("Error fetching client details:", error);
+      setError(error.message);
+      // Fallback to dummy data only if absolutely necessary
+      setClient(getDummyClientData());
+      setClientDocuments(getDummyDocuments());
+      setClientRequests(getDummyRequests());
+      setClientActivity(getDummyActivity());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRelatedData = async (clientId) => {
+    try {
+      // Fetch client documents
+      const docsResponse = await fetch(`/api/documents?clientId=${clientId}`);
+      if (docsResponse.ok) {
+        const docsData = await docsResponse.json();
+        setClientDocuments(docsData.documents || []);
+      } else {
+        setClientDocuments(getDummyDocuments());
+      }
+
+      // Fetch client requests
+      const requestsResponse = await fetch(`/api/requests?clientId=${clientId}`);
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json();
+        setClientRequests(requestsData.requests || []);
+      } else {
+        setClientRequests(getDummyRequests());
+      }
+
+      // Fetch client activity
+      const activityResponse = await fetch(`/api/activity?clientId=${clientId}`);
+      if (activityResponse.ok) {
+        const activityData = await activityResponse.json();
+        setClientActivity(activityData.activities || []);
+      } else {
+        setClientActivity(getDummyActivity());
+      }
+
+    } catch (error) {
+      console.error("Error fetching related data:", error);
+      // Set empty arrays or fallback data
+      setClientDocuments(getDummyDocuments());
+      setClientRequests(getDummyRequests());
+      setClientActivity(getDummyActivity());
+    }
+  };
+
+  // Transform database client data to frontend format
+  const transformClientData = (dbClient) => {
+    return {
+      _id: dbClient._id,
+      name: dbClient.name || `${dbClient.firstName} ${dbClient.lastName}`,
+      email: dbClient.email,
+      phone: dbClient.phone,
+      companyName: dbClient.companyName || dbClient.company,
+      address: dbClient.address,
+      securityPlan: dbClient.securityPlan || dbClient.plan || "Standard",
+      serviceDuration: {
+        from: dbClient.serviceStartDate || dbClient.createdAt,
+        to: dbClient.serviceEndDate
+      },
+      status: dbClient.status || "Active",
+      joinDate: dbClient.createdAt,
+      lastLogin: dbClient.lastLogin,
+      assignedGuards: dbClient.assignedGuards || [],
+      previousGuards: dbClient.previousGuards || [],
+      contactPerson: dbClient.contactPerson || dbClient.name,
+      billingCycle: dbClient.billingCycle || "Monthly",
+      totalGuardsAssigned: dbClient.totalGuardsAssigned || 0,
+      activeSince: calculateActiveSince(dbClient.createdAt),
+      satisfaction: dbClient.satisfactionRating || 4.5,
+      monthlyRevenue: formatRevenue(dbClient.monthlyRevenue),
+      performance: {
+        totalRequests: dbClient.totalRequests || 0,
+        fulfilledRequests: dbClient.fulfilledRequests || 0,
+        satisfactionRate: dbClient.satisfactionRate || 0,
+        averageRating: dbClient.averageRating || 0,
+        retention: dbClient.retentionRate || 0,
+      },
+      assignmentHistory: dbClient.assignmentHistory || [],
+    };
+  };
+
+  const calculateActiveSince = (joinDate) => {
+    const join = new Date(joinDate);
+    const now = new Date();
+    const diffTime = Math.abs(now - join);
+    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
+    return `${diffMonths} months`;
+  };
+
+  const formatRevenue = (revenue) => {
+    if (!revenue) return "₹0";
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(revenue);
+  };
+
+  // Fallback dummy data (only used when API fails completely)
+  const getDummyClientData = () => ({
+    _id: clientId,
+    name: "John Smith",
+    email: "john.smith@techcorp.com",
+    phone: "+91 98765 43210",
+    companyName: "TechCorp Solutions Pvt. Ltd.",
+    address: "123 Business Park, Andheri East, Mumbai - 400069",
+    securityPlan: "Enterprise Security",
+    serviceDuration: { from: "2025-01-01", to: "2025-12-31" },
+    status: "Active",
+    joinDate: "2024-01-15",
+    lastLogin: "2025-01-15 14:30",
+    assignedGuards: [1, 2],
+    previousGuards: [3],
+    contactPerson: "John Smith",
+    billingCycle: "Monthly",
+    totalGuardsAssigned: 8,
+    activeSince: "12 months",
+    satisfaction: 4.5,
+    monthlyRevenue: "₹2,85,000",
+    performance: {
+      totalRequests: 15,
+      fulfilledRequests: 14,
+      satisfactionRate: 93,
+      averageRating: 4.5,
+      retention: 95,
+    },
+    assignmentHistory: [
+      {
+        id: 1,
+        guards: 2,
+        duration: "6 months",
+        type: "Corporate Security",
+        startDate: "2024-07-01",
+        endDate: "2024-12-31",
+        status: "Active",
+        rating: 4.6,
+      },
+    ],
+  });
+
+  const getDummyDocuments = () => [
+    {
+      id: 1,
+      name: "Client Service Agreement.pdf",
+      type: "Contract",
+      uploaded: "2025-01-01",
+      size: "2.4 MB",
+      access: "Specific",
+      category: "Legal",
+      uploadedBy: "Admin User",
+    },
+  ];
+
+  const getDummyRequests = () => [
+    {
+      id: 1,
+      type: "Invoice Copy",
+      status: "Pending",
+      date: "2025-01-15",
+      priority: "High",
+      description: "Required for accounting purposes",
+    },
+  ];
+
+  const getDummyActivity = () => [
+    {
+      id: 1,
+      type: "Assignment Update",
+      description: "Guard assignment updated",
+      date: "2025-01-15",
+      status: "Completed",
+    },
+  ];
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Active":
+        return (
+          <Badge
+            variant="default"
+            className="rounded-full bg-green-500 text-white"
+          >
+            Active
+          </Badge>
+        );
+      case "Pending":
+        return (
+          <Badge
+            variant="default"
+            className="rounded-full bg-yellow-500 text-white"
+          >
+            Pending
+          </Badge>
+        );
+      case "Inactive":
+        return (
+          <Badge
+            variant="default"
+            className="rounded-full bg-red-500 text-white"
+          >
+            Inactive
+          </Badge>
+        );
+      case "Fulfilled":
+        return (
+          <Badge
+            variant="default"
+            className="rounded-full bg-green-500 text-white"
+          >
+            Fulfilled
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary" className="rounded-full">
+            {status}
+          </Badge>
+        );
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatFullDateTime = (dateTimeString) => {
+    if (!dateTimeString) return "N/A";
+    const dateTime = new Date(dateTimeString);
+    return dateTime.toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Get assigned guards from real data
+  const currentGuardsList = (client?.assignedGuards || [])
+    .map((guardId) => {
+      // In real app, you would fetch guards from your database
+      // For now, using dummy data
+      return dummyGuards.find((g) => g.id === guardId) || {
+        id: guardId,
+        name: `Guard ${guardId}`,
+        location: "Unknown",
+        experience: "Unknown",
+        rating: 4.0,
+        status: "Active"
+      };
+    })
+    .filter(Boolean);
+
+  const previousGuardsList = (client?.previousGuards || [])
+    .map((guardId) => {
+      return dummyGuards.find((g) => g.id === guardId) || {
+        id: guardId,
+        name: `Guard ${guardId}`,
+        location: "Unknown",
+        experience: "Unknown",
+        rating: 4.0,
+        status: "Inactive"
+      };
+    })
+    .filter(Boolean);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header
@@ -338,82 +517,95 @@ export default function ClientDetails() {
     );
   }
 
-  const currentGuardsList = client.currentGuards
-    .map((gId) => dummyGuards.find((g) => g.id === gId))
-    .filter(Boolean);
-  const previousGuardsList = client.previousGuards
-    .map((gId) => dummyGuards.find((g) => g.id === gId))
-    .filter(Boolean);
+  if (error && !client) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header
+          activeTab="clients"
+          setActiveTab={() => router.push("/admin-dashboard")}
+          settingsOpen={settingsOpen}
+          setSettingsOpen={setSettingsOpen}
+          openAdminDialog={openAdminDialog}
+          setOpenAdminDialog={setOpenAdminDialog}
+          documentCategories={dummyDocumentCategories}
+          frontendCategories={dummyFrontendCategories}
+        />
+        <div className="flex flex-1">
+          <DesktopSidebar
+            activeTab="clients"
+            setActiveTab={() => router.push("/admin-dashboard")}
+            documentCategories={dummyDocumentCategories}
+            setDocumentCategories={() => {}}
+            frontendCategories={dummyFrontendCategories}
+            setFrontendCategories={() => {}}
+          />
+          <main className="flex-1">
+            <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
+              <div className="text-center py-12">
+                <AlertTriangle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Error Loading Client
+                </h2>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={() => router.push("/admin-dashboard")}>
+                    Back to Clients
+                  </Button>
+                  <Button onClick={fetchClientDetails} variant="outline">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
-  const clientRequests = dummyRequests;
-  const clientActivity = dummyClientActivity;
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Active":
-        return (
-          <Badge
-            variant="default"
-            className="rounded-full bg-success text-success-foreground"
-          >
-            Active
-          </Badge>
-        );
-      case "Pending":
-        return (
-          <Badge
-            variant="default"
-            className="rounded-full bg-warning text-warning-foreground"
-          >
-            Pending
-          </Badge>
-        );
-      case "Inactive":
-        return (
-          <Badge
-            variant="default"
-            className="rounded-full bg-destructive text-destructive-foreground"
-          >
-            Inactive
-          </Badge>
-        );
-      case "Fulfilled":
-        return (
-          <Badge
-            variant="default"
-            className="rounded-full bg-success text-success-foreground"
-          >
-            Fulfilled
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="secondary" className="rounded-full">
-            {status}
-          </Badge>
-        );
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatFullDateTime = (dateTimeString) => {
-    const dateTime = new Date(dateTimeString);
-    return dateTime.toLocaleString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  if (!client) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header
+          activeTab="clients"
+          setActiveTab={() => router.push("/admin-dashboard")}
+          settingsOpen={settingsOpen}
+          setSettingsOpen={setSettingsOpen}
+          openAdminDialog={openAdminDialog}
+          setOpenAdminDialog={setOpenAdminDialog}
+          documentCategories={dummyDocumentCategories}
+          frontendCategories={dummyFrontendCategories}
+        />
+        <div className="flex flex-1">
+          <DesktopSidebar
+            activeTab="clients"
+            setActiveTab={() => router.push("/admin-dashboard")}
+            documentCategories={dummyDocumentCategories}
+            setDocumentCategories={() => {}}
+            frontendCategories={dummyFrontendCategories}
+            setFrontendCategories={() => {}}
+          />
+          <main className="flex-1">
+            <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
+              <div className="text-center py-12">
+                <AlertTriangle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Client Not Found
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  The client you're looking for doesn't exist or has been removed.
+                </p>
+                <Button onClick={() => router.push("/admin-dashboard")}>
+                  Back to Clients
+                </Button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -456,7 +648,7 @@ export default function ClientDetails() {
                     Client Profile
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    {client.org} • {client.plan}
+                    {client.companyName} • {client.securityPlan}
                   </p>
                 </div>
               </div>
@@ -490,7 +682,20 @@ export default function ClientDetails() {
               </div>
             </div>
 
-            {/* Profile Section - Enhanced UI */}
+            {/* Error Alert */}
+            {error && (
+              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200">
+                <div className="flex items-center gap-2 text-red-800">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-sm font-medium">
+                    Some data may not be loading correctly: {error}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Rest of your JSX remains the same */}
+            {/* Profile Section */}
             <Card className="rounded-3xl border-border/70 shadow-xl overflow-hidden mb-8">
               <CardHeader className="p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-6">
@@ -499,7 +704,7 @@ export default function ClientDetails() {
                       <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center border-4 border-white/20 shadow-lg">
                         <Building className="h-16 w-16 text-primary/60" />
                       </div>
-                      <div className="absolute -bottom-2 -right-2 bg-success rounded-full p-2">
+                      <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2">
                         <CheckCircle2 className="h-5 w-5 text-white" />
                       </div>
                     </div>
@@ -513,19 +718,22 @@ export default function ClientDetails() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                         <div className="flex items-center gap-1">
                           <IdCard className="h-4 w-4" />
-                          {client.contactPerson}
+                          {client.contactPerson || client.name}
                         </div>
                         <div className="flex items-center gap-1">
                           <Shield className="h-4 w-4" />
-                          {client.plan}
+                          {client.securityPlan}
                         </div>
                         <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-current text-warning" />
-                          {client.satisfaction} ({client.activeSince})
+                          <Star className="h-4 w-4 fill-current text-yellow-500" />
+                          {client.satisfaction || 4.5} (
+                          {client.activeSince || "12 months"})
                         </div>
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
-                          Mumbai
+                          {client.address
+                            ? client.address.split(",")[2] || "Mumbai"
+                            : "Mumbai"}
                         </div>
                       </div>
                     </div>
@@ -541,8 +749,8 @@ export default function ClientDetails() {
                         </div>
                       </div>
                       <div className="text-center p-3 rounded-xl bg-muted/50">
-                        <div className="text-2xl font-bold text-success">
-                          {client.performance.satisfactionRate}%
+                        <div className="text-2xl font-bold text-green-500">
+                          {client.performance?.satisfactionRate || 93}%
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Satisfaction
@@ -552,7 +760,7 @@ export default function ClientDetails() {
                     <div className="grid grid-cols-1 gap-2">
                       <div className="text-center p-3 rounded-xl bg-muted/50">
                         <div className="text-lg font-semibold text-foreground">
-                          {client.monthlyRevenue}
+                          {client.monthlyRevenue || "₹2,85,000"}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Monthly Revenue
@@ -578,41 +786,41 @@ export default function ClientDetails() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-                      <div className="p-2 bg-success/10 rounded-lg">
-                        <Phone className="h-4 w-4 text-success" />
+                      <div className="p-2 bg-green-500/10 rounded-lg">
+                        <Phone className="h-4 w-4 text-green-500" />
                       </div>
                       <div>
                         <div className="font-medium text-foreground">Phone</div>
                         <div className="text-sm text-muted-foreground">
-                          {client.phone}
+                          {client.phone || "N/A"}
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-                      <div className="p-2 bg-warning/10 rounded-lg">
-                        <Calendar className="h-4 w-4 text-warning" />
+                      <div className="p-2 bg-yellow-500/10 rounded-lg">
+                        <Calendar className="h-4 w-4 text-yellow-500" />
                       </div>
                       <div>
                         <div className="font-medium text-foreground">
                           Joined
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {formatDate(client.joined)}
+                          {formatDate(client.joinDate)}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-                      <div className="p-2 bg-info/10 rounded-lg">
-                        <MapPin className="h-4 w-4 text-info" />
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <MapPin className="h-4 w-4 text-blue-500" />
                       </div>
                       <div>
                         <div className="font-medium text-foreground">
                           Address
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {client.address}
+                          {client.address || "N/A"}
                         </div>
                       </div>
                     </div>
@@ -629,10 +837,10 @@ export default function ClientDetails() {
                     </CardHeader>
                     <CardContent className="pt-0 space-y-2">
                       <Badge variant="default" className="rounded-full">
-                        {client.plan}
+                        {client.securityPlan}
                       </Badge>
                       <div className="text-sm text-muted-foreground mt-2">
-                        Billing: {client.billingCycle}
+                        Billing: {client.billingCycle || "Monthly"}
                       </div>
                     </CardContent>
                   </Card>
@@ -645,8 +853,8 @@ export default function ClientDetails() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="text-sm text-muted-foreground">
-                        {formatDate(client.duration.from)} -{" "}
-                        {formatDate(client.duration.to)}
+                        {formatDate(client.serviceDuration?.from)} -{" "}
+                        {formatDate(client.serviceDuration?.to)}
                       </div>
                     </CardContent>
                   </Card>
@@ -685,7 +893,7 @@ export default function ClientDetails() {
                   <Card className="rounded-3xl border-border/70 shadow-xl">
                     <CardHeader className="p-6">
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <TrendingUp className="h-5 w-5 text-success" />
+                        <TrendingUp className="h-5 w-5 text-green-500" />
                         Performance Overview
                       </CardTitle>
                     </CardHeader>
@@ -696,15 +904,15 @@ export default function ClientDetails() {
                             Total Requests
                           </div>
                           <div className="text-2xl font-bold text-foreground">
-                            {client.performance.totalRequests}
+                            {client.performance?.totalRequests || 15}
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-medium text-muted-foreground">
                             Fulfilled
                           </div>
-                          <div className="text-2xl font-bold text-success">
-                            {client.performance.fulfilledRequests}
+                          <div className="text-2xl font-bold text-green-500">
+                            {client.performance?.fulfilledRequests || 14}
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -712,24 +920,24 @@ export default function ClientDetails() {
                             Satisfaction Rate
                           </div>
                           <div className="text-2xl font-bold text-primary">
-                            {client.performance.satisfactionRate}%
+                            {client.performance?.satisfactionRate || 93}%
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-medium text-muted-foreground">
                             Avg Rating
                           </div>
-                          <div className="text-2xl font-bold text-warning">
-                            {client.performance.averageRating}
+                          <div className="text-2xl font-bold text-yellow-500">
+                            {client.performance?.averageRating || 4.5}
                           </div>
                         </div>
                       </div>
                       <Progress
-                        value={client.performance.retention}
+                        value={client.performance?.retention || 95}
                         className="h-3"
                       />
                       <div className="text-center text-sm text-muted-foreground">
-                        Retention Rate: {client.performance.retention}%
+                        Retention Rate: {client.performance?.retention || 95}%
                       </div>
                     </CardContent>
                   </Card>
@@ -737,7 +945,7 @@ export default function ClientDetails() {
                   <Card className="rounded-3xl border-border/70 shadow-xl">
                     <CardHeader className="p-6">
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <Award className="h-5 w-5 text-warning" />
+                        <Award className="h-5 w-5 text-yellow-500" />
                         Satisfaction Breakdown
                       </CardTitle>
                     </CardHeader>
@@ -753,7 +961,7 @@ export default function ClientDetails() {
                                 {Array.from({ length: star }).map((_, i) => (
                                   <Star
                                     key={i}
-                                    className="h-3 w-3 fill-current text-warning"
+                                    className="h-3 w-3 fill-current text-yellow-500"
                                   />
                                 ))}
                                 {Array.from({ length: 5 - star }).map(
@@ -798,70 +1006,293 @@ export default function ClientDetails() {
                   <CardContent className="p-6 space-y-6">
                     {/* Current Guards */}
                     <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20">
-                      <h3 className="font-semibold text-lg flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-primary" />
-                        Current Guards ({currentGuardsList.length})
-                      </h3>
-                      <div className="space-y-3">
-                        {currentGuardsList.map((guard) => (
-                          <div
-                            key={guard.id}
-                            className="flex items-center justify-between p-3 rounded-xl bg-white/50"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <User className="h-5 w-5 text-primary" />
-                              </div>
-                              <div>
-                                <div className="font-medium">{guard.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {guard.location} • {guard.experience}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline">{guard.rating}/5</Badge>
-                              <Button variant="ghost" size="sm">
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                          <Shield className="h-5 w-5 text-primary" />
+                          Current Guards ({currentGuardsList.length})
+                        </h3>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Assign Guard
+                        </Button>
                       </div>
+
+                      {currentGuardsList.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {currentGuardsList.map((guard) => (
+                            <Card
+                              key={guard.id}
+                              className="rounded-2xl border-border/50 hover:shadow-md transition-shadow"
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                      <User className="h-6 w-6 text-primary" />
+                                    </div>
+                                    <div>
+                                      <div className="font-medium text-foreground">
+                                        {guard.name}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {guard.location} • {guard.experience}
+                                      </div>
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <Star className="h-3 w-3 fill-current text-yellow-500" />
+                                        <span className="text-xs font-medium">
+                                          {guard.rating}/5
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <Badge
+                                    variant={
+                                      guard.status === "Active"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className={`rounded-full ${
+                                      guard.status === "Active"
+                                        ? "bg-green-500 text-white"
+                                        : "bg-gray-200 text-gray-700"
+                                    }`}
+                                  >
+                                    {guard.status}
+                                  </Badge>
+                                </div>
+
+                                {guard.skills && guard.skills.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-1">
+                                    {guard.skills
+                                      .slice(0, 3)
+                                      .map((skill, index) => (
+                                        <Badge
+                                          key={index}
+                                          variant="outline"
+                                          className="text-xs rounded-full"
+                                        >
+                                          {skill}
+                                        </Badge>
+                                      ))}
+                                    {guard.skills.length > 3 && (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs rounded-full"
+                                      >
+                                        +{guard.skills.length - 3} more
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+
+                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      {guard.phone}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <MessageCircle className="h-4 w-4" />
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem>
+                                          <Edit2 className="h-4 w-4 mr-2" />
+                                          Edit Assignment
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                          <FileText className="h-4 w-4 mr-2" />
+                                          View Details
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="text-red-600">
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Remove
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-foreground mb-2">
+                            No guards assigned
+                          </h3>
+                          <p className="text-muted-foreground mb-4">
+                            Assign guards to get started with security services
+                          </p>
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Assign First Guard
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Previous Guards */}
-                    <div>
-                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                        <History className="h-5 w-5 text-secondary" />
-                        Previous Guards ({previousGuardsList.length})
-                      </h3>
-                      <div className="space-y-3">
-                        {previousGuardsList.map((guard) => (
-                          <div
-                            key={guard.id}
-                            className="p-4 rounded-xl border border-border/50 hover:bg-muted/20 transition-colors"
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                          <History className="h-5 w-5 text-gray-500" />
+                          Previous Guards ({previousGuardsList.length})
+                        </h3>
+                        {previousGuardsList.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl"
                           >
-                            <div className="flex items-center justify-between">
+                            View All
+                          </Button>
+                        )}
+                      </div>
+
+                      {previousGuardsList.length > 0 ? (
+                        <div className="space-y-3">
+                          {previousGuardsList.slice(0, 5).map((guard) => (
+                            <div
+                              key={guard.id}
+                              className="flex items-center justify-between p-4 rounded-xl border border-border/50 hover:bg-muted/20 transition-colors"
+                            >
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
-                                  <User className="h-5 w-5 text-secondary" />
+                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                  <User className="h-5 w-5 text-gray-500" />
                                 </div>
                                 <div>
-                                  <div className="font-medium">
+                                  <div className="font-medium text-foreground">
                                     {guard.name}
                                   </div>
                                   <div className="text-sm text-muted-foreground">
-                                    {guard.location}
+                                    {guard.location} • {guard.experience}
                                   </div>
                                 </div>
                               </div>
-                              <Badge variant="secondary">{guard.status}</Badge>
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 fill-current text-yellow-500" />
+                                  <span className="text-xs font-medium">
+                                    {guard.rating}/5
+                                  </span>
+                                </div>
+                                <Badge
+                                  variant="secondary"
+                                  className="rounded-full"
+                                >
+                                  {guard.status}
+                                </Badge>
+                                <Button variant="ghost" size="sm">
+                                  <RefreshCw className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+
+                          {previousGuardsList.length > 5 && (
+                            <div className="text-center pt-2">
+                              <Button variant="ghost" size="sm">
+                                Show {previousGuardsList.length - 5} more
+                                previous guards
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 rounded-xl border border-dashed border-border/50">
+                          <History className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                          <p className="text-muted-foreground">
+                            No previous guard assignments
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Guard Performance Stats */}
+                    <Card className="rounded-2xl border-border/50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">
+                          Guard Performance Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-3 rounded-xl bg-green-50 border border-green-200">
+                            <div className="text-2xl font-bold text-green-600">
+                              {
+                                currentGuardsList.filter((g) => g.rating >= 4.5)
+                                  .length
+                              }
+                            </div>
+                            <div className="text-xs text-green-700">
+                              Excellent
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                          <div className="text-center p-3 rounded-xl bg-blue-50 border border-blue-200">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {
+                                currentGuardsList.filter(
+                                  (g) => g.rating >= 4.0 && g.rating < 4.5
+                                ).length
+                              }
+                            </div>
+                            <div className="text-xs text-blue-700">Good</div>
+                          </div>
+                          <div className="text-center p-3 rounded-xl bg-yellow-50 border border-yellow-200">
+                            <div className="text-2xl font-bold text-yellow-600">
+                              {
+                                currentGuardsList.filter(
+                                  (g) => g.rating >= 3.0 && g.rating < 4.0
+                                ).length
+                              }
+                            </div>
+                            <div className="text-xs text-yellow-700">
+                              Average
+                            </div>
+                          </div>
+                          <div className="text-center p-3 rounded-xl bg-red-50 border border-red-200">
+                            <div className="text-2xl font-bold text-red-600">
+                              {
+                                currentGuardsList.filter((g) => g.rating < 3.0)
+                                  .length
+                              }
+                            </div>
+                            <div className="text-xs text-red-700">
+                              Needs Improvement
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -870,100 +1301,263 @@ export default function ClientDetails() {
               <TabsContent value="documents" className="space-y-6">
                 <Card className="rounded-3xl border-border/70 shadow-xl">
                   <CardHeader className="p-6">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Client Documents
-                      </CardTitle>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="rounded-xl">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Upload
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Upload Document</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <Input type="file" />
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="legal">Legal</SelectItem>
-                                <SelectItem value="financial">
-                                  Financial
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button className="w-full">Upload</Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Client Documents ({clientDocuments.length})
+                        </CardTitle>
+                        <CardDescription>
+                          All documents related to {client.name}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button className="rounded-xl">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Upload Document
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="rounded-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Upload New Document</DialogTitle>
+                              <DialogDescription>
+                                Add a document to {client.name}'s profile
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="document-file">
+                                  Select File
+                                </Label>
+                                <Input id="document-file" type="file" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="document-name">
+                                  Document Name
+                                </Label>
+                                <Input
+                                  id="document-name"
+                                  placeholder="Enter document name"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="document-category">
+                                  Category
+                                </Label>
+                                <Select>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select category" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="agreement">
+                                      Agreement
+                                    </SelectItem>
+                                    <SelectItem value="invoice">
+                                      Invoice
+                                    </SelectItem>
+                                    <SelectItem value="report">
+                                      Report
+                                    </SelectItem>
+                                    <SelectItem value="compliance">
+                                      Compliance
+                                    </SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="document-access">
+                                  Access Level
+                                </Label>
+                                <Select>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select access level" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="specific">
+                                      Specific
+                                    </SelectItem>
+                                    <SelectItem value="general">
+                                      General
+                                    </SelectItem>
+                                    <SelectItem value="restricted">
+                                      Restricted
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <DialogFooter>
+                                <Button type="submit" className="w-full">
+                                  Upload Document
+                                </Button>
+                              </DialogFooter>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+
+                        <Button variant="outline" className="rounded-xl">
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Document</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Uploaded</TableHead>
-                          <TableHead>Size</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dummyClientDocuments.map((doc) => (
-                          <TableRow key={doc.id}>
-                            <TableCell className="font-medium">
-                              {doc.name}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="secondary"
-                                className="rounded-full text-xs"
+                    {clientDocuments.length > 0 ? (
+                      <div className="overflow-hidden rounded-b-3xl">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[300px]">
+                                Document
+                              </TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead className="hidden md:table-cell">
+                                Category
+                              </TableHead>
+                              <TableHead className="hidden lg:table-cell">
+                                Uploaded
+                              </TableHead>
+                              <TableHead className="hidden sm:table-cell">
+                                Size
+                              </TableHead>
+                              <TableHead className="text-right">
+                                Actions
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {clientDocuments.map((doc) => (
+                              <TableRow
+                                key={doc.id}
+                                className="hover:bg-muted/50"
                               >
-                                {doc.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="hidden md:table-cell">
-                              <Badge variant="outline" className="text-xs">
-                                {doc.category}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {formatDate(doc.uploaded)}
-                            </TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">
-                              {doc.size}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-3">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                    <div>
+                                      <div className="font-medium text-foreground">
+                                        {doc.name}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground md:hidden">
+                                        {formatDate(doc.uploaded)} • {doc.size}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="secondary"
+                                    className="rounded-full text-xs"
+                                  >
+                                    {doc.type}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell">
+                                  <Badge variant="outline" className="text-xs">
+                                    {doc.category}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                                  {formatDate(doc.uploaded)}
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell text-right text-sm text-muted-foreground">
+                                  {doc.size}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 hover:bg-blue-100"
+                                    >
+                                      <Eye className="h-4 w-4 text-blue-600" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 hover:bg-green-100"
+                                    >
+                                      <Download className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem>
+                                          <Edit2 className="h-4 w-4 mr-2" />
+                                          Rename
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                          <Send className="h-4 w-4 mr-2" />
+                                          Share
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="text-red-600">
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <FileText className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">
+                          No documents found
+                        </h3>
+                        <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                          Upload documents like agreements, invoices, and
+                          reports to keep everything organized
+                        </p>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Upload Your First Document
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="rounded-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Upload Document</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <Input type="file" />
+                              <Select>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="legal">Legal</SelectItem>
+                                  <SelectItem value="financial">
+                                    Financial
+                                  </SelectItem>
+                                  <SelectItem value="operational">
+                                    Operational
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button className="w-full">Upload</Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -972,32 +1566,142 @@ export default function ClientDetails() {
               <TabsContent value="requests" className="space-y-6">
                 <Card className="rounded-3xl border-border/70 shadow-xl">
                   <CardHeader className="p-6">
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Client Requests ({clientRequests.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    {clientRequests.map((request) => (
-                      <div
-                        key={request.id}
-                        className="p-4 rounded-xl border bg-muted/30 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-foreground">
-                            {request.type}
-                          </h4>
-                          {getStatusBadge(request.status)}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {request.description}
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{formatDate(request.date)}</span>
-                          <Badge variant="secondary">{request.priority}</Badge>
-                        </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Activity className="h-5 w-5" />
+                          Client Requests ({clientRequests.length})
+                        </CardTitle>
+                        <CardDescription>
+                          All service requests from {client.name}
+                        </CardDescription>
                       </div>
-                    ))}
+                      <Button className="rounded-xl">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Request
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {clientRequests.length > 0 ? (
+                      <div className="space-y-4">
+                        {clientRequests.map((request) => (
+                          <div
+                            key={request.id}
+                            className="p-4 rounded-xl border bg-card hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="font-semibold text-foreground">
+                                    {request.type}
+                                  </h4>
+                                  {getStatusBadge(request.status)}
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {request.description}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 sm:flex-col sm:items-end sm:gap-1">
+                                <Badge
+                                  variant={
+                                    request.priority === "High"
+                                      ? "destructive"
+                                      : request.priority === "Medium"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="rounded-full"
+                                >
+                                  {request.priority}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDate(request.date)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  Created {formatDate(request.date)}
+                                </div>
+                                {request.assignedTo && (
+                                  <div className="flex items-center gap-1">
+                                    <User className="h-3 w-3" />
+                                    Assigned to {request.assignedTo}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {request.status === "Pending" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="rounded-lg"
+                                    >
+                                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                                      Mark Complete
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="rounded-lg"
+                                    >
+                                      <Edit2 className="h-4 w-4 mr-1" />
+                                      Edit
+                                    </Button>
+                                  </>
+                                )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <MessageCircle className="h-4 w-4 mr-2" />
+                                      Send Update
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600">
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete Request
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Activity className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">
+                          No requests found
+                        </h3>
+                        <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                          {client.name} hasn't made any service requests yet.
+                          All requests will appear here.
+                        </p>
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create First Request
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1007,7 +1711,7 @@ export default function ClientDetails() {
                 <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-background/80 shadow-xl">
                   <CardHeader className="p-6">
                     <CardTitle className="flex items-center gap-3 text-xl font-bold text-foreground">
-                      <History className="h-5 w-5 text-secondary" />
+                      <History className="h-5 w-5 text-primary" />
                       Activity Timeline
                     </CardTitle>
                     <CardDescription>
@@ -1015,68 +1719,184 @@ export default function ClientDetails() {
                       for {client.name}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-6 space-y-6 pb-6">
+                  <CardContent className="p-6 space-y-8">
                     {/* Recent Activity */}
-                    <div className="space-y-4">
-                      {clientActivity.slice(0, 4).map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex items-start gap-4 p-4 rounded-2xl bg-muted/30 border-l-4 border-primary/50 hover:shadow-md transition-all"
-                        >
-                          <div className="flex-shrink-0 rounded-full p-2 bg-primary/20 mt-0.5">
-                            <Activity className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-foreground">
-                              {activity.type}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {activity.description} •{" "}
-                              {formatDate(activity.date)}
-                            </p>
-                          </div>
-                          <span className="text-xs text-muted-foreground ml-auto">
-                            {activity.status}
-                          </span>
+                    <div className="space-y-6">
+                      <h4 className="font-semibold text-foreground text-lg">
+                        Recent Activity
+                      </h4>
+                      {clientActivity.length > 0 ? (
+                        <div className="space-y-4">
+                          {clientActivity.map((activity, index) => (
+                            <div
+                              key={activity.id || index}
+                              className="flex items-start gap-4 p-4 rounded-2xl bg-muted/30 border-l-4 border-primary/50 hover:shadow-md transition-all"
+                            >
+                              <div className="flex-shrink-0 rounded-full p-2 bg-primary/20 mt-0.5">
+                                <Activity className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-foreground truncate">
+                                  {activity.type}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {activity.description}
+                                </p>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {formatDate(activity.date)}
+                                  </span>
+                                  {activity.user && (
+                                    <span className="flex items-center gap-1">
+                                      <User className="h-3 w-3" />
+                                      By {activity.user}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <Badge
+                                variant={
+                                  activity.status === "Completed"
+                                    ? "default"
+                                    : activity.status === "In Progress"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                                className="flex-shrink-0 rounded-full"
+                              >
+                                {activity.status}
+                              </Badge>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="text-center py-8 rounded-2xl border border-dashed border-border/50">
+                          <History className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-foreground mb-2">
+                            No activity found
+                          </h3>
+                          <p className="text-muted-foreground">
+                            No recent activity for this client
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Assignment History */}
-                    <div className="mt-8 p-6 rounded-3xl bg-gradient-to-r from-muted/30 to-background/50 border border-border/30">
-                      <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-secondary" />
+                    <div className="p-6 rounded-3xl bg-gradient-to-r from-muted/30 to-background/50 border border-border/30">
+                      <h4 className="font-semibold text-foreground text-lg mb-6 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
                         Assignment History
                       </h4>
-                      <div className="space-y-3">
-                        {client.assignmentHistory.map((assignment, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 rounded-xl bg-muted/20"
-                          >
-                            <span className="text-sm font-medium text-foreground w-24">
-                              {assignment.type}
-                            </span>
-                            <div className="flex-1 mx-4">
-                              <Progress
-                                value={assignment.rating * 20}
-                                className="h-2 rounded-full"
-                              />
-                            </div>
-                            <div className="flex items-center gap-4 w-32 justify-end">
-                              <span className="text-sm text-muted-foreground">
-                                {assignment.guards} Guards
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className="text-xs rounded-full"
+
+                      {(client.assignmentHistory || []).length > 0 ? (
+                        <div className="space-y-4">
+                          {(client.assignmentHistory || []).map(
+                            (assignment, index) => (
+                              <div
+                                key={assignment.id || index}
+                                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-background/50 border border-border/30 hover:shadow-sm transition-shadow"
                               >
-                                {assignment.status}
-                              </Badge>
-                            </div>
+                                <div className="flex-1 mb-3 sm:mb-0">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <span className="font-medium text-foreground">
+                                      {assignment.type}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="rounded-full text-xs"
+                                    >
+                                      {assignment.guards} Guards
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span>
+                                      {formatDate(assignment.startDate)} -{" "}
+                                      {formatDate(assignment.endDate)}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{assignment.duration}</span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                      <Star className="h-4 w-4 fill-current text-yellow-500" />
+                                      <span className="font-medium">
+                                        {assignment.rating}
+                                      </span>
+                                    </div>
+                                    <div className="w-20">
+                                      <Progress
+                                        value={assignment.rating * 20}
+                                        className="h-2 rounded-full bg-muted"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <Badge
+                                    variant={
+                                      assignment.status === "Active"
+                                        ? "default"
+                                        : assignment.status === "Completed"
+                                        ? "secondary"
+                                        : "outline"
+                                    }
+                                    className="rounded-full"
+                                  >
+                                    {assignment.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 rounded-xl border border-dashed border-border/50">
+                          <Users className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                          <p className="text-muted-foreground">
+                            No assignment history available
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Performance Metrics */}
+                    <div className="grid md:grid-cols-3 gap-6">
+                      <Card className="rounded-2xl border-border/50">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-green-600 mb-1">
+                            {client.performance?.fulfilledRequests || 0}
                           </div>
-                        ))}
-                      </div>
+                          <div className="text-sm text-muted-foreground">
+                            Requests Fulfilled
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="rounded-2xl border-border/50">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-blue-600 mb-1">
+                            {client.performance?.satisfactionRate || 0}%
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Satisfaction Rate
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="rounded-2xl border-border/50">
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-purple-600 mb-1">
+                            {client.activeSince || "12 months"}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Active Duration
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </CardContent>
                 </Card>

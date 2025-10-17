@@ -1,7 +1,7 @@
 // Enhanced File: src/components/admin/RoleManagement.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -70,128 +70,9 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
 
-const dummyRoles = [
-  {
-    id: 1,
-    name: "Super Admin",
-    description: "Full access to all admin features and tabs",
-    permissions: [
-      "dashboard-read",
-      "clients-create",
-      "clients-read",
-      "clients-update",
-      "clients-delete",
-      "documents-create",
-      "documents-read",
-      "documents-update",
-      "documents-delete",
-      "requests-create",
-      "requests-read",
-      "requests-update",
-      "requests-delete",
-      "guards-create",
-      "guards-read",
-      "guards-update",
-      "guards-delete",
-      "frontend-create",
-      "frontend-read",
-      "frontend-update",
-      "frontend-delete",
-      "roles-create",
-      "roles-read",
-      "roles-update",
-      "roles-delete",
-      "contact-create",
-      "contact-read",
-      "contact-update",
-      "contact-delete",
-      "settings-create",
-      "settings-read",
-      "settings-update",
-      "settings-delete",
-    ],
-    users: 1,
-    created: "2025-01-01",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Frontend Editor",
-    description: "Limited access to frontend management and dashboard",
-    permissions: [
-      "dashboard-read",
-      "frontend-create",
-      "frontend-read",
-      "frontend-update",
-    ],
-    users: 2,
-    created: "2025-01-10",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Guard Supervisor",
-    description: "Access to guards, requests, and dashboard only",
-    permissions: [
-      "dashboard-read",
-      "guards-read",
-      "guards-update",
-      "requests-read",
-      "requests-create",
-    ],
-    users: 0,
-    created: "2025-01-15",
-    status: "Inactive",
-  },
-];
-
-const dummyUsers = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    email: "sarah@elite.com",
-    role: "Super Admin",
-    status: "Active",
-    lastLogin: "2025-01-15",
-    joinDate: "2024-01-15",
-    password: "TempPass2025!x7kP9#mQ",
-    avatar: "SJ",
-  },
-  {
-    id: 2,
-    name: "Mike Davis",
-    email: "mike@elite.com",
-    role: "Frontend Editor",
-    status: "Active",
-    lastLogin: "2025-01-14",
-    joinDate: "2024-02-20",
-    password: "TempPass2025!aB3nM8#vL",
-    avatar: "MD",
-  },
-];
-
-const dummyPasswordRequests = [
-  {
-    id: 1,
-    userEmail: "user1@company.com",
-    userName: "John Smith",
-    requestedAt: "2025-10-14 10:30 AM",
-    status: "Pending Verification",
-    verificationCodeSent: true,
-    expiresIn: "10 minutes",
-  },
-  {
-    id: 2,
-    userEmail: "user2@company.com",
-    userName: "Emily Wilson",
-    requestedAt: "2025-10-13 15:45 PM",
-    status: "Approved - Temp Password Sent",
-    verificationCodeSent: true,
-    expiresIn: "N/A",
-  },
-];
-
+// RoleManagement.jsx में tabPermissions array को update करें:
 const tabPermissions = [
   {
     id: "dashboard",
@@ -320,37 +201,7 @@ const tabPermissions = [
       },
     ],
   },
-  {
-    id: "frontend",
-    name: "Frontend Management",
-    description: "Edit public content",
-    actions: [
-      {
-        id: "create",
-        name: "Create",
-        icon: Plus,
-        description: "Add frontend content",
-      },
-      {
-        id: "read",
-        name: "Read",
-        icon: Eye,
-        description: "View frontend sections",
-      },
-      {
-        id: "update",
-        name: "Update",
-        icon: Edit2,
-        description: "Edit frontend content",
-      },
-      {
-        id: "delete",
-        name: "Delete",
-        icon: Trash2,
-        description: "Remove frontend items",
-      },
-    ],
-  },
+  // ❌ REMOVE FRONTEND MANAGEMENT FROM HERE - IT'S INSIDE SETTINGS
   {
     id: "roles",
     name: "Roles & Users",
@@ -404,9 +255,9 @@ const tabPermissions = [
     ],
   },
   {
-    id: "settings",
+    id: "settings", // ✅ KEEP ONLY SETTINGS - FRONTEND IS INSIDE THIS
     name: "Settings",
-    description: "System configurations",
+    description: "System configurations including Frontend Management",
     actions: [
       { id: "read", name: "Read", icon: Eye, description: "View settings" },
       {
@@ -421,6 +272,9 @@ const tabPermissions = [
 
 export default function RoleManagement() {
   const [activeTab, setActiveTab] = useState("roles");
+  const [roles, setRoles] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [passwordRequests, setPasswordRequests] = useState([]); // Keep dummy for now
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [selectedUserEmail, setSelectedUserEmail] = useState("");
@@ -428,13 +282,56 @@ export default function RoleManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedPassword, setCopiedPassword] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     roleName: "",
     roleDescription: "",
     userName: "",
     userEmail: "",
     userPhone: "",
+    userPassword: "",
   });
+
+  const { toast } = useToast();
+
+  // Fetch roles and users on mount
+  useEffect(() => {
+    fetchRoles();
+    fetchUsers();
+  }, []);
+
+  // Inside RoleManagement.jsx - update fetch functions:
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch("/api/auth/roles");
+      if (res.ok) {
+        const data = await res.json();
+        setRoles(data || []);
+      } else {
+        // Fallback to empty array if API fails
+        setRoles([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch roles:", error);
+      setRoles([]); // Fallback to empty array
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/auth/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data || []);
+      } else {
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      setUsers([]);
+    }
+  };
 
   const handlePermissionToggle = (permissionId) => {
     setSelectedPermissions((prev) =>
@@ -449,24 +346,58 @@ export default function RoleManagement() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(
-      "Creating role:",
-      formData,
-      "with permissions:",
-      selectedPermissions
-    );
-    // Reset form
-    setFormData({
-      roleName: "",
-      roleDescription: "",
-      userName: "",
-      userEmail: "",
-      userPhone: "",
-    });
-    setSelectedPermissions([]);
-    setShowCreateForm(false);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          permissions: selectedPermissions,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create role and user",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Role and user created successfully!",
+      });
+      fetchRoles();
+      fetchUsers();
+      // Reset form
+      setFormData({
+        roleName: "",
+        roleDescription: "",
+        userName: "",
+        userEmail: "",
+        userPhone: "",
+        userPassword: "",
+      });
+      setSelectedPermissions([]);
+      setShowCreateForm(false);
+    } catch (error) {
+      console.error("Submit error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create role and user",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePasswordReset = (email) => {
@@ -515,23 +446,23 @@ export default function RoleManagement() {
   };
 
   // Filter users based on search and role filter
-  const filteredUsers = dummyUsers.filter((user) => {
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase());
+      user.role?.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesRole = roleFilter === "all" || user.role?.name === roleFilter;
 
     return matchesSearch && matchesRole;
   });
 
   // Statistics
   const stats = {
-    totalUsers: dummyUsers.length,
-    activeUsers: dummyUsers.filter((u) => u.status === "Active").length,
-    totalRoles: dummyRoles.length,
-    pendingRequests: dummyPasswordRequests.filter(
+    totalUsers: users.length,
+    activeUsers: users.filter((u) => u.status === "Active").length,
+    totalRoles: roles.length,
+    pendingRequests: passwordRequests.filter(
       (r) => r.status === "Pending Verification"
     ).length,
   };
@@ -566,7 +497,7 @@ export default function RoleManagement() {
           </Button>
           <Button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm flex items-center gap-2"
+            className="bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center gap-2"
           >
             <UserPlus className="h-4 w-4" />
             Create Role & User
@@ -786,17 +717,34 @@ export default function RoleManagement() {
                       className="rounded-xl border-primary/20 focus:border-primary h-11"
                     />
                   </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label
+                      htmlFor="userPassword"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Temporary Password *
+                    </Label>
+                    <Input
+                      id="userPassword"
+                      name="userPassword"
+                      type="password"
+                      value={formData.userPassword}
+                      onChange={handleInputChange}
+                      placeholder="e.g., SecurePass123!"
+                      className="rounded-xl border-primary/20 focus:border-primary h-11"
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                   <div className="flex items-center gap-3">
                     <Shield className="h-5 w-5 text-blue-600" />
                     <div>
                       <p className="font-medium text-foreground">
-                        Temporary Password
+                        Manual Password Set
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Will be auto-generated and sent via secure email upon
-                        creation
+                        Set a secure temporary password for the new user
                       </p>
                     </div>
                   </div>
@@ -816,9 +764,14 @@ export default function RoleManagement() {
                 </Button>
                 <Button
                   type="submit"
+                  disabled={loading}
                   className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex-1 flex items-center justify-center gap-2"
                 >
-                  <Check className="h-4 w-4" />
+                  {loading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                   Create Role & User
                 </Button>
               </div>
@@ -834,13 +787,13 @@ export default function RoleManagement() {
             value="roles"
             className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            Roles ({dummyRoles.length})
+            Roles ({roles.length})
           </TabsTrigger>
           <TabsTrigger
             value="users"
             className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            Users ({dummyUsers.length})
+            Users ({users.length})
           </TabsTrigger>
         </TabsList>
 
@@ -862,7 +815,12 @@ export default function RoleManagement() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="rounded-xl">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    onClick={fetchRoles}
+                  >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
@@ -894,9 +852,9 @@ export default function RoleManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dummyRoles.map((role) => (
+                  {roles.map((role) => (
                     <TableRow
-                      key={role.id}
+                      key={role._id}
                       className="hover:bg-primary/5 transition-colors border-b border-border/20"
                     >
                       <TableCell>
@@ -911,12 +869,12 @@ export default function RoleManagement() {
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className="text-xs">
-                          {getPermissionCount(role.permissions)}
+                          {getPermissionCount(role.permissions || [])}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="secondary" className="text-xs">
-                          {role.users}
+                          {role.users || 0}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -997,6 +955,7 @@ export default function RoleManagement() {
                       <SelectItem value="Guard Supervisor">
                         Guard Supervisor
                       </SelectItem>
+                      <SelectItem value="Client">Client</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1033,14 +992,14 @@ export default function RoleManagement() {
                 <TableBody>
                   {filteredUsers.map((user) => (
                     <TableRow
-                      key={user.id}
+                      key={user._id}
                       className="hover:bg-primary/5 transition-colors border-b border-border/20"
                     >
                       <TableCell>
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-sm font-medium text-primary">
-                              {user.avatar}
+                              {user.avatar || user.name.charAt(0)}
                             </span>
                           </div>
                           <div>
@@ -1063,7 +1022,7 @@ export default function RoleManagement() {
                           variant="outline"
                           className="rounded-full border-primary/20"
                         >
-                          {user.role}
+                          {user.role?.name || "N/A"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -1073,7 +1032,9 @@ export default function RoleManagement() {
                       </TableCell>
                       <TableCell className="hidden xl:table-cell">
                         <div className="text-sm text-muted-foreground">
-                          {formatDate(user.lastLogin)}
+                          {user.lastLogin
+                            ? formatDate(user.lastLogin)
+                            : "Never"}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1137,7 +1098,7 @@ export default function RoleManagement() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-4">
-            {dummyPasswordRequests.map((req) => (
+            {passwordRequests.map((req) => (
               <div
                 key={req.id}
                 className="flex items-start gap-4 p-4 rounded-2xl bg-muted/30 border border-border/20 hover:bg-muted/40 transition-colors"

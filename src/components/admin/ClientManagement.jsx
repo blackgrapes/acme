@@ -49,34 +49,81 @@ import {
   XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
 export default function ClientManagement({
-  dummyClients,
   guardSearch,
   handleGuardSearch,
   selectedGuards,
   toggleGuardSelection,
   filteredClientGuards,
-  handleClientRowClick,
 }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    org: "",
+    address: "",
+    plan: "",
+    startDate: "",
+    endDate: "",
+  });
+
+  // Real clients fetch करें
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  // ClientManagement.jsx में fetchClients function update करें
+  const fetchClients = async () => {
+    try {
+      console.log("🔄 Fetching clients...");
+      const response = await fetch("/api/auth/client");
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("✅ Clients fetched:", data.clients);
+        // Only show users with role "Client"
+        const clientUsers = data.clients.filter(
+          (user) =>
+            user.role && (user.role.name === "Client" || user.role === "Client")
+        );
+        setClients(clientUsers);
+      } else {
+        console.error("❌ Failed to fetch clients:", data.error);
+        setClients([]);
+      }
+    } catch (error) {
+      console.error("💥 Error fetching clients:", error);
+      setClients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter clients based on search and filters
-  const filteredClients = dummyClients.filter((client) => {
+  const filteredClients = clients.filter((client) => {
     const matchesSearch =
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.org.toLowerCase().includes(searchQuery.toLowerCase());
+      client.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.companyName &&
+        client.companyName.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus =
       statusFilter === "all" || client.status === statusFilter;
-    const matchesPlan = planFilter === "all" || client.plan === planFilter;
+    const matchesPlan =
+      planFilter === "all" || client.securityPlan === planFilter;
 
     return matchesSearch && matchesStatus && matchesPlan;
   });
@@ -107,6 +154,106 @@ export default function ClientManagement({
     }
   };
 
+  // Form input handle करें
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Client registration form submission - SIMPLIFIED VERSION
+  const handleClientSubmit = async (event) => {
+    event.preventDefault();
+
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      alert("Password must be at least 6 characters long!");
+      return;
+    }
+
+    try {
+      const clientData = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        companyName: formData.org,
+        address: formData.address,
+        securityPlan: formData.plan,
+        serviceDuration: {
+          from: formData.startDate,
+          to: formData.endDate,
+        },
+        roleName: "Client",
+      };
+
+      console.log("📝 Sending client data:", clientData);
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(clientData),
+      });
+
+      const result = await response.json();
+
+      // ClientManagement.jsx में handleClientSubmit में
+      if (response.ok) {
+        console.log("✅ Client registered successfully:", result.message);
+        // Refresh clients list
+        await fetchClients();
+        // Close dialog and reset form
+        setIsDialogOpen(false);
+        setFormData({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          phone: "",
+          org: "",
+          address: "",
+          plan: "",
+          startDate: "",
+          endDate: "",
+        });
+        // ✅ Simple success message
+        alert("Client registered successfully!");
+      } else {
+        console.error("❌ Registration failed:", result.error);
+        alert(`Registration failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("💥 Registration error:", error);
+      alert("Registration error. Please try again.");
+    }
+  };
+
+  const handleClientRowClick = (clientId) => {
+    router.push(`/admin-dashboard/client-details/${clientId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading clients...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -127,7 +274,7 @@ export default function ClientManagement({
             <Download className="h-4 w-4 mr-2 text-primary" />
             Export
           </Button>
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -144,7 +291,12 @@ export default function ClientManagement({
                   preferences.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-6 py-4 grid-cols-1 md:grid-cols-2">
+
+              {/* FORM START */}
+              <form
+                onSubmit={handleClientSubmit}
+                className="grid gap-6 py-4 grid-cols-1 md:grid-cols-2"
+              >
                 {/* Personal Information */}
                 <div className="md:col-span-2">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -159,8 +311,12 @@ export default function ClientManagement({
                   </Label>
                   <Input
                     id="name"
+                    name="name"
                     placeholder="John Smith"
                     className="border-primary/20 focus:border-primary"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
                   />
                 </div>
 
@@ -170,9 +326,13 @@ export default function ClientManagement({
                   </Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="john@example.com"
                     className="border-primary/20 focus:border-primary"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
                   />
                 </div>
 
@@ -182,8 +342,11 @@ export default function ClientManagement({
                   </Label>
                   <Input
                     id="phone"
+                    name="phone"
                     placeholder="(555) 123-4567"
                     className="border-primary/20 focus:border-primary"
+                    value={formData.phone}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -193,8 +356,11 @@ export default function ClientManagement({
                   </Label>
                   <Input
                     id="org"
+                    name="org"
                     placeholder="Company Name"
                     className="border-primary/20 focus:border-primary"
+                    value={formData.org}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -204,8 +370,48 @@ export default function ClientManagement({
                   </Label>
                   <Textarea
                     id="address"
+                    name="address"
                     placeholder="Enter full address..."
                     className="border-primary/20 focus:border-primary min-h-[80px]"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password *
+                  </Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="border-primary/20 focus:border-primary"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    minLength="6"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="text-sm font-medium"
+                  >
+                    Confirm Password *
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    className="border-primary/20 focus:border-primary"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    required
+                    minLength="6"
                   />
                 </div>
 
@@ -221,22 +427,37 @@ export default function ClientManagement({
                   <Label htmlFor="plan" className="text-sm font-medium">
                     Security Plan *
                   </Label>
-                  <Select>
+                  <Select
+                    name="plan"
+                    required
+                    value={formData.plan}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, plan: value }))
+                    }
+                  >
                     <SelectTrigger className="border-primary/20 focus:border-primary">
                       <SelectValue placeholder="Select Security Plan" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="personal">
+                      <SelectItem value="Personal Security Officer">
                         Personal Security Officer
                       </SelectItem>
-                      <SelectItem value="guard">Security Guard</SelectItem>
-                      <SelectItem value="officer">Security Officer</SelectItem>
-                      <SelectItem value="supervisor">
+                      <SelectItem value="Security Guard">
+                        Security Guard
+                      </SelectItem>
+                      <SelectItem value="Security Officer">
+                        Security Officer
+                      </SelectItem>
+                      <SelectItem value="Security Supervisor">
                         Security Supervisor
                       </SelectItem>
-                      <SelectItem value="lady">Lady Security Guard</SelectItem>
-                      <SelectItem value="gunmen">Security Gunmen</SelectItem>
-                      <SelectItem value="exmen">
+                      <SelectItem value="Lady Security Guard">
+                        Lady Security Guard
+                      </SelectItem>
+                      <SelectItem value="Security Gunmen">
+                        Security Gunmen
+                      </SelectItem>
+                      <SelectItem value="Ex-men Security Guard & Bodyguards">
                         Ex-men Security Guard & Bodyguards
                       </SelectItem>
                     </SelectContent>
@@ -254,8 +475,11 @@ export default function ClientManagement({
                       </Label>
                       <Input
                         id="startDate"
+                        name="startDate"
                         type="date"
                         className="border-primary/20 focus:border-primary"
+                        value={formData.startDate}
+                        onChange={handleInputChange}
                       />
                     </div>
                     <div className="flex-1 space-y-2">
@@ -264,106 +488,49 @@ export default function ClientManagement({
                       </Label>
                       <Input
                         id="endDate"
+                        name="endDate"
                         type="date"
                         className="border-primary/20 focus:border-primary"
+                        value={formData.endDate}
+                        onChange={handleInputChange}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">
-                    Account Settings
-                  </Label>
-                  <div className="space-y-3 p-3 border border-primary/20 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="active" className="text-sm">
-                        Active Account
-                      </Label>
-                      <Switch id="active" defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="notifications" className="text-sm">
-                        Email Notifications
-                      </Label>
-                      <Switch id="notifications" defaultChecked />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Guard Assignment */}
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    Assign Security Personnel
-                  </h3>
-                  <div className="space-y-4 p-4 border border-primary/20 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Search className="h-4 w-4 text-primary" />
-                      <Input
-                        placeholder="Search guards by name, email, or specialty..."
-                        value={guardSearch}
-                        onChange={(e) => handleGuardSearch(e, "client")}
-                        className="flex-1 border-primary/20 focus:border-primary"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
-                      {filteredClientGuards.map((guard) => (
-                        <div
-                          key={guard.id}
-                          className="flex items-center space-x-3 p-3 border border-primary/10 rounded-lg hover:bg-primary/5 transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            id={`guard-${guard.id}`}
-                            checked={selectedGuards.includes(guard.id)}
-                            onChange={() =>
-                              toggleGuardSelection(guard.id, "client")
-                            }
-                            className="text-primary focus:ring-primary"
-                          />
-                          <Label
-                            htmlFor={`guard-${guard.id}`}
-                            className="text-sm cursor-pointer flex-1"
-                          >
-                            <div className="font-medium text-foreground">
-                              {guard.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {guard.email}
-                            </div>
-                            <div className="text-xs text-primary font-medium mt-1">
-                              {guard.specialty || "Security Guard"}
-                            </div>
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedGuards.length > 0 && (
-                      <div className="text-sm text-primary font-medium">
-                        {selectedGuards.length} guard
-                        {selectedGuards.length > 1 ? "s" : ""} selected
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  variant="outline"
-                  className="border-primary/20 hover:bg-primary/5"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Client Account
-                </Button>
-              </DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0 md:col-span-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-primary/20 hover:bg-primary/5"
+                    onClick={() => {
+                      setIsDialogOpen(false);
+                      setFormData({
+                        name: "",
+                        email: "",
+                        password: "",
+                        confirmPassword: "",
+                        phone: "",
+                        org: "",
+                        address: "",
+                        plan: "",
+                        startDate: "",
+                        endDate: "",
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Client Account
+                  </Button>
+                </DialogFooter>
+              </form>
+              {/* FORM END */}
             </DialogContent>
           </Dialog>
         </div>
@@ -371,7 +538,7 @@ export default function ClientManagement({
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-md border-0 bg-gradient-primary">
+        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -379,7 +546,7 @@ export default function ClientManagement({
                   Total Clients
                 </p>
                 <p className="text-2xl font-bold text-foreground">
-                  {dummyClients.length}
+                  {clients.length}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -389,13 +556,13 @@ export default function ClientManagement({
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0 bg-gradient-primary">
+        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">Active</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {dummyClients.filter((c) => c.status === "Active").length}
+                  {clients.filter((c) => c.status === "Active").length}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -405,13 +572,13 @@ export default function ClientManagement({
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0 bg-gradient-primary">
+        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">Pending</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {dummyClients.filter((c) => c.status === "Pending").length}
+                  {clients.filter((c) => c.status === "Pending").length}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -421,15 +588,13 @@ export default function ClientManagement({
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0 bg-gradient-primary">
+        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  Assigned Guards
-                </p>
+                <p className="text-sm font-medium text-foreground">Revenue</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {selectedGuards.length}
+                  ₹{clients.length * 25000}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -477,6 +642,7 @@ export default function ClientManagement({
                 </SelectItem>
                 <SelectItem value="Security Guard">Guard</SelectItem>
                 <SelectItem value="Security Officer">Officer</SelectItem>
+                <SelectItem value="Security Supervisor">Supervisor</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -501,9 +667,9 @@ export default function ClientManagement({
               <TableBody>
                 {filteredClients.map((client) => (
                   <TableRow
-                    key={client.id}
+                    key={client._id}
                     className="cursor-pointer hover:bg-primary/5 transition-colors group"
-                    onClick={() => handleClientRowClick(client.id)}
+                    onClick={() => handleClientRowClick(client._id)}
                   >
                     <TableCell>
                       <div className="flex items-center space-x-3">
@@ -528,14 +694,16 @@ export default function ClientManagement({
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Phone className="h-3 w-3 text-primary" />
-                          {client.phone}
+                          {client.phone || "N/A"}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-primary" />
-                        <span className="text-sm">{client.org}</span>
+                        <span className="text-sm">
+                          {client.companyName || "N/A"}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -544,10 +712,10 @@ export default function ClientManagement({
                           variant={getStatusVariant(client.status)}
                           className={`flex items-center gap-1 ${
                             client.status === "Active"
-                              ? "bg-primary text-primary-foreground"
+                              ? "bg-green-500 text-white"
                               : client.status === "Pending"
-                              ? "bg-primary/20 text-primary"
-                              : ""
+                              ? "bg-yellow-500 text-white"
+                              : "bg-gray-500 text-white"
                           }`}
                         >
                           {getStatusIcon(client.status)}
@@ -557,31 +725,28 @@ export default function ClientManagement({
                     </TableCell>
                     <TableCell className="hidden xl:table-cell">
                       <div className="text-sm text-foreground font-medium">
-                        {client.plan}
+                        {client.securityPlan || "N/A"}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClientRowClick(client._id);
+                          }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                        >
-                          <MoreVertical className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -595,10 +760,14 @@ export default function ClientManagement({
             <div className="text-center py-12">
               <User className="h-12 w-12 text-primary/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                No clients found
+                {clients.length === 0
+                  ? "No clients registered yet"
+                  : "No clients found"}
               </h3>
               <p className="text-muted-foreground">
-                Try adjusting your search or filters
+                {clients.length === 0
+                  ? "Add your first client using the button above."
+                  : "Try adjusting your search or filters"}
               </p>
             </div>
           )}

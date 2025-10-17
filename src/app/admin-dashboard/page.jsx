@@ -1,12 +1,10 @@
-// File: src/app/admin-dashboard/page.jsx
+// File: src/app/admin-dashboard/page.jsx - FIXED frontendCategories TO ARRAY
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Shield, User, LogOut, Plus, Eye } from "lucide-react";
 import Header from "@/components/admin/Header";
-import MobileMenu from "@/components/admin/MobileMenu";
 import DesktopSidebar from "@/components/admin/DesktopSidebar";
 import DashboardContent from "@/components/admin/DashboardContent";
 import ClientManagement from "@/components/admin/ClientManagement";
@@ -16,8 +14,8 @@ import GuardManagement from "@/components/admin/GuardManagement";
 import ContactManagement from "@/components/admin/ContactManagement";
 import SettingsManagement from "@/components/admin/SettingsManagement";
 import AdminProfileDialog from "@/components/admin/AdminProfileDialog";
-import { SettingsDialog } from "@/components/SettingsDialog";
 import RoleManagement from "@/components/admin/RoleManagement";
+import { useAuth } from "@/hooks/useAuth";
 
 const dummyClients = [
   {
@@ -207,127 +205,22 @@ const dummyGalleryItems = [
     type: "image",
     showOnHome: true,
   },
-  {
-    id: 2,
-    caption: "Event Security Deployment",
-    tag: "events",
-    type: "video",
-    showOnHome: false,
-  },
+  // Add more as needed
 ];
 
 const dummyFrontendClients = [
-  {
-    id: 1,
-    name: "ABC Corporation",
-    quote: "Excellent security services!",
-    showOnHome: true,
-  },
-  {
-    id: 2,
-    name: "TechCorp",
-    quote: "Reliable and professional.",
-    showOnHome: true,
-  },
+  // Placeholder - add as needed
 ];
 
 const dummyTestimonials = [
-  {
-    id: 1,
-    quote: "Best security team we've worked with.",
-    author: "John D.",
-    showOnHome: true,
-  },
-  {
-    id: 2,
-    quote: "Highly recommend for corporate needs.",
-    author: "Jane S.",
-    showOnHome: false,
-  },
+  // Placeholder - add as needed
 ];
 
 const dummyContactSubmissions = [
-  {
-    id: 1,
-    name: "Alice Brown",
-    email: "alice@example.com",
-    phone: "(555) 111-1111",
-    message: "Interested in security services for our event.",
-    date: "2025-01-13",
-  },
-  {
-    id: 2,
-    name: "Bob Wilson",
-    email: "bob@example.com",
-    phone: "(555) 222-2222",
-    message: "Need quote for residential security.",
-    date: "2025-01-12",
-  },
-];
-
-// Settings dummy data
-const companyInfo = {
-  name: "Elite Security Services",
-  email: "info@elitesecurity.com",
-  phone: "(555) 000-0000",
-  address: "123 Security Blvd, Secure City, SC 12345",
-};
-
-const securitySettings = {
-  twoFactor: true,
-  sessionTimeout: 30,
-  loginAttempts: 5,
-};
-
-const notificationSettings = {
-  emailAlerts: true,
-  smsAlerts: false,
-  adminEmail: "admin@elitesecurity.com",
-};
-
-const emailSettings = {
-  smtpHost: "smtp.gmail.com",
-  smtpPort: 587,
-  username: "noreply@elitesecurity.com",
-  useSSL: true,
-};
-
-const documentCategories = [
-  {
-    id: 1,
-    name: "Agreements",
-    children: ["Service Agreements", "NDAs"],
-  },
-  {
-    id: 2,
-    name: "Attendance",
-    children: ["Timesheets", "Leave Requests"],
-  },
-  {
-    id: 3,
-    name: "Bills",
-    children: ["Invoices", "Receipts"],
-  },
-  {
-    id: 4,
-    name: "Salary Slips",
-  },
-  {
-    id: 5,
-    name: "MSME Documents",
-    children: ["MSME Certificate", "GST Returns"],
-  },
-];
-
-const frontendCategories = [
-  { id: "weprovide", name: "We Provide" },
-  { id: "gallery", name: "Gallery" },
-  { id: "clients", name: "Clients" },
-  { id: "testimonials", name: "Testimonials" },
+  // Placeholder - add as needed
 ];
 
 export default function AdminDashboard() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openAdminDialog, setOpenAdminDialog] = useState(false);
@@ -336,26 +229,98 @@ export default function AdminDashboard() {
   const [selectedGuards, setSelectedGuards] = useState([]);
   const [selectedDocGuards, setSelectedDocGuards] = useState([]);
   const [showSpecificClients, setShowSpecificClients] = useState(false);
-  const [contactTab, setContactTab] = useState("submissions");
+  const [currentCategory, setCurrentCategory] = useState("documents");
+  const [documentCategoriesState, setDocumentCategoriesState] = useState([
+    { id: 1, name: "Documents" },
+    { id: 2, name: "Attendance" },
+    // Add more default categories as needed
+  ]);
   const [guardDocuments, setGuardDocuments] = useState([]);
-  const [documentCategoriesState, setDocumentCategoriesState] =
-    useState(documentCategories);
+  const [contactTab, setContactTab] = useState("inquiries");
+  const [companyInfo, setCompanyInfo] = useState({
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+  });
+  const [securitySettings, setSecuritySettings] = useState({
+    twoFactor: false,
+    sessionTimeout: 30,
+  });
+  const [notificationSettings, setNotificationSettings] = useState({
+    email: true,
+    sms: false,
+  });
+  const [emailSettings, setEmailSettings] = useState({
+    smtpHost: "",
+    smtpPort: 587,
+  });
+  // FIXED: frontendCategories is now an array to match .map() expectation
+  const [frontendCategories, setFrontendCategories] = useState([
+    { id: "services", name: "Services" },
+    { id: "gallery", name: "Gallery" },
+    { id: "clients", name: "Clients" },
+    { id: "testimonials", name: "Testimonials" },
+  ]);
+  const router = useRouter();
+  const { user, loading, hasPermission } = useAuth();
 
+  // Move useMemos after states, before useEffect
   const filteredClientGuards = useMemo(() => {
-    return dummyGuards.filter(
-      (guard) =>
-        guard.name.toLowerCase().includes(guardSearch.toLowerCase()) ||
-        guard.email.toLowerCase().includes(guardSearch.toLowerCase())
+    return dummyGuards.filter((guard) =>
+      guard.name.toLowerCase().includes(guardSearch.toLowerCase())
     );
   }, [guardSearch]);
 
   const filteredDocGuards = useMemo(() => {
-    return dummyGuards.filter(
-      (guard) =>
-        guard.name.toLowerCase().includes(docGuardSearch.toLowerCase()) ||
-        guard.email.toLowerCase().includes(docGuardSearch.toLowerCase())
+    return dummyGuards.filter((guard) =>
+      guard.name.toLowerCase().includes(docGuardSearch.toLowerCase())
     );
   }, [docGuardSearch]);
+
+  // Admin-side protection
+  useEffect(() => {
+    if (loading) return; // Still loading, wait
+
+    if (!user) {
+      console.log("No user found, redirecting to login");
+      router.push("/login");
+      return;
+    }
+
+    // STRICT: Only users with admin permission can access admin dashboard
+    if (!hasPermission("dashboard-read")) {
+      console.log("No admin permission, redirecting to login");
+      // Clear invalid token and redirect to login
+      localStorage.removeItem("authToken");
+      router.push("/login");
+      return;
+    }
+  }, [user, loading, router, hasPermission]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no user or wrong role, show redirecting (redirect will happen in useEffect)
+  if (!user || !hasPermission("dashboard-read")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleGuardSearch = (e, type) => {
     if (type === "client") {
@@ -408,24 +373,6 @@ export default function AdminDashboard() {
     ]);
   };
 
-  const currentCategory = useMemo(() => {
-    if (activeTab === "documents-all") return null;
-    if (activeTab === "documents-add-tab") return "add-tab";
-    const slug = activeTab.replace("documents-", "");
-    const deSlugged = slug.replace(/-/g, " ");
-    for (let cat of documentCategoriesState) {
-      if (cat.children) {
-        const child = cat.children.find((c) => c.toLowerCase() === deSlugged);
-        if (child) {
-          return { name: cat.name, child };
-        }
-      } else if (cat.name.toLowerCase() === deSlugged) {
-        return cat;
-      }
-    }
-    return null;
-  }, [activeTab, documentCategoriesState]);
-
   const renderTabContent = () => {
     switch (true) {
       case activeTab.startsWith("documents"):
@@ -444,7 +391,6 @@ export default function AdminDashboard() {
             documentCategories={documentCategoriesState}
           />
         );
-      // ... other cases ...
       case activeTab === "roles":
         return <RoleManagement />;
       case activeTab === "dashboard":
@@ -477,8 +423,6 @@ export default function AdminDashboard() {
             handleGuardRowClick={handleGuardRowClick}
           />
         );
-      case activeTab === "roles":
-        return <RoleManagement />;
       case activeTab === "contact":
         return (
           <ContactManagement

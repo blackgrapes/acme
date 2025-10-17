@@ -1,8 +1,9 @@
-// File: app/client-dashboard/page.jsx
+// File: app/client-dashboard/page.jsx - UPDATED & STRICT
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import Header from "@/components/client/Header";
 import DesktopSidebar from "@/components/client/DesktopSidebar";
@@ -186,6 +187,51 @@ const dummyRequests = [
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Client-side protection - STRICT VERSION
+  useEffect(() => {
+    if (loading) return; // Still loading, wait
+
+    if (!user) {
+      console.log("No user found, redirecting to login");
+      router.push("/login");
+      return;
+    }
+
+    // STRICT: Only Client can access client dashboard
+    if (user.role !== "Client") {
+      console.log("Non-client user, redirecting to login");
+      // Clear invalid token and redirect to login
+      localStorage.removeItem("authToken");
+      router.push("/login");
+      return;
+    }
+  }, [user, loading, router]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no user or wrong role, show redirecting (redirect will happen in useEffect)
+  if (!user || user.role !== "Client") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleGuardClick = (guardId) => {
     router.push(`/client-dashboard/guard-details/${guardId}`);

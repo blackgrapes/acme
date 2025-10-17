@@ -14,6 +14,7 @@ import { Shield, Settings, LogIn } from "lucide-react";
 import { useState } from "react";
 import { SettingsDialog } from "./SettingsDialog";
 import { useTheme } from "@/contexts/ThemeContext";
+import Login from "@/app/login/page";
 
 const navItems = [
   { to: "/", label: "Home" },
@@ -75,49 +76,11 @@ export function Header() {
             </Button>
 
             {/* Client Portal Login */}
-            <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
-              <DialogTrigger asChild>
-                <Button className="rounded-full px-5 bg-primary text-white hover:bg-primary/90 transition-colors">
-                  <LogIn className="h-4 w-4 mr-1" /> Client Portal Login
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:rounded-2xl text-white">
-                <DialogHeader>
-                  <DialogTitle>Client Portal Login</DialogTitle>
-                </DialogHeader>
-                <form
-                  className="space-y-3"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setLoginOpen(false);
-                  }}
-                >
-                  <label className="block text-sm font-medium">Email</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="you@example.com"
-                    className="w-full h-11 rounded-md border px-3 border-border"
-                  />
-                  <label className="block text-sm font-medium">Password</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    className="w-full h-11 rounded-md border px-3 border-border"
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full rounded-full bg-primary hover:bg-primary/90 transition-colors"
-                  >
-                    Login
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Demo only. Hook up auth later.
-                  </p>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Link href={'/login'}>
+              <Button className="rounded-full px-5 bg-primary text-white hover:bg-primary/90 transition-colors">
+                <LogIn className="h-4 w-4 mr-1" /> Client Portal Login
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
