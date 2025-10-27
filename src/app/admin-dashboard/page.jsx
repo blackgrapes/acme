@@ -540,7 +540,7 @@ export default function AdminDashboard() {
           //   dummyGalleryItems={dummyGalleryItems}
           //   dummyFrontendClients={dummyFrontendClients}
           //   dummyTestimonials={dummyTestimonials}
-          // />
+          />
         );
       default:
         return null;
