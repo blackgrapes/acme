@@ -1,6 +1,7 @@
 // Updated File: src/app/api/auth/client/route.js
 import { NextResponse } from "next/server";
-import { connectDB, User } from "@/lib/db";
+import connectDB from "@/lib/db";
+import { User } from "@/lib/db";
 
 export async function GET() {
   try {

@@ -1,6 +1,7 @@
-// src/app/api/auth/register/route.js - UPDATED
+// src/app/api/auth/register/route.js - FIXED VERSION
 import { NextResponse } from "next/server";
-import { connectDB, User, Role } from "@/lib/db";
+import connectDB from "@/lib/db";
+import { User, Role } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -19,9 +20,15 @@ export async function POST(request) {
       securityPlan,
       serviceDuration,
       roleName = "Client",
+      permissions = [], // ✅ Add permissions from frontend
     } = await request.json();
 
-    console.log("📝 Registration data:", { name, email, roleName });
+    console.log("📝 Registration data:", {
+      name,
+      email,
+      roleName,
+      permissions,
+    });
 
     // Validation
     if (!name || !email || !password) {
@@ -42,30 +49,50 @@ export async function POST(request) {
       );
     }
 
-    // Get or create Role
+    // ✅ FIXED: Get or create Role with proper permissions handling
     let role = await Role.findOne({ name: roleName });
+
     if (!role) {
       console.log("🆕 Creating new role:", roleName);
-      const permissions =
-        roleName === "Client"
+
+      // Use permissions from request or default based on role
+      const rolePermissions =
+        permissions.length > 0
+          ? permissions
+          : roleName === "Client"
           ? ["client-dashboard-read", "documents-read", "reports-view"]
           : ["dashboard-read", "clients-read"];
 
-      role = await Role.create({
-        name: roleName,
-        description: `${roleName} user role`,
-        permissions: permissions,
-        status: "Active",
-      });
+      try {
+        role = await Role.create({
+          name: roleName,
+          description: `${roleName} user role`,
+          permissions: rolePermissions,
+          status: "Active",
+          users: 0, // Initialize user count
+        });
+        console.log(
+          "✅ New role created:",
+          role.name,
+          "with permissions:",
+          rolePermissions
+        );
+      } catch (roleError) {
+        console.error("💥 Role creation failed:", roleError);
+        return NextResponse.json(
+          { error: "Failed to create role: " + roleError.message },
+          { status: 500 }
+        );
+      }
+    } else {
+      console.log("✅ Existing role found:", role.name);
     }
-
-    console.log("✅ Role found/created:", role.name);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
     console.log("🔑 Password hashed");
 
-    // Create User - Direct Active status
+    // Create User
     const newUser = await User.create({
       name,
       email,
@@ -76,19 +103,20 @@ export async function POST(request) {
       address: address || "",
       securityPlan: securityPlan || "",
       serviceDuration: serviceDuration || {},
-      status: "Active", // ✅ Direct Active - No approval needed
+      status: "Active",
       avatar: name.charAt(0).toUpperCase(),
     });
 
     console.log("✅ User created:", newUser._id);
 
-    // Update role count
-    role.users += 1;
-    await role.save();
+    // ✅ FIXED: Update role user count properly
+    await Role.findByIdAndUpdate(role._id, {
+      $inc: { users: 1 },
+    });
 
     const { password: _, ...userWithoutPassword } = newUser.toObject();
 
-    // Generate token
+    // Generate token with actual permissions
     const tokenPayload = {
       userId: newUser._id,
       email: newUser.email,
@@ -105,10 +133,10 @@ export async function POST(request) {
       token,
       role: role.name,
       permissions: role.permissions || [],
-      message: "Client registered successfully!", // ✅ Simple success message
+      message: "Role and user created successfully!",
     });
 
-    // Set cookie for all users (since all are Active now)
+    // Set auth cookie
     response.cookies.set("authToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -133,8 +161,15 @@ export async function POST(request) {
       );
     }
 
+    if (error.code === 11000) {
+      return NextResponse.json(
+        { error: "Role name already exists" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error: " + error.message },
       { status: 500 }
     );
   }

@@ -17,8 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
-  Separator,
   Users2,
+  Building,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -26,13 +26,20 @@ export default function MobileMenu({
   activeTab,
   setActiveTab,
   documentCategories = [],
+  companyDocumentCategories = [],
 }) {
   const [documentDropdownOpen, setDocumentDropdownOpen] = useState(false);
-  const { hasPermission } = useAuth(); // Get permissions
+  const [companyDocumentDropdownOpen, setCompanyDocumentDropdownOpen] =
+    useState(false);
+  const { hasPermission } = useAuth();
   const router = useRouter();
 
   const toggleDocumentDropdown = () => {
     setDocumentDropdownOpen(!documentDropdownOpen);
+  };
+
+  const toggleCompanyDocumentDropdown = () => {
+    setCompanyDocumentDropdownOpen(!companyDocumentDropdownOpen);
   };
 
   const isActive = (tab) => activeTab === tab;
@@ -42,18 +49,23 @@ export default function MobileMenu({
     toggleDocumentDropdown();
   };
 
- const handleLogout = async () => {
-   try {
-     await fetch("/api/auth/logout", {
-       method: "POST",
-       credentials: "include",
-     });
-     localStorage.removeItem("authToken"); // Also clear fallback
-     router.push("/login");
-   } catch (error) {
-     console.error("Logout error:", error);
-   }
- };
+  const handleCompanyDocumentClick = () => {
+    setActiveTab("company-documents-all");
+    toggleCompanyDocumentDropdown();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      localStorage.removeItem("authToken");
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   // Permission checks
   const canViewDashboard = hasPermission("dashboard-read");
@@ -127,51 +139,31 @@ export default function MobileMenu({
                   }`}
                 >
                   <div className="pl-6 space-y-1 pt-1">
-                    {documentCategories.map((category) =>
-                      category.children ? (
-                        category.children.map((child, index) => {
-                          const childSlug = child
-                            .replace(/\s+/g, "-")
-                            .toLowerCase();
-                          const isActive =
-                            activeTab === `documents-${childSlug}`;
-                          return (
-                            <Button
-                              key={`${category.id}-${index}`}
-                              variant={isActive ? "default" : "ghost"}
-                              className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
-                              onClick={() =>
-                                setActiveTab(`documents-${childSlug}`)
-                              }
-                            >
-                              {child}
-                            </Button>
-                          );
-                        })
-                      ) : (
-                        <Button
-                          key={category.id}
-                          variant={
-                            activeTab ===
-                            `documents-${category.name
-                              .replace(/\s+/g, "-")
-                              .toLowerCase()}`
-                              ? "default"
-                              : "ghost"
-                          }
-                          className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
-                          onClick={() =>
-                            setActiveTab(
-                              `documents-${category.name
-                                .replace(/\s+/g, "-")
-                                .toLowerCase()}`
-                            )
-                          }
-                        >
-                          {category.name}
-                        </Button>
-                      )
-                    )}
+                    <Button
+                      variant={
+                        activeTab === "documents-all" ? "default" : "ghost"
+                      }
+                      className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
+                      onClick={() => setActiveTab("documents-all")}
+                    >
+                      All Documents
+                    </Button>
+
+                    {documentCategories.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={
+                          activeTab === `documents-${category.id}`
+                            ? "default"
+                            : "ghost"
+                        }
+                        className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
+                        onClick={() => setActiveTab(`documents-${category.id}`)}
+                      >
+                        {category.name}
+                      </Button>
+                    ))}
+
                     {hasPermission("documents-create") && (
                       <Button
                         variant={
@@ -181,6 +173,85 @@ export default function MobileMenu({
                         }
                         className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
                         onClick={() => setActiveTab("documents-add-tab")}
+                      >
+                        <Plus className="h-3 w-3 mr-2" />
+                        Add New Tab
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Company Documents Dropdown */}
+            {canManageDocuments && (
+              <div className="space-y-1">
+                <Button
+                  variant={
+                    activeTab.startsWith("company-documents")
+                      ? "default"
+                      : "ghost"
+                  }
+                  className="w-full justify-start shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
+                  onClick={handleCompanyDocumentClick}
+                >
+                  <Building className="h-4 w-4 mr-2" />
+                  Company Documents
+                  {companyDocumentDropdownOpen ? (
+                    <ChevronDown className="h-4 w-4 ml-auto transition-transform duration-200" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 ml-auto transition-transform duration-200" />
+                  )}
+                </Button>
+
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    companyDocumentDropdownOpen
+                      ? "max-h-[1000px] opacity-100"
+                      : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <div className="pl-6 space-y-1 pt-1">
+                    <Button
+                      variant={
+                        activeTab === "company-documents-all"
+                          ? "default"
+                          : "ghost"
+                      }
+                      className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
+                      onClick={() => setActiveTab("company-documents-all")}
+                    >
+                      All Company Documents
+                    </Button>
+
+                    {companyDocumentCategories.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={
+                          activeTab === `company-documents-${category.id}`
+                            ? "default"
+                            : "ghost"
+                        }
+                        className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
+                        onClick={() =>
+                          setActiveTab(`company-documents-${category.id}`)
+                        }
+                      >
+                        {category.name}
+                      </Button>
+                    ))}
+
+                    {hasPermission("documents-create") && (
+                      <Button
+                        variant={
+                          activeTab === "company-documents-add-tab"
+                            ? "default"
+                            : "ghost"
+                        }
+                        className="w-full justify-start text-sm shadow-sm text-primary-foreground data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground"
+                        onClick={() =>
+                          setActiveTab("company-documents-add-tab")
+                        }
                       >
                         <Plus className="h-3 w-3 mr-2" />
                         Add New Tab

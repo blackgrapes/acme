@@ -49,6 +49,8 @@ import {
   BarChart3,
   Award,
   Users,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -60,6 +62,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Header from "@/components/client/Header";
 import DesktopSidebar from "@/components/client/DesktopSidebar";
+import { toast } from "@/hooks/use-toast";
 
 // Dummy document categories for consistency
 const dummyDocumentCategories = [
@@ -81,101 +84,53 @@ const dummyDocumentCategories = [
   },
 ];
 
-// Dummy data
-const dummyGuardDetails = {
-  id: 1,
-  image: null,
-  name: "Rajesh Kumar",
-  email: "rajesh@securitypro.com",
-  phone: "+91 98765 43210",
-  status: "Active",
-  assignedDate: "2025-01-01",
-  type: "Security Officer",
-  experience: "8 years",
-  rating: 4.7,
-  location: "Mumbai",
-  address: "123 Security Quarters, Andheri East, Mumbai - 400069",
-  specialization: [
-    "Crowd Control",
-    "Executive Protection",
-    "Emergency Response",
-    "Surveillance",
-  ],
-  certifications: [
-    "CPR & First Aid Certified",
-    "Security Guard License",
-    "Firearms Permit",
-  ],
-  performance: {
-    totalAssignments: 5,
-    completedAssignments: 4,
-    successRate: 90,
-    averageRating: 4.7,
-    clientSatisfaction: 95,
-  },
-  assignmentHistory: [
-    {
-      id: 1,
-      clientName: "TechCorp Inc.",
-      startDate: "2024-01-01",
-      endDate: "2024-12-31",
-      status: "Active",
-      rating: 4.8,
-    },
-  ],
-  documents: [
-    {
-      id: 1,
-      name: "Certification.pdf",
-      type: "Certificate",
-      uploaded: "2025-01-01",
-      size: "500 KB",
-      category: "Training",
-      description: "Security certification.",
-    },
-    {
-      id: 2,
-      name: "Training Report.pdf",
-      type: "Report",
-      uploaded: "2025-01-05",
-      size: "1.2 MB",
-      category: "Training",
-      description: "Latest training completion report.",
-    },
-  ],
-  activity: [
-    {
-      id: 1,
-      type: "Shift Completed",
-      description: "Daily security shift at TechCorp HQ",
-      date: "2025-01-15",
-    },
-    {
-      id: 2,
-      type: "Training Session",
-      description: "Attended emergency response training",
-      date: "2025-01-10",
-    },
-  ],
-};
-
 export default function GuardDetails() {
   const params = useParams();
-  const guardId = parseInt(params.id);
+  const guardId = params.id;
   const router = useRouter();
   const [guard, setGuard] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    // Simulate fetch
-    setGuard(dummyGuardDetails);
+    if (guardId) {
+      fetchGuardDetails();
+    }
   }, [guardId]);
+
+  const fetchGuardDetails = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/auth/guard/${guardId}`);
+      const result = await response.json();
+
+      if (response.ok) {
+        setGuard(result.guard);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to fetch guard details",
+          variant: "destructive",
+        });
+        router.push("/client-dashboard");
+      }
+    } catch (error) {
+      console.error("Error fetching guard details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch guard details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTabChange = () => {
     router.push("/client-dashboard");
   };
 
-  if (!guard) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header
@@ -206,9 +161,46 @@ export default function GuardDetails() {
     );
   }
 
+  if (!guard) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header
+          activeTab="management"
+          setActiveTab={handleTabChange}
+          documentCategories={dummyDocumentCategories}
+        />
+        <div className="flex flex-1">
+          <DesktopSidebar
+            activeTab="management"
+            setActiveTab={handleTabChange}
+            documentCategories={dummyDocumentCategories}
+          />
+          <main className="flex-1">
+            <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
+              <div className="text-center">
+                <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Guard Not Found
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  The guard you're looking for doesn't exist.
+                </p>
+                <Button onClick={() => router.push("/client-dashboard")}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "Active":
+      case "Assigned":
         return (
           <Badge
             variant="default"
@@ -223,6 +215,7 @@ export default function GuardDetails() {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "Not specified";
     return new Date(dateString).toLocaleDateString("en-IN", {
       year: "numeric",
       month: "short",
@@ -297,14 +290,12 @@ export default function GuardDetails() {
                   <div className="flex flex-col sm:flex-row items-center gap-6 flex-1">
                     <div className="relative">
                       <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center border-4 border-white/20 shadow-lg">
-                        {guard.image ? (
-                          <Image
-                            src={guard.image}
-                            alt={guard.name}
-                            width={128}
-                            height={128}
-                            className="rounded-full object-cover"
-                          />
+                        {guard.avatar ? (
+                          <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-2xl font-bold text-primary">
+                              {guard.avatar}
+                            </span>
+                          </div>
                         ) : (
                           <User className="h-16 w-16 text-primary/60" />
                         )}
@@ -327,7 +318,7 @@ export default function GuardDetails() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-current text-warning" />
-                          {guard.rating} ({guard.experience})
+                          {guard.rating || "No rating"} ({guard.experience})
                         </div>
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
@@ -340,7 +331,7 @@ export default function GuardDetails() {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="text-center p-3 rounded-xl bg-muted/50">
                         <div className="text-2xl font-bold text-primary">
-                          {guard.performance.totalAssignments}
+                          {guard.performance?.totalAssignments || 0}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Assignments
@@ -348,7 +339,7 @@ export default function GuardDetails() {
                       </div>
                       <div className="text-center p-3 rounded-xl bg-muted/50">
                         <div className="text-2xl font-bold text-success">
-                          {guard.performance.successRate}%
+                          {guard.performance?.successRate || 0}%
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Success Rate
@@ -392,10 +383,10 @@ export default function GuardDetails() {
                       </div>
                       <div>
                         <div className="font-medium text-foreground">
-                          Assigned
+                          Experience
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {formatDate(guard.assignedDate)}
+                          {guard.experience}
                         </div>
                       </div>
                     </div>
@@ -405,10 +396,10 @@ export default function GuardDetails() {
                       </div>
                       <div>
                         <div className="font-medium text-foreground">
-                          Address
+                          Base Location
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {guard.address}
+                          {guard.location}
                         </div>
                       </div>
                     </div>
@@ -424,15 +415,22 @@ export default function GuardDetails() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0 space-y-2">
-                      {guard.specialization.map((skill, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="rounded-full"
-                        >
-                          {skill}
-                        </Badge>
-                      ))}
+                      {guard.specialization &&
+                      guard.specialization.length > 0 ? (
+                        guard.specialization.map((skill, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="rounded-full m-1"
+                          >
+                            {skill}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No specializations listed
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                   <Card className="rounded-2xl border-border/50">
@@ -443,15 +441,22 @@ export default function GuardDetails() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0 space-y-2">
-                      {guard.certifications.map((cert, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="rounded-full"
-                        >
-                          {cert}
-                        </Badge>
-                      ))}
+                      {guard.certifications &&
+                      guard.certifications.length > 0 ? (
+                        guard.certifications.map((cert, index) => (
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="rounded-full m-1"
+                          >
+                            {cert}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No certifications listed
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -503,7 +508,7 @@ export default function GuardDetails() {
                             Total Assignments
                           </div>
                           <div className="text-2xl font-bold text-foreground">
-                            {guard.performance.totalAssignments}
+                            {guard.performance?.totalAssignments || 0}
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -511,7 +516,7 @@ export default function GuardDetails() {
                             Completed
                           </div>
                           <div className="text-2xl font-bold text-success">
-                            {guard.performance.completedAssignments}
+                            {guard.performance?.completedAssignments || 0}
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -519,7 +524,7 @@ export default function GuardDetails() {
                             Success Rate
                           </div>
                           <div className="text-2xl font-bold text-primary">
-                            {guard.performance.successRate}%
+                            {guard.performance?.successRate || 0}%
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -527,17 +532,17 @@ export default function GuardDetails() {
                             Avg Rating
                           </div>
                           <div className="text-2xl font-bold text-warning">
-                            {guard.performance.averageRating}
+                            {guard.performance?.averageRating || 0}
                           </div>
                         </div>
                       </div>
                       <Progress
-                        value={guard.performance.clientSatisfaction}
+                        value={guard.performance?.clientSatisfaction || 0}
                         className="h-3"
                       />
                       <div className="text-center text-sm text-muted-foreground">
                         Client Satisfaction:{" "}
-                        {guard.performance.clientSatisfaction}%
+                        {guard.performance?.clientSatisfaction || 0}%
                       </div>
                     </CardContent>
                   </Card>
@@ -604,7 +609,7 @@ export default function GuardDetails() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-6">
-                    {guard.documents.length > 0 ? (
+                    {guard.documents && guard.documents.length > 0 ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -618,8 +623,8 @@ export default function GuardDetails() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {guard.documents.map((doc) => (
-                            <TableRow key={doc.id}>
+                          {guard.documents.map((doc, index) => (
+                            <TableRow key={index}>
                               <TableCell className="font-medium">
                                 {doc.name}
                               </TableCell>
@@ -690,11 +695,11 @@ export default function GuardDetails() {
                           Success Rate
                         </span>
                         <span className="text-2xl font-bold">
-                          {guard.performance.successRate}%
+                          {guard.performance?.successRate || 0}%
                         </span>
                       </div>
                       <Progress
-                        value={guard.performance.successRate}
+                        value={guard.performance?.successRate || 0}
                         className="h-2"
                       />
                     </div>
@@ -704,11 +709,11 @@ export default function GuardDetails() {
                           Client Satisfaction
                         </span>
                         <span className="text-2xl font-bold">
-                          {guard.performance.clientSatisfaction}%
+                          {guard.performance?.clientSatisfaction || 0}%
                         </span>
                       </div>
                       <Progress
-                        value={guard.performance.clientSatisfaction}
+                        value={guard.performance?.clientSatisfaction || 0}
                         className="h-2"
                       />
                     </div>
@@ -727,61 +732,98 @@ export default function GuardDetails() {
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
                     <div className="space-y-4">
-                      {guard.activity.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-start gap-4 p-4 rounded-xl bg-muted/30"
-                        >
-                          <div className="p-2 bg-primary/10 rounded-full">
-                            <Activity className="h-4 w-4 text-primary" />
+                      <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/30">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                          <Activity className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">Profile Created</p>
+                          <p className="text-sm text-muted-foreground">
+                            Guard profile was added to the system
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDate(guard.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {guard.lastActive && (
+                        <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/30">
+                          <div className="p-2 bg-success/10 rounded-full">
+                            <Activity className="h-4 w-4 text-success" />
                           </div>
                           <div className="flex-1">
-                            <p className="font-medium">{item.type}</p>
+                            <p className="font-medium">Last Active</p>
                             <p className="text-sm text-muted-foreground">
-                              {item.description}
+                              Guard was last active in the system
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {formatDate(item.date)}
+                              {formatDate(guard.lastActive)}
                             </p>
                           </div>
                         </div>
-                      ))}
+                      )}
+
+                      {guard.currentAssignment && (
+                        <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/30">
+                          <div className="p-2 bg-warning/10 rounded-full">
+                            <Shield className="h-4 w-4 text-warning" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">
+                              Current Assignment Started
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Assigned to current security duty
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatDate(guard.currentAssignment.startDate)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
+
                     {/* Assignment History */}
-                    {guard.assignmentHistory.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-border/50">
-                        <h3 className="font-semibold mb-4">
-                          Assignment History
-                        </h3>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Client</TableHead>
-                              <TableHead>Duration</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Rating</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {guard.assignmentHistory.map((assignment) => (
-                              <TableRow key={assignment.id}>
-                                <TableCell>{assignment.clientName}</TableCell>
-                                <TableCell>
-                                  {formatDate(assignment.startDate)} -{" "}
-                                  {formatDate(assignment.endDate)}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="secondary">
-                                    {assignment.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>{assignment.rating}/5</TableCell>
+                    {guard.assignmentHistory &&
+                      guard.assignmentHistory.length > 0 && (
+                        <div className="mt-6 pt-6 border-t border-border/50">
+                          <h3 className="font-semibold mb-4">
+                            Assignment History
+                          </h3>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Client</TableHead>
+                                <TableHead>Duration</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Rating</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
+                            </TableHeader>
+                            <TableBody>
+                              {guard.assignmentHistory.map(
+                                (assignment, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>
+                                      {assignment.clientName}
+                                    </TableCell>
+                                    <TableCell>
+                                      {formatDate(assignment.startDate)} -{" "}
+                                      {formatDate(assignment.endDate)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="secondary">
+                                        {assignment.status}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>{assignment.rating}/5</TableCell>
+                                  </TableRow>
+                                )
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
                   </CardContent>
                 </Card>
               </TabsContent>

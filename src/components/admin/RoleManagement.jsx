@@ -286,10 +286,10 @@ export default function RoleManagement() {
   const [formData, setFormData] = useState({
     roleName: "",
     roleDescription: "",
-    userName: "",
-    userEmail: "",
-    userPhone: "",
-    userPassword: "",
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
   });
 
   const { toast } = useToast();
@@ -346,59 +346,64 @@ export default function RoleManagement() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+ const handleSubmit = async (e) => {
+   e.preventDefault();
+   setLoading(true);
 
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          permissions: selectedPermissions,
-        }),
-      });
+   try {
+     const res = await fetch("/api/auth/register", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({
+         name: formData.name, // ✅ Correct field mapping
+         email: formData.email,
+         password: formData.password,
+         phone: formData.phone,
+         roleName: formData.roleName,
+         // ✅ Add permissions to create custom role
+         permissions: selectedPermissions,
+       }),
+     });
 
-      const data = await res.json();
+     const data = await res.json();
 
-      if (!res.ok) {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to create role and user",
-          variant: "destructive",
-        });
-        return;
-      }
+     if (!res.ok) {
+       toast({
+         title: "Error",
+         description: data.error || "Failed to create role and user",
+         variant: "destructive",
+       });
+       return;
+     }
 
-      toast({
-        title: "Success",
-        description: "Role and user created successfully!",
-      });
-      fetchRoles();
-      fetchUsers();
-      // Reset form
-      setFormData({
-        roleName: "",
-        roleDescription: "",
-        userName: "",
-        userEmail: "",
-        userPhone: "",
-        userPassword: "",
-      });
-      setSelectedPermissions([]);
-      setShowCreateForm(false);
-    } catch (error) {
-      console.error("Submit error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create role and user",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+     toast({
+       title: "Success",
+       description: "Role and user created successfully!",
+     });
+     fetchRoles();
+     fetchUsers();
+     // Reset form
+     setFormData({
+       roleName: "",
+       roleDescription: "",
+       name: "",
+       email: "",
+       phone: "",
+       password: "",
+     });
+     setSelectedPermissions([]);
+     setShowCreateForm(false);
+   } catch (error) {
+     console.error("Submit error:", error);
+     toast({
+       title: "Error",
+       description: "Failed to create role and user",
+       variant: "destructive",
+     });
+   } finally {
+     setLoading(false);
+   }
+ };
 
   const handlePasswordReset = (email) => {
     setSelectedUserEmail(email);
@@ -674,9 +679,9 @@ export default function RoleManagement() {
                       User Full Name *
                     </Label>
                     <Input
-                      id="userName"
-                      name="userName"
-                      value={formData.userName}
+                      id="name"
+                      name="name"
+                      value={formData.name}
                       onChange={handleInputChange}
                       placeholder="e.g., John Doe"
                       className="rounded-xl border-primary/20 focus:border-primary h-11"
@@ -691,10 +696,10 @@ export default function RoleManagement() {
                       Email Address *
                     </Label>
                     <Input
-                      id="userEmail"
-                      name="userEmail"
+                      id="email"
+                      name="email"
                       type="email"
-                      value={formData.userEmail}
+                      value={formData.email}
                       onChange={handleInputChange}
                       placeholder="user@company.com"
                       className="rounded-xl border-primary/20 focus:border-primary h-11"
@@ -709,9 +714,9 @@ export default function RoleManagement() {
                       Phone Number (Optional)
                     </Label>
                     <Input
-                      id="userPhone"
-                      name="userPhone"
-                      value={formData.userPhone}
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
                       onChange={handleInputChange}
                       placeholder="+1 (555) 123-4567"
                       className="rounded-xl border-primary/20 focus:border-primary h-11"
@@ -725,10 +730,10 @@ export default function RoleManagement() {
                       Temporary Password *
                     </Label>
                     <Input
-                      id="userPassword"
-                      name="userPassword"
+                      id="password"
+                      name="password"
                       type="password"
-                      value={formData.userPassword}
+                      value={formData.password}
                       onChange={handleInputChange}
                       placeholder="e.g., SecurePass123!"
                       className="rounded-xl border-primary/20 focus:border-primary h-11"

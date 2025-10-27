@@ -1,4 +1,4 @@
-// hooks/useAuth.js - ENHANCED DEBUG VERSION
+// File: src/hooks/useAuth.js - FIXED & SIMPLIFIED
 import { useEffect, useState } from "react";
 
 export function useAuth() {
@@ -15,48 +15,70 @@ export function useAuth() {
       try {
         console.log("🔄 useAuth: Starting authentication verification...");
 
-        // Check localStorage first for quick fallback
+        // Check localStorage first
         const localToken = localStorage.getItem("authToken");
         console.log("📦 LocalStorage token exists:", !!localToken);
 
-        // Try API verification (uses httpOnly cookie)
-        console.log("🌐 useAuth: Calling verify API...");
-        const response = await fetch("/api/auth/verify", {
-          method: "GET",
-          credentials: "include",
-        });
+        if (!localToken) {
+          console.log("🚫 No token found, user is not authenticated");
+          setUser(null);
+          setLoading(false);
+          return;
+        }
 
-        console.log("📨 Verify API response status:", response.status);
+        // Try to decode the token for basic user info
+        try {
+          const payload = JSON.parse(atob(localToken.split(".")[1]));
+          console.log("📋 Token payload:", payload);
 
-        if (response.ok) {
-          const userData = await response.json();
-          console.log("✅ useAuth: API verified user:", userData);
-          setUser(userData);
-        } else {
-          console.log("❌ useAuth: API verification failed");
+          // Set basic user info from token immediately
+          setUser({
+            _id: payload.userId,
+            name: payload.name,
+            email: payload.email,
+            role: payload.role,
+            permissions: payload.permissions || [],
+          });
+        } catch (e) {
+          console.error("💥 Token decode error:", e);
+          localStorage.removeItem("authToken");
+          setUser(null);
+          setLoading(false);
+          return;
+        }
 
-          // Fallback to localStorage token
-          if (localToken) {
-            console.log("🔄 useAuth: Trying localStorage fallback...");
-            try {
-              const payload = JSON.parse(atob(localToken.split(".")[1]));
-              console.log("📋 useAuth: Fallback user data:", payload);
-              setUser(payload);
-            } catch (e) {
-              console.error("💥 useAuth: Token decode error:", e);
-              localStorage.removeItem("authToken");
-              setUser(null);
-            }
+        // Try API verification for complete user data
+        try {
+          console.log("🌐 useAuth: Calling verify API...");
+          const response = await fetch("/api/auth/verify", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              Authorization: `Bearer ${localToken}`,
+            },
+          });
+
+          console.log("📨 Verify API response status:", response.status);
+
+          if (response.ok) {
+            const userData = await response.json();
+            console.log("✅ useAuth: API verified user:", userData);
+            setUser(userData);
           } else {
-            console.log("🚫 useAuth: No authentication found");
-            setUser(null);
+            console.log(
+              "❌ useAuth: API verification failed, using token data"
+            );
+            // Continue with token data
           }
+        } catch (error) {
+          console.error("🌐 useAuth: API call failed:", error);
+          // Continue with token data
         }
       } catch (error) {
         console.error("💥 useAuth: Verification error:", error);
         setUser(null);
       } finally {
-        console.log("🏁 useAuth: Verification complete, loading:", false);
+        console.log("🏁 useAuth: Verification complete");
         setLoading(false);
       }
     };
@@ -65,19 +87,10 @@ export function useAuth() {
   }, []);
 
   const hasPermission = (permission) => {
-    if (loading) {
-      console.log("⏳ useAuth: Still loading, permission denied");
-      return false;
-    }
-    if (!user) {
-      console.log("🚫 useAuth: No user, permission denied");
-      return false;
-    }
-    const allowed = user?.permissions?.includes(permission) || false;
-    console.log(`🔐 useAuth: Permission '${permission}':`, allowed);
-    return allowed;
+    if (loading) return false;
+    if (!user) return false;
+    return user?.permissions?.includes(permission) || false;
   };
 
-  console.log("📊 useAuth: Current state - user:", user, "loading:", loading);
   return { user, loading, hasPermission };
 }

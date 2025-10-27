@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -12,38 +12,103 @@ import {
   UserCheck,
 } from "lucide-react";
 
+// Fallback icons
+const serviceIcons = {
+  pso: UserCheck,
+  guard: Shield,
+  officer: Users,
+  supervisor: Users,
+  "lady-guard": UserCheck,
+  gunmen: Shield,
+  bodyguards: Shield,
+};
+
 export function ServicesSection() {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const services = [
-    {
-      title: "Personal Security Officer",
-      desc: "24x7 personal protection with discreet and professional escort services.",
-      icon: <UserCheck className="h-8 w-8" />,
-      href: "/services/personal-security-officer",
-    },
-    {
-      title: "Security Guard",
-      desc: "On-site guards for property protection and access control.",
-      icon: <Shield className="h-8 w-8" />,
-      href: "/services/security-guard",
-    },
-    {
-      title: "Security Supervisor",
-      desc: "Expert supervision and team management for efficient operations.",
-      icon: <Users className="h-8 w-8" />,
-      href: "/services/security-supervisor",
-    },
-    {
-      title: "Security Gunmen",
-      desc: "Armed response for high-risk environments and rapid defense.",
-      icon: <Clock className="h-8 w-8" />,
-      href: "/services/security-gunmen",
-    },
-  ];
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/frontend/weprovide");
+      const servicesData = await response.json();
+      // Only show services that are marked to show on home, limit to 4 for the section
+      const homeServices = servicesData
+        .filter((service) => service.showOnHome)
+        .slice(0, 4);
+      setServices(homeServices);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Show loading state with same structure
+  if (loading) {
+    return (
+      <section className="w-full border-border bg-background">
+        <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20">
+          {/* Heading + CTA */}
+          <motion.div
+            className="flex flex-col sm:flex-row items-center justify-center sm:justify-between mb-10 sm:mb-14 text-center sm:text-left"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-0">
+              Our <span className="text-primary">Services</span>
+            </h2>
+            <div className="text-primary inline-flex items-center gap-2 font-medium text-sm sm:text-base mt-2 sm:mt-0">
+              View All Services <ArrowRight className="h-4 w-4" />
+            </div>
+          </motion.div>
+
+          {/* Loading skeleton for cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+            {[...Array(4)].map((_, idx) => (
+              <motion.div
+                key={idx}
+                className="bg-card rounded-3xl p-6 sm:p-8 shadow-lg transition-all duration-300 flex flex-col"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.15, duration: 0.6 }}
+              >
+                <div className="bg-primary p-4 text-white rounded-full mb-5 flex items-center justify-center shadow-md self-start animate-pulse">
+                  <div className="h-8 w-8"></div>
+                </div>
+                <div className="h-6 bg-gray-300 rounded mb-2 animate-pulse"></div>
+                <div className="h-12 bg-gray-200 rounded mb-4 animate-pulse"></div>
+                <div className="h-4 bg-gray-300 rounded w-20 animate-pulse"></div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Loading skeleton for CTA video */}
+          <motion.div className="mt-12 sm:mt-16 w-full flex items-center gap-3 sm:gap-4 rounded-3xl p-4 sm:p-5 shadow-md bg-card max-w-2xl mx-auto animate-pulse">
+            <div className="h-10 sm:h-12 w-10 sm:w-12 bg-gray-300 rounded-full flex-shrink-0"></div>
+            <div className="text-left flex-1">
+              <div className="h-5 bg-gray-300 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-32"></div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+
+  // If no services, don't show the section
+  if (services.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="w-full  border-border bg-background">
+    <section className="w-full border-border bg-background">
       <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20">
         {/* Heading + CTA */}
         <motion.div
@@ -57,7 +122,7 @@ export function ServicesSection() {
           </h2>
           <Link
             href="/services"
-            className="text-primary inline-flex items-center gap-2 font-medium hover:underline text-sm sm:text-base"
+            className="text-primary inline-flex items-center gap-2 font-medium hover:underline text-sm sm:text-base mt-2 sm:mt-0"
           >
             View All Services <ArrowRight className="h-4 w-4" />
           </Link>
@@ -65,36 +130,41 @@ export function ServicesSection() {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {services.map((s, idx) => (
-            <motion.div
-              key={s.title}
-              className="bg-card rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 flex flex-col"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.15, duration: 0.6 }}
-            >
-              {/* Icon */}
-              <div className="bg-primary p-4 text-white rounded-full mb-5 flex items-center justify-center shadow-md self-start">
-                {s.icon}
-              </div>
-
-              {/* Title */}
-              <h3 className="font-semibold text-lg text-foreground mb-2">
-                {s.title}
-              </h3>
-
-              {/* Description */}
-              <p className="text-secondary text-sm flex-1">{s.desc}</p>
-
-              {/* Learn More */}
-              <Link
-                href={s.href}
-                className="mt-4 text-primary font-medium hover:underline text-sm"
+          {services.map((service, idx) => {
+            const IconComponent = serviceIcons[service.slug] || Shield;
+            return (
+              <motion.div
+                key={service._id}
+                className="bg-card rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 flex flex-col"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.15, duration: 0.6 }}
               >
-                Learn More →
-              </Link>
-            </motion.div>
-          ))}
+                {/* Icon */}
+                <div className="bg-primary p-4 text-white rounded-full mb-5 flex items-center justify-center shadow-md self-start">
+                  <IconComponent className="h-8 w-8" />
+                </div>
+
+                {/* Title */}
+                <h3 className="font-semibold text-lg text-foreground mb-2">
+                  {service.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-secondary text-sm flex-1">
+                  {service.summary}
+                </p>
+
+                {/* Learn More */}
+                <Link
+                  href={`/services/${service.slug}`}
+                  className="mt-4 text-primary font-medium hover:underline text-sm"
+                >
+                  Learn More →
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Optional CTA Video */}

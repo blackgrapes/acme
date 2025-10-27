@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import SEOHead from "@/components/SEOHead";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { PlayCircle } from "lucide-react";
@@ -8,68 +8,48 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const TAGS = ["All", "Events", "Training", "Patrols", "Team"];
 
-const ITEMS = [
-  {
-    id: "1",
-    tag: "Events",
-    caption: "Corporate event security",
-    src: "https://images.pexels.com/photos/2608517/pexels-photo-2608517.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: "2",
-    tag: "Training",
-    caption: "Drill and training",
-    src: "https://images.pexels.com/photos/600022/pexels-photo-600022.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: "3",
-    tag: "Patrols",
-    caption: "Night patrol route",
-    src: "https://images.pexels.com/photos/531880/pexels-photo-531880.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: "4",
-    tag: "Team",
-    caption: "ACME team",
-    src: "https://images.pexels.com/photos/756742/pexels-photo-756742.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: "5",
-    tag: "Training",
-    caption: "Training highlight",
-    src: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-    type: "video",
-    video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  },
-  {
-    id: "6",
-    tag: "Events",
-    caption: "Entry screening",
-    src: "https://images.pexels.com/photos/1335077/pexels-photo-1335077.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: "7",
-    tag: "Patrols",
-    caption: "Campus patrol",
-    src: "https://images.pexels.com/photos/325185/pexels-photo-325185.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-  {
-    id: "8",
-    tag: "Team",
-    caption: "Briefing",
-    src: "https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  },
-];
-
 export default function Gallery() {
   const [active, setActive] = useState("All");
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(null);
+  const [galleryItems, setGalleryItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGalleryItems();
+  }, []);
+
+  const fetchGalleryItems = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/frontend/gallery");
+      const data = await response.json();
+      setGalleryItems(data.filter((item) => item.showOnHome));
+    } catch (error) {
+      console.error("Error fetching gallery items:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = useMemo(
-    () => (active === "All" ? ITEMS : ITEMS.filter((i) => i.tag === active)),
-    [active]
+    () =>
+      active === "All"
+        ? galleryItems
+        : galleryItems.filter((i) => i.tag === active.toLowerCase()),
+    [active, galleryItems]
   );
+
+  if (loading) {
+    return (
+      <div className="font-sans">
+        <SEOHead title="Gallery — ACME" description="Our gallery." />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <div className="animate-pulse">Loading gallery...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans">
@@ -128,9 +108,9 @@ export default function Gallery() {
             className="columns-1 sm:columns-2 lg:columns-3 gap-4 sm:gap-6 [column-fill:_balance]"
           >
             <AnimatePresence>
-              {filtered.map((i) => (
+              {filtered.map((item) => (
                 <motion.figure
-                  key={i.id}
+                  key={item._id}
                   layout
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -140,24 +120,24 @@ export default function Gallery() {
                 >
                   <button
                     onClick={() => {
-                      setCurrent(i);
+                      setCurrent(item);
                       setOpen(true);
                     }}
                     className="group relative block w-full overflow-hidden rounded-2xl border border-border bg-card shadow-md hover:shadow-xl transition-all"
                   >
                     <img
-                      src={i.src}
-                      alt={i.caption}
+                      src={item.mediaFiles?.[0] || "/placeholder.svg"}
+                      alt={item.caption}
                       loading="lazy"
                       className="w-full h-auto transition-transform duration-500 group-hover:scale-110"
                     />
                     {/* Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-3 sm:p-4">
                       <span className="text-primary-foreground text-xs sm:text-sm font-medium drop-shadow">
-                        {i.caption}
+                        {item.caption}
                       </span>
                     </div>
-                    {i.type === "video" && (
+                    {item.type === "video" && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <PlayCircle className="h-12 sm:h-16 w-12 sm:w-16 text-primary-foreground/90 drop-shadow-lg group-hover:scale-110 transition-transform" />
                       </div>
@@ -167,6 +147,11 @@ export default function Gallery() {
               ))}
             </AnimatePresence>
           </motion.div>
+          {filtered.length === 0 && (
+            <p className="text-center text-secondary py-12">
+              No items found for this category.
+            </p>
+          )}
         </div>
       </section>
 
@@ -186,7 +171,7 @@ export default function Gallery() {
               </div>
             ) : (
               <img
-                src={current.src}
+                src={current.mediaFiles?.[0] || "/placeholder.svg"}
                 alt={current.caption}
                 className="w-full h-auto rounded-xl shadow-lg"
               />

@@ -94,6 +94,8 @@ import Header from "@/components/admin/Header";
 import DesktopSidebar from "@/components/admin/DesktopSidebar";
 import AdminProfileDialog from "@/components/admin/AdminProfileDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { AssignGuardDialog } from "@/components/admin/AssignGuardDialog";
+import { UploadDocumentDialog } from "@/components/admin/UploadDocumentDialog";
 
 // Dummy data for categories
 const dummyDocumentCategories = [
@@ -163,15 +165,50 @@ export default function ClientDetails() {
   const [openAdminDialog, setOpenAdminDialog] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [assignGuardOpen, setAssignGuardOpen] = useState(false);
+  const [uploadDocumentOpen, setUploadDocumentOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const [guards, setGuards] = useState([]);
 
   useEffect(() => {
     if (clientId) {
       fetchClientDetails();
     }
   }, [clientId]);
+
+  const fetchClientDocuments = async () => {
+    try {
+      console.log("🔄 Fetching documents for client:", clientId);
+
+      const response = await fetch(`/api/documents?clientId=${clientId}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("✅ Documents fetched:", data.documents?.length || 0);
+        setClientDocuments(data.documents || []);
+      } else {
+        console.error("❌ Documents fetch failed:", data.error);
+        setClientDocuments([]);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching documents:", error);
+      setClientDocuments([]);
+    }
+  };
+
+  // ✅ Use effect mein call karen
+  useEffect(() => {
+    if (clientId) {
+      fetchClientDocuments();
+    }
+  }, [clientId]);
+
+  // ✅ YEH FUNCTION ADD KAREN - Guard row click handler
+  const handleGuardRowClick = (guardId) => {
+    router.push(`/admin-dashboard/guard-details/${guardId}`);
+  };
 
   const fetchClientDetails = async () => {
     try {
@@ -180,13 +217,13 @@ export default function ClientDetails() {
 
       // Fetch client data from API
       const clientResponse = await fetch(`/api/auth/client/${clientId}`);
-      
+
       if (!clientResponse.ok) {
         throw new Error(`Failed to fetch client: ${clientResponse.status}`);
       }
 
       const clientData = await clientResponse.json();
-      
+
       if (!clientData.client) {
         throw new Error("Client not found");
       }
@@ -195,7 +232,6 @@ export default function ClientDetails() {
 
       // Fetch related data
       await fetchRelatedData(clientData.client._id);
-
     } catch (error) {
       console.error("Error fetching client details:", error);
       setError(error.message);
@@ -211,17 +247,37 @@ export default function ClientDetails() {
 
   const fetchRelatedData = async (clientId) => {
     try {
-      // Fetch client documents
+      console.log("🔄 Fetching related data for client:", clientId);
+
+      // Fetch client documents - YEH PART IMPROVE KAREN
       const docsResponse = await fetch(`/api/documents?clientId=${clientId}`);
       if (docsResponse.ok) {
         const docsData = await docsResponse.json();
+        console.log("✅ Documents fetched:", docsData.documents);
         setClientDocuments(docsData.documents || []);
       } else {
-        setClientDocuments(getDummyDocuments());
+        console.error("❌ Documents fetch failed");
+        // Try alternative API
+        try {
+          const altDocsResponse = await fetch(
+            `/api/auth/client/${clientId}/documents`
+          );
+          if (altDocsResponse.ok) {
+            const altDocsData = await altDocsResponse.json();
+            setClientDocuments(altDocsData.documents || []);
+          } else {
+            setClientDocuments(getDummyDocuments());
+          }
+        } catch (altError) {
+          console.error("Alternative documents fetch failed:", altError);
+          setClientDocuments(getDummyDocuments());
+        }
       }
 
       // Fetch client requests
-      const requestsResponse = await fetch(`/api/requests?clientId=${clientId}`);
+      const requestsResponse = await fetch(
+        `/api/requests?clientId=${clientId}`
+      );
       if (requestsResponse.ok) {
         const requestsData = await requestsResponse.json();
         setClientRequests(requestsData.requests || []);
@@ -230,17 +286,17 @@ export default function ClientDetails() {
       }
 
       // Fetch client activity
-      const activityResponse = await fetch(`/api/activity?clientId=${clientId}`);
+      const activityResponse = await fetch(
+        `/api/activity?clientId=${clientId}`
+      );
       if (activityResponse.ok) {
         const activityData = await activityResponse.json();
         setClientActivity(activityData.activities || []);
       } else {
         setClientActivity(getDummyActivity());
       }
-
     } catch (error) {
-      console.error("Error fetching related data:", error);
-      // Set empty arrays or fallback data
+      console.error("❌ Error fetching related data:", error);
       setClientDocuments(getDummyDocuments());
       setClientRequests(getDummyRequests());
       setClientActivity(getDummyActivity());
@@ -259,7 +315,7 @@ export default function ClientDetails() {
       securityPlan: dbClient.securityPlan || dbClient.plan || "Standard",
       serviceDuration: {
         from: dbClient.serviceStartDate || dbClient.createdAt,
-        to: dbClient.serviceEndDate
+        to: dbClient.serviceEndDate,
       },
       status: dbClient.status || "Active",
       joinDate: dbClient.createdAt,
@@ -293,10 +349,10 @@ export default function ClientDetails() {
 
   const formatRevenue = (revenue) => {
     if (!revenue) return "₹0";
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
     }).format(revenue);
   };
 
@@ -448,29 +504,53 @@ export default function ClientDetails() {
   // Get assigned guards from real data
   const currentGuardsList = (client?.assignedGuards || [])
     .map((guardId) => {
-      // In real app, you would fetch guards from your database
-      // For now, using dummy data
-      return dummyGuards.find((g) => g.id === guardId) || {
-        id: guardId,
-        name: `Guard ${guardId}`,
-        location: "Unknown",
-        experience: "Unknown",
-        rating: 4.0,
-        status: "Active"
-      };
+      const foundGuard = guards.find((g) => g._id === guardId);
+      if (foundGuard) {
+        return foundGuard;
+      }
+      return (
+        dummyGuards.find((g) => g.id === guardId) || {
+          id: guardId,
+          name: `Guard ${guardId}`,
+          location: "Unknown",
+          experience: "Unknown",
+          rating: 4.0,
+          status: "Active",
+        }
+      );
     })
     .filter(Boolean);
 
+  useEffect(() => {
+    const fetchAllGuards = async () => {
+      try {
+        const response = await fetch("/api/auth/guard");
+        const data = await response.json();
+        if (data.guards) {
+          setGuards(data.guards);
+        }
+      } catch (error) {
+        console.error("Error fetching guards:", error);
+      }
+    };
+
+    if (clientId) {
+      fetchAllGuards();
+    }
+  }, [clientId]);
+
   const previousGuardsList = (client?.previousGuards || [])
     .map((guardId) => {
-      return dummyGuards.find((g) => g.id === guardId) || {
-        id: guardId,
-        name: `Guard ${guardId}`,
-        location: "Unknown",
-        experience: "Unknown",
-        rating: 4.0,
-        status: "Inactive"
-      };
+      return (
+        dummyGuards.find((g) => g.id === guardId) || {
+          id: guardId,
+          name: `Guard ${guardId}`,
+          location: "Unknown",
+          experience: "Unknown",
+          rating: 4.0,
+          status: "Inactive",
+        }
+      );
     })
     .filter(Boolean);
 
@@ -594,7 +674,8 @@ export default function ClientDetails() {
                   Client Not Found
                 </h2>
                 <p className="text-muted-foreground mb-6">
-                  The client you're looking for doesn't exist or has been removed.
+                  The client you're looking for doesn't exist or has been
+                  removed.
                 </p>
                 <Button onClick={() => router.push("/admin-dashboard")}>
                   Back to Clients
@@ -619,7 +700,6 @@ export default function ClientDetails() {
         documentCategories={dummyDocumentCategories}
         frontendCategories={dummyFrontendCategories}
       />
-
       <div className="flex flex-1">
         <DesktopSidebar
           activeTab="clients"
@@ -1015,6 +1095,7 @@ export default function ClientDetails() {
                           variant="outline"
                           size="sm"
                           className="rounded-xl"
+                          onClick={() => setAssignGuardOpen(true)}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Assign Guard
@@ -1027,6 +1108,7 @@ export default function ClientDetails() {
                             <Card
                               key={guard.id}
                               className="rounded-2xl border-border/50 hover:shadow-md transition-shadow"
+                              onClick={() => handleGuardRowClick(guard._id)}
                             >
                               <CardContent className="p-4">
                                 <div className="flex items-start justify-between">
@@ -1152,7 +1234,7 @@ export default function ClientDetails() {
                           <p className="text-muted-foreground mb-4">
                             Assign guards to get started with security services
                           </p>
-                          <Button>
+                          <Button onClick={() => setAssignGuardOpen(true)}>
                             <Plus className="h-4 w-4 mr-2" />
                             Assign First Guard
                           </Button>
@@ -1308,98 +1390,25 @@ export default function ClientDetails() {
                           Client Documents ({clientDocuments.length})
                         </CardTitle>
                         <CardDescription>
-                          All documents related to {client.name}
+                          All documents specifically shared with {client?.name}
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button className="rounded-xl">
-                              <Plus className="h-4 w-4 mr-2" />
-                              Upload Document
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="rounded-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Upload New Document</DialogTitle>
-                              <DialogDescription>
-                                Add a document to {client.name}'s profile
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="document-file">
-                                  Select File
-                                </Label>
-                                <Input id="document-file" type="file" />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="document-name">
-                                  Document Name
-                                </Label>
-                                <Input
-                                  id="document-name"
-                                  placeholder="Enter document name"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="document-category">
-                                  Category
-                                </Label>
-                                <Select>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select category" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="agreement">
-                                      Agreement
-                                    </SelectItem>
-                                    <SelectItem value="invoice">
-                                      Invoice
-                                    </SelectItem>
-                                    <SelectItem value="report">
-                                      Report
-                                    </SelectItem>
-                                    <SelectItem value="compliance">
-                                      Compliance
-                                    </SelectItem>
-                                    <SelectItem value="other">Other</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="document-access">
-                                  Access Level
-                                </Label>
-                                <Select>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select access level" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="specific">
-                                      Specific
-                                    </SelectItem>
-                                    <SelectItem value="general">
-                                      General
-                                    </SelectItem>
-                                    <SelectItem value="restricted">
-                                      Restricted
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <DialogFooter>
-                                <Button type="submit" className="w-full">
-                                  Upload Document
-                                </Button>
-                              </DialogFooter>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        <Button
+                          className="rounded-xl"
+                          onClick={() => setUploadDocumentOpen(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Upload Document
+                        </Button>
 
-                        <Button variant="outline" className="rounded-xl">
-                          <Download className="h-4 w-4 mr-2" />
-                          Export
+                        <Button
+                          variant="outline"
+                          className="rounded-xl"
+                          onClick={fetchClientDocuments}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Refresh
                         </Button>
                       </div>
                     </div>
@@ -1429,9 +1438,9 @@ export default function ClientDetails() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {clientDocuments.map((doc) => (
+                            {clientDocuments.map((doc, index) => (
                               <TableRow
-                                key={doc.id}
+                                key={doc._id || index}
                                 className="hover:bg-muted/50"
                               >
                                 <TableCell className="font-medium">
@@ -1444,6 +1453,11 @@ export default function ClientDetails() {
                                       <div className="text-sm text-muted-foreground md:hidden">
                                         {formatDate(doc.uploaded)} • {doc.size}
                                       </div>
+                                      {doc.fileUrl && (
+                                        <div className="text-xs text-blue-600 mt-1">
+                                          📎 File Attached
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </TableCell>
@@ -1457,7 +1471,7 @@ export default function ClientDetails() {
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell">
                                   <Badge variant="outline" className="text-xs">
-                                    {doc.category}
+                                    {doc.category || "Uncategorized"}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
@@ -1468,46 +1482,67 @@ export default function ClientDetails() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 hover:bg-blue-100"
-                                    >
-                                      <Eye className="h-4 w-4 text-blue-600" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 hover:bg-green-100"
-                                    >
-                                      <Download className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
+                                    {doc.fileUrl && (
+                                      <>
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-8 w-8 p-0"
+                                          className="h-8 w-8 p-0 hover:bg-blue-100"
+                                          onClick={() =>
+                                            window.open(doc.fileUrl, "_blank")
+                                          }
                                         >
-                                          <MoreHorizontal className="h-4 w-4" />
+                                          <Eye className="h-4 w-4 text-blue-600" />
                                         </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>
-                                          <Edit2 className="h-4 w-4 mr-2" />
-                                          Rename
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                          <Send className="h-4 w-4 mr-2" />
-                                          Share
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-red-600">
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 hover:bg-green-100"
+                                          onClick={() => {
+                                            const link =
+                                              document.createElement("a");
+                                            link.href = doc.fileUrl;
+                                            link.download = doc.name;
+                                            link.click();
+                                          }}
+                                        >
+                                          <Download className="h-4 w-4 text-green-600" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-destructive hover:bg-red-100"
+                                          onClick={async () => {
+                                            if (
+                                              confirm(`Delete "${doc.name}"?`)
+                                            ) {
+                                              try {
+                                                const response = await fetch(
+                                                  `/api/documents/${doc._id}`,
+                                                  {
+                                                    method: "DELETE",
+                                                  }
+                                                );
+
+                                                if (response.ok) {
+                                                  fetchClientDocuments();
+                                                } else {
+                                                  throw new Error(
+                                                    "Delete failed"
+                                                  );
+                                                }
+                                              } catch (error) {
+                                                alert(
+                                                  "Failed to delete document"
+                                                );
+                                              }
+                                            }
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1523,39 +1558,12 @@ export default function ClientDetails() {
                         </h3>
                         <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                           Upload documents like agreements, invoices, and
-                          reports to keep everything organized
+                          reports specifically for this client
                         </p>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Upload Your First Document
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="rounded-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Upload Document</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <Input type="file" />
-                              <Select>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="legal">Legal</SelectItem>
-                                  <SelectItem value="financial">
-                                    Financial
-                                  </SelectItem>
-                                  <SelectItem value="operational">
-                                    Operational
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Button className="w-full">Upload</Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        <Button onClick={() => setUploadDocumentOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Upload Your First Document
+                        </Button>
                       </div>
                     )}
                   </CardContent>
@@ -1910,6 +1918,32 @@ export default function ClientDetails() {
         onOpenChange={setOpenAdminDialog}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <AssignGuardDialog
+        open={assignGuardOpen}
+        onOpenChange={setAssignGuardOpen}
+        clientId={clientId}
+        onAssign={(guard) => {
+          // Refresh client data
+          fetchClientDetails();
+        }}
+      />
+
+      <UploadDocumentDialog
+        open={uploadDocumentOpen}
+        onOpenChange={setUploadDocumentOpen}
+        clientId={clientId} // ✅ Yeh important hai - isse document sirf is client ke liye upload hoga
+        onUpload={async (documents) => {
+          console.log("🔄 onUpload callback triggered with:", documents);
+
+          // Refresh documents list
+          await fetchClientDocuments();
+
+          // Also update local state immediately
+          if (documents && documents.length > 0) {
+            setClientDocuments((prev) => [...prev, ...documents]);
+          }
+        }}
+      />
     </div>
   );
 }

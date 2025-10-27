@@ -1,4 +1,3 @@
-// src/lib/db.js - FIXED VERSION
 import dotenv from "dotenv";
 import path from "path";
 
@@ -21,7 +20,7 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-export async function connectDB() {
+async function connectDB() {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
@@ -44,6 +43,16 @@ export async function connectDB() {
   return cached.conn;
 }
 
-// Export models for use in APIs
+// Export as default
+export default connectDB;
+
+// Named exports for models
 export { default as User } from "./models/User.js";
 export { default as Role } from "./models/Role.js";
+export { default as Guard } from "./models/Guard.js";
+export { default as Gallery } from "./models/Gallery.js";
+export { default as WeProvide } from "./models/WeProvide.js";
+export { default as Testimonial } from "./models/Testimonial.js";
+export { default as Client } from "./models/Client.js";
+export { default as ContactSubmission } from "./models/ContactSubmission.js";
+export { default as Document } from "./models/Document.js";

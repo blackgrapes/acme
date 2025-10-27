@@ -1,7 +1,7 @@
-// Updated File: src/components/admin/DocumentManagement.jsx
+// File: src/components/admin/DocumentManagement.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,6 +44,7 @@ import {
   Calendar,
   User,
   ChevronRight,
+  Eye, // ✅ ADD: For view button
 } from "lucide-react";
 import {
   Card,
@@ -54,7 +55,7 @@ import {
 } from "../ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Checkbox } from "radix-ui";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function DocumentManagement({
   dummyDocuments,
@@ -67,23 +68,46 @@ export default function DocumentManagement({
   filteredDocGuards,
   currentCategory,
   addNewCategory,
-  documentCategories = [], // Default to prevent undefined
+  documentCategories = [],
+  companyDocumentCategories = [],
+  isCompanyDocuments = false,
 }) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [accessLevel, setAccessLevel] = useState("general");
+  const [docName, setDocName] = useState("");
+  const [docDescription, setDocDescription] = useState("");
+  const [docCategory, setDocCategory] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [allClients, setAllClients] = useState([]);
 
-  // Filter documents based on current category
+  // ✅ Fetch all clients for access control
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await fetch("/api/auth/client");
+        const data = await response.json();
+        if (data.clients) {
+          setAllClients(data.clients);
+        }
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+      }
+    };
+    fetchClients();
+  }, []);
+
+  // ✅ FIXED: Filter documents based on current category
   const filteredDocuments =
     currentCategory && currentCategory !== "add-tab"
-      ? dummyDocuments.filter(
-          (doc) =>
-            doc.type ===
-            (currentCategory.child
-              ? currentCategory.child.toLowerCase()
-              : currentCategory.name.toLowerCase())
-        )
+      ? dummyDocuments.filter((doc) => {
+          const categoryName = currentCategory.name
+            ? currentCategory.name.toLowerCase()
+            : "";
+          return doc.type.toLowerCase() === categoryName;
+        })
       : dummyDocuments;
 
   // Handle add new category
@@ -91,12 +115,12 @@ export default function DocumentManagement({
     if (newCategoryName.trim()) {
       addNewCategory(newCategoryName);
       setNewCategoryName("");
-      // Simulate alert with toast or notification
       console.log(`New category "${newCategoryName}" added successfully!`);
     }
   };
 
-  // Determine page title and description with modern flair
+  // ✅ ADD MISSING FUNCTIONS
+  // Determine page title and description
   const getPageTitle = () => {
     if (currentCategory === "add-tab") {
       return "Create New Document Category";
@@ -106,34 +130,131 @@ export default function DocumentManagement({
         ? `${currentCategory.name} - ${currentCategory.child} Repository`
         : `${currentCategory.name} Repository`;
     }
-    return "Secure Document Repository";
+    return isCompanyDocuments
+      ? "Company Document Repository"
+      : "Secure Document Repository";
   };
 
   const getPageDescription = () => {
     if (currentCategory === "add-tab") {
       return "Organize your documents with custom categories for optimal security and accessibility.";
     }
+
     if (currentCategory) {
-      return `Manage encrypted ${
-        currentCategory.child
-          ? currentCategory.child.toLowerCase()
-          : currentCategory.name.toLowerCase()
-      } documents with role-based access.`;
+      const categoryName = currentCategory.name
+        ? currentCategory.name.toLowerCase()
+        : "";
+      return `Manage encrypted ${categoryName} documents with role-based access.`;
     }
-    return "All documents across categories, with audit logs and secure sharing.";
+
+    return isCompanyDocuments
+      ? "All company documents across categories, with audit logs and secure sharing."
+      : "All documents across categories, with audit logs and secure sharing.";
   };
 
-  // Simulate upload progress
+  // ✅ Handle document upload with access control - FIXED for company docs visibility
+  const handleDocumentUpload = async () => {
+    if (!docName || !selectedFile || !selectedType) {
+      alert("Please fill all required fields and select a file");
+      return;
+    }
+
+    try {
+      setUploadProgress(0);
+
+      // Upload file to Cloudinary
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", selectedFile);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("File upload failed - check network");
+      }
+
+      const uploadResult = await uploadResponse.json();
+
+      if (!uploadResult.success) {
+        throw new Error("File upload failed");
+      }
+
+      setUploadProgress(50); // ✅ FIXED: Better progress simulation
+
+      // Prepare document data with access control - Ensure general for company to show in client
+      const documentData = {
+        name: docName,
+        type: selectedType,
+        category: docCategory || "General",
+        description: docDescription,
+        fileUrl: uploadResult.fileUrl,
+        size: `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`,
+        uploadedBy: "Admin",
+        // ✅ ACCESS CONTROL DATA - Default to general for visibility in client
+        accessLevel: accessLevel || "general", // Ensure default general
+        specificClients: accessLevel === "specific" ? selectedDocGuards : [],
+        isCompanyDocument: isCompanyDocuments,
+      };
+
+      setUploadProgress(75);
+
+      // Save document to database
+      const saveResponse = await fetch("/api/documents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(documentData),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Save failed - check server");
+      }
+
+      const saveResult = await saveResponse.json();
+
+      setUploadProgress(100);
+
+      alert("✅ Document uploaded successfully!");
+      setAddDialogOpen(false);
+      resetUploadForm();
+
+      // Refresh documents list - Dispatch event for client sync
+      window.dispatchEvent(new CustomEvent("adminDocumentsUpdated"));
+      window.dispatchEvent(new CustomEvent("documentsUpdated")); // ✅ FIXED: Extra event for client
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert(`Upload failed: ${error.message} - Check console for details`);
+      setUploadProgress(0);
+    }
+  };
+
+  const resetUploadForm = () => {
+    setDocName("");
+    setDocDescription("");
+    setDocCategory("");
+    setSelectedFile(null);
+    setSelectedType("");
+    setAccessLevel("general");
+    setShowSpecificClients(false);
+    setUploadProgress(0);
+    setSelectedDocGuards([]);
+  };
+
   const simulateUpload = () => {
+    // ✅ FIXED: Improved simulation - faster for demo
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
-        if (prev >= 100) {
+        if (prev >= 50) {
+          // Jump to 50 after file select
           clearInterval(interval);
-          return 100;
+          return 50;
         }
-        return prev + 10;
+        return prev + 25;
       });
-    }, 200);
+    }, 100);
   };
 
   const formatDate = (dateString) => {
@@ -146,24 +267,88 @@ export default function DocumentManagement({
 
   const getAccessBadge = (access) => {
     const variants = {
-      All: {
+      general: {
         variant: "default",
-        className: "bg-success text-success-foreground rounded-full",
+        className: "bg-green-500 text-white rounded-full",
+        label: "General Access",
       },
-      Specific: {
+      specific: {
         variant: "secondary",
-        className: "bg-warning text-warning-foreground rounded-full",
+        className: "bg-blue-500 text-white rounded-full",
+        label: "Specific Access",
       },
-      Admin: {
+      admin: {
         variant: "outline",
-        className: "bg-destructive text-destructive-foreground rounded-full",
+        className: "bg-red-500 text-white rounded-full",
+        label: "Admin Only",
       },
     };
-    const config = variants[access] || { variant: "secondary" };
-    return <Badge {...config}>{access} Access</Badge>;
+    const config = variants[access] || { variant: "secondary", label: access };
+    return <Badge {...config}>{config.label}</Badge>;
   };
 
-  // Render Add New Tab page - Modern UI
+  // ✅ Handle document download
+  const handleDownload = (doc) => {
+    const link = document.createElement("a");
+    link.href = doc.fileUrl;
+    link.download = doc.name;
+    link.click();
+  };
+
+  // ✅ Handle document view - NEW: Open in new tab
+  const handleView = (doc) => {
+    window.open(doc.fileUrl, "_blank");
+  };
+
+  // ✅ Handle document delete
+  const handleDelete = async (doc) => {
+    if (confirm(`Are you sure you want to delete "${doc.name}"?`)) {
+      try {
+        const response = await fetch(`/api/documents/${doc._id || doc.id}`, {
+          // ✅ FIXED: Handle _id or id
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          alert("Document deleted successfully!");
+          // Refresh via event instead of reload for better perf
+          window.dispatchEvent(new CustomEvent("adminDocumentsUpdated"));
+        } else {
+          throw new Error("Delete failed");
+        }
+      } catch (error) {
+        console.error("Delete error:", error);
+        alert("Failed to delete document");
+      }
+    }
+  };
+
+  // Get available categories for dropdown
+  const getAvailableCategories = () => {
+    return isCompanyDocuments ? companyDocumentCategories : documentCategories;
+  };
+
+  // ✅ FIXED: Check if we're in a specific sub-category
+  const isSpecificSubCategory =
+    currentCategory &&
+    getAvailableCategories().some(
+      (cat) =>
+        cat.name.toLowerCase() === (currentCategory.name || "").toLowerCase() ||
+        (cat.children &&
+          cat.children.some(
+            (child) =>
+              child.toLowerCase() === (currentCategory.name || "").toLowerCase()
+          ))
+    );
+
+  // ✅ ADD MISSING FUNCTION - setActiveTab (dummy function for now)
+  const setActiveTab = (tab) => {
+    console.log("Setting active tab to:", tab);
+    // This function should be passed as prop from parent component
+    // For now, we'll just log it
+  };
+
+  // Render Add New Tab page
   if (currentCategory === "add-tab") {
     return (
       <div className="space-y-8">
@@ -177,55 +362,57 @@ export default function DocumentManagement({
             </p>
           </div>
           <Button
-            onClick={() => setActiveTab("documents-all")}
-            variant="outline"
-            className="gap-2 rounded-2xl px-6 py-3 border-border/50"
+            onClick={() =>
+              setActiveTab(
+                isCompanyDocuments ? "company-documents-all" : "documents-all"
+              )
+            }
+            className="rounded-2xl px-6"
           >
-            <ChevronRight className="h-4 w-4" />
-            Back to Repository
+            Back to Documents
           </Button>
         </div>
 
-        <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-background/80 shadow-2xl max-w-2xl mx-auto overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
-            <CardTitle className="flex items-center gap-3 text-2xl font-bold text-foreground">
-              <Folder className="h-7 w-7 text-primary" />
-              New Category Setup
+        <Card className="rounded-3xl border-border/70 shadow-2xl">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 p-6">
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add New Category
             </CardTitle>
+            <CardDescription>
+              Create a custom category to better organize your documents
+            </CardDescription>
           </CardHeader>
-          <CardContent className="p-8 space-y-6">
+          <CardContent className="p-6">
             <div className="space-y-4">
-              <div className="space-y-3">
-                <Label
-                  htmlFor="categoryName"
-                  className="text-sm font-semibold flex items-center gap-2"
-                >
-                  <Shield className="h-4 w-4 text-primary" />
-                  Category Name *
+              <div>
+                <Label htmlFor="newCategory" className="text-sm font-medium">
+                  Category Name
                 </Label>
                 <Input
-                  id="categoryName"
-                  placeholder="e.g., Compliance Certificates, Guard KYC"
+                  id="newCategory"
+                  placeholder="e.g., Contracts, Invoices"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="rounded-2xl h-12 text-lg"
+                  className="mt-2 rounded-2xl"
                 />
               </div>
-              <div className="p-4 rounded-2xl bg-muted/30 border border-border/30">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Tip:</strong> Use descriptive names for easy
-                  organization. Categories support sub-folders for hierarchical
-                  structure.
-                </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="rounded-2xl flex-1"
+                  onClick={() => setNewCategoryName("")}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="rounded-2xl flex-1 bg-primary"
+                  onClick={handleAddNewCategory}
+                  disabled={!newCategoryName.trim()}
+                >
+                  Create Category
+                </Button>
               </div>
-              <Button
-                onClick={handleAddNewCategory}
-                disabled={!newCategoryName.trim()}
-                className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-primary/80 shadow-lg hover:shadow-primary/30 transition-all text-lg font-semibold"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Create Secure Category
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -234,158 +421,152 @@ export default function DocumentManagement({
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-foreground">
+    <div className="space-y-6">
+      {/* Header with Upload Button */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div className="space-y-2 flex-1">
+          <h2 className="text-3xl font-bold text-foreground">
             {getPageTitle()}
           </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl">
-            {getPageDescription()}
-          </p>
+          <p className="text-muted-foreground">{getPageDescription()}</p>
         </div>
-        <div className="flex gap-3">
-          <Select value={selectedType} onValueChange={setSelectedType}>
-            <SelectTrigger className="rounded-2xl w-[200px]">
-              <SelectValue placeholder="Filter by Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {documentCategories.map((category) => (
-                <SelectItem
-                  key={category.id}
-                  value={category.name.toLowerCase()}
-                >
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 rounded-2xl bg-primary shadow-lg px-6 py-3">
-                <Plus className="h-4 w-4" />
-                Upload Document
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <FileText className="h-6 w-6 text-primary" />
-                  Secure Document Upload
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground">
-                  Encrypt and share documents with granular access controls.
-                  Supports up to 100MB with automatic virus scan.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-6 py-6">
-                <div className="space-y-3">
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-2xl px-6 bg-primary shadow-lg">
+              <Plus className="h-4 w-4 mr-2" />
+              Upload Document
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl rounded-2xl p-0">
+            <DialogHeader className="p-6 border-b">
+              <DialogTitle className="text-xl font-bold">
+                Upload Secure Document
+              </DialogTitle>
+              <DialogDescription>
+                All files are automatically encrypted and access-controlled
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Document Details */}
+              <div className="space-y-4">
+                <div>
                   <Label htmlFor="docName" className="text-sm font-semibold">
-                    Document Title *
+                    Document Name *
                   </Label>
                   <Input
                     id="docName"
-                    placeholder="e.g., Q4 2025 Compliance Report"
-                    className="rounded-2xl h-12"
+                    placeholder="e.g., Q4 Financial Report.pdf"
+                    value={docName}
+                    onChange={(e) => setDocName(e.target.value)}
+                    className="mt-2 rounded-2xl"
                   />
                 </div>
-                {!currentCategory && (
-                  <div className="space-y-3">
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="docType" className="text-sm font-semibold">
-                      Category
+                      Document Type *
                     </Label>
                     <Select
                       value={selectedType}
                       onValueChange={setSelectedType}
                     >
-                      <SelectTrigger className="rounded-2xl">
-                        <SelectValue placeholder="Select Category" />
+                      <SelectTrigger className="mt-2 rounded-2xl">
+                        <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl">
-                        {documentCategories.map((category) =>
-                          category.children ? (
-                            <SelectGroup key={category.id}>
-                              <SelectLabel>{category.name}</SelectLabel>
-                              {category.children.map((child, i) => (
-                                <SelectItem key={i} value={child.toLowerCase()}>
-                                  {child}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          ) : (
-                            <SelectItem
-                              key={category.id}
-                              value={category.name.toLowerCase()}
-                            >
-                              {category.name}
+                        <SelectGroup>
+                          <SelectLabel>Categories</SelectLabel>
+                          {getAvailableCategories().map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
                             </SelectItem>
-                          )
-                        )}
-                        <SelectItem value="all">All Clients</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label
+                      htmlFor="accessLevel"
+                      className="text-sm font-semibold"
+                    >
+                      Access Level *
+                    </Label>
+                    <Select
+                      value={accessLevel}
+                      onValueChange={(value) => {
+                        setAccessLevel(value);
+                        if (value === "general") setShowSpecificClients(false);
+                      }}
+                    >
+                      <SelectTrigger className="mt-2 rounded-2xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        <SelectItem value="general">
+                          General Access (All Clients)
+                        </SelectItem>
                         <SelectItem value="specific">
-                          Specific Guards
+                          Specific Clients
                         </SelectItem>
                         <SelectItem value="admin">Admin Only</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-                <div className="space-y-3">
-                  <Label className="text-sm font-semibold">Access Level</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setShowSpecificClients(value === "specific")
-                    }
-                  >
-                    <SelectTrigger className="rounded-2xl">
-                      <SelectValue placeholder="Select Access" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Clients</SelectItem>
-                      <SelectItem value="specific">Specific Guards</SelectItem>
-                      <SelectItem value="admin">Admin Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {showSpecificClients && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Search className="h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search guards..."
-                          value={docGuardSearch}
-                          onChange={(e) => handleGuardSearch(e, "doc")}
-                          className="rounded-2xl flex-1"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto rounded-2xl p-4 bg-muted/30 border border-border/30">
-                        {filteredDocGuards.map((guard) => (
+                </div>
+
+                {accessLevel === "specific" && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Select Clients (Specific Access)
+                    </Label>
+                    <div className="max-h-40 overflow-y-auto border rounded-xl p-3 space-y-2">
+                      {filteredDocGuards.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No clients match "{docGuardSearch}"
+                        </p>
+                      ) : (
+                        filteredDocGuards.map((client) => (
                           <div
-                            key={guard.id}
-                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50"
+                            key={client._id}
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent"
                           >
                             <Checkbox
-                              id={`doc-guard-${guard.id}`}
-                              checked={selectedDocGuards.includes(guard.id)}
+                              id={`doc-client-${client._id}`}
+                              checked={selectedDocGuards.includes(client._id)}
                               onCheckedChange={() =>
-                                toggleGuardSelection(guard.id, "doc")
+                                toggleGuardSelection(client._id, "doc")
                               }
                             />
                             <Label
-                              htmlFor={`doc-guard-${guard.id}`}
+                              htmlFor={`doc-client-${client._id}`}
                               className="text-sm cursor-pointer flex-1"
                             >
-                              <div className="font-medium">{guard.name}</div>
+                              <div className="font-medium">{client.name}</div>
                               <div className="text-xs text-muted-foreground">
-                                {guard.email}
+                                {client.email}
                               </div>
                             </Label>
                           </div>
-                        ))}
-                      </div>
+                        ))
+                      )}
                     </div>
-                  )}
-                </div>
+                    {docGuardSearch && (
+                      <Input
+                        placeholder="Search clients..."
+                        value={docGuardSearch}
+                        onChange={(e) => handleGuardSearch(e, "doc")}
+                        className="rounded-xl"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* File Upload */}
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold">Upload File *</Label>
                   <div
@@ -396,7 +577,9 @@ export default function DocumentManagement({
                   >
                     <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-lg font-medium text-foreground mb-1">
-                      Drop file or click to browse
+                      {selectedFile
+                        ? selectedFile.name
+                        : "Drop file or click to browse"}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       PDF, DOCX, XLSX • Max 100MB • Auto-encrypted
@@ -410,31 +593,50 @@ export default function DocumentManagement({
                       type="file"
                       className="hidden"
                       accept=".pdf,.doc,.docx,.xlsx"
-                      onChange={simulateUpload}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file && file.size < 100 * 1024 * 1024) {
+                          // ✅ FIXED: Size check
+                          setSelectedFile(file);
+                          simulateUpload();
+                        } else {
+                          alert("File too large or invalid type");
+                        }
+                      }}
                     />
                   </div>
                 </div>
               </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  className="rounded-2xl px-6"
-                  onClick={() => setAddDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="rounded-2xl bg-gradient-to-r from-success to-success/80 shadow-lg px-8"
-                  disabled={uploadProgress < 100}
-                >
-                  {uploadProgress < 100
-                    ? `Uploading... ${uploadProgress}%`
-                    : "Upload & Encrypt"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
+
+            <DialogFooter className="p-6 border-t space-x-2">
+              <Button
+                variant="outline"
+                className="rounded-2xl px-6"
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  resetUploadForm();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="rounded-2xl bg-primary shadow-lg px-8 text-white"
+                onClick={handleDocumentUpload}
+                disabled={
+                  uploadProgress < 100 ||
+                  !docName ||
+                  !selectedType ||
+                  !selectedFile
+                }
+              >
+                {uploadProgress > 0
+                  ? `Uploading... ${uploadProgress}%`
+                  : "Upload & Encrypt"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-background/80 shadow-2xl overflow-hidden">
@@ -443,7 +645,9 @@ export default function DocumentManagement({
             <div>
               <CardTitle className="text-2xl font-bold flex items-center gap-3 text-foreground">
                 <FileText className="h-7 w-7 text-primary" />
-                Document Library
+                {isCompanyDocuments
+                  ? "Company Document Library"
+                  : "Document Library"}
               </CardTitle>
               <CardDescription className="text-muted-foreground mt-2">
                 {currentCategory
@@ -535,7 +739,7 @@ export default function DocumentManagement({
                             variant="secondary"
                             className="rounded-full capitalize"
                           >
-                            {documentCategories.find(
+                            {getAvailableCategories().find(
                               (cat) =>
                                 cat.name.toLowerCase() === doc.type ||
                                 cat.children?.find(
@@ -557,42 +761,26 @@ export default function DocumentManagement({
                             variant="ghost"
                             size="sm"
                             className="rounded-xl h-9 w-9 p-0"
+                            onClick={() => handleView(doc)} // ✅ NEW: View button
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl h-9 w-9 p-0"
+                            onClick={() => handleDownload(doc)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="rounded-xl h-9 w-9 p-0"
+                            className="rounded-xl h-9 w-9 p-0 text-destructive"
+                            onClick={() => handleDelete(doc)}
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="rounded-xl h-9 w-9 p-0 text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="rounded-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Delete {doc.name}?</DialogTitle>
-                                <DialogDescription>
-                                  This action is irreversible and will remove
-                                  audit logs.
-                                </DialogDescription>
-                              </DialogHeader>
-                              <DialogFooter>
-                                <Button variant="outline">Cancel</Button>
-                                <Button variant="destructive">
-                                  Permanently Delete
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
                         </div>
                       </TableCell>
                     </TableRow>

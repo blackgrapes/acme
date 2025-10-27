@@ -192,6 +192,7 @@ export default function ClientManagement({
           to: formData.endDate,
         },
         roleName: "Client",
+        documents: [],
       };
 
       console.log("📝 Sending client data:", clientData);

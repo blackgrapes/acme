@@ -1,7 +1,7 @@
-// File: src/app/admin-dashboard/page.jsx - FIXED frontendCategories TO ARRAY
+// File: src/app/admin-dashboard/page.jsx - CORRECTED
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import Header from "@/components/admin/Header";
@@ -106,7 +106,7 @@ const dummyDocuments = [
     uploaded: "2024-12-01",
     size: "2.1 MB",
     uploader: "Admin",
-    access: "All",
+    access: "general",
     description: "Standard service agreement for new clients.",
     actions: true,
   },
@@ -117,7 +117,7 @@ const dummyDocuments = [
     uploaded: "2024-11-15",
     size: "1.5 MB",
     uploader: "Legal Team",
-    access: "All",
+    access: "general",
     description: "Updated privacy policy effective 2025.",
     actions: true,
   },
@@ -128,22 +128,21 @@ const dummyDocuments = [
     uploaded: "2024-12-20",
     size: "85 KB",
     uploader: "Admin",
-    access: "Specific",
+    access: "specific",
     description: "Annual insurance coverage details.",
     actions: true,
   },
   {
     id: 4,
     name: "Monthly Operations Report",
-    type: "salary slips",
+    type: "salary-sheet",
     uploaded: "2025-01-01",
     size: "3.2 MB",
     uploader: "Operations Manager",
-    access: "Specific",
+    access: "specific",
     description: "Q4 2024 operations summary.",
     actions: true,
   },
-  // Added one for child category
   {
     id: 5,
     name: "MSME Certificate",
@@ -151,7 +150,7 @@ const dummyDocuments = [
     uploaded: "2025-01-05",
     size: "500 KB",
     uploader: "Admin",
-    access: "Admin",
+    access: "general",
     description: "MSME registration document.",
     actions: true,
   },
@@ -174,50 +173,29 @@ const dummyRequests = [
   },
 ];
 
-// Frontend Management Data
-const dummyWeProvideServices = [
-  {
-    id: 1,
-    title: "Personal Security Officer",
-    summary: "Professional personal security for high-profile individuals.",
-    benefits: ["24/7 Protection", "Trained Personnel", "Discreet Service"],
-    img: true,
-    slug: "pso",
-    showOnHome: true,
-  },
-  {
-    id: 2,
-    title: "Security Guard",
-    summary: "Reliable on-site security for businesses and events.",
-    benefits: ["Uniformed Guards", "Patrol Services", "Access Control"],
-    img: true,
-    slug: "guard",
-    showOnHome: true,
-  },
-  // Add more as needed
+// Document Categories - Define once at top level
+const initialDocumentCategories = [
+  { id: "agreement", name: "Agreement" },
+  { id: "attendance", name: "Attendance" },
+  { id: "bills", name: "Bills" },
+  { id: "salary-sheet", name: "Salary Sheet" },
+  { id: "pay-slip", name: "Pay Slip" },
+  { id: "esi", name: "ESI" },
+  { id: "pf", name: "PF" },
+  { id: "employee-details", name: "Employee Details" },
+  { id: "training", name: "Training" },
+  { id: "night-checking", name: "Night Checking" },
+  { id: "paid-gst", name: "Paid GST" },
 ];
 
-const dummyGalleryItems = [
-  {
-    id: 1,
-    caption: "Security Training Session",
-    tag: "training",
-    type: "image",
-    showOnHome: true,
-  },
-  // Add more as needed
-];
-
-const dummyFrontendClients = [
-  // Placeholder - add as needed
-];
-
-const dummyTestimonials = [
-  // Placeholder - add as needed
-];
-
-const dummyContactSubmissions = [
-  // Placeholder - add as needed
+// Company Document Categories - Define once at top level
+const initialCompanyDocumentCategories = [
+  { id: "msme", name: "MSME" },
+  { id: "gst", name: "GST" },
+  { id: "pasara", name: "Pasara" },
+  { id: "pan", name: "PAN" },
+  { id: "profile", name: "Profile" },
+  { id: "bank-details", name: "Bank Details" },
 ];
 
 export default function AdminDashboard() {
@@ -229,12 +207,13 @@ export default function AdminDashboard() {
   const [selectedGuards, setSelectedGuards] = useState([]);
   const [selectedDocGuards, setSelectedDocGuards] = useState([]);
   const [showSpecificClients, setShowSpecificClients] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState("documents");
-  const [documentCategoriesState, setDocumentCategoriesState] = useState([
-    { id: 1, name: "Documents" },
-    { id: 2, name: "Attendance" },
-    // Add more default categories as needed
-  ]);
+  const [currentCategory, setCurrentCategory] = useState(null);
+  const [documentCategories, setDocumentCategories] = useState(
+    initialDocumentCategories
+  );
+  const [companyDocumentCategories, setCompanyDocumentCategories] = useState(
+    initialCompanyDocumentCategories
+  );
   const [guardDocuments, setGuardDocuments] = useState([]);
   const [contactTab, setContactTab] = useState("inquiries");
   const [companyInfo, setCompanyInfo] = useState({
@@ -255,7 +234,6 @@ export default function AdminDashboard() {
     smtpHost: "",
     smtpPort: 587,
   });
-  // FIXED: frontendCategories is now an array to match .map() expectation
   const [frontendCategories, setFrontendCategories] = useState([
     { id: "services", name: "Services" },
     { id: "gallery", name: "Gallery" },
@@ -264,8 +242,32 @@ export default function AdminDashboard() {
   ]);
   const router = useRouter();
   const { user, loading, hasPermission } = useAuth();
+  const [documents, setDocuments] = useState([]);
+  const [companyDocuments, setCompanyDocuments] = useState([]);
+  const [allClients, setAllClients] = useState([]);
+  const mountedRef = useRef(false); // ✅ ADD: Ref for mounted to prevent loops
 
-  // Move useMemos after states, before useEffect
+  // ✅ FIXED: Fetch all clients for document access control - with mounted check
+  useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+
+    const fetchClients = async () => {
+      try {
+        const response = await fetch("/api/auth/client");
+        const data = await response.json();
+        if (data.clients) {
+          setAllClients(data.clients);
+        }
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+        // Fallback to dummy clients
+        setAllClients(dummyClients);
+      }
+    };
+    fetchClients();
+  }, []);
+
   const filteredClientGuards = useMemo(() => {
     return dummyGuards.filter((guard) =>
       guard.name.toLowerCase().includes(guardSearch.toLowerCase())
@@ -273,30 +275,100 @@ export default function AdminDashboard() {
   }, [guardSearch]);
 
   const filteredDocGuards = useMemo(() => {
-    return dummyGuards.filter((guard) =>
-      guard.name.toLowerCase().includes(docGuardSearch.toLowerCase())
+    return allClients.filter((client) =>
+      client.name.toLowerCase().includes(docGuardSearch.toLowerCase())
     );
-  }, [docGuardSearch]);
+  }, [docGuardSearch, allClients]);
 
-  // Admin-side protection
+  // ✅ FIXED: Use effect to fetch documents - with mounted ref and better deps to prevent loops
   useEffect(() => {
-    if (loading) return; // Still loading, wait
+    if (!mountedRef.current || !user || loading) return;
+
+    const fetchDocuments = async () => {
+      try {
+        console.log(
+          "📥 Fetching documents. Admin: true ClientId: null isCompany:",
+          activeTab.startsWith("company-documents")
+        );
+
+        let url = "/api/documents?admin=true";
+        if (activeTab.startsWith("company-documents")) {
+          url += "&isCompanyDocument=true";
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (activeTab.startsWith("company-documents")) {
+          setCompanyDocuments(data.documents || []);
+          console.log(
+            "✅ Admin fetched",
+            data.documents?.length || 0,
+            "company documents"
+          );
+        } else {
+          setDocuments(data.documents || []);
+          console.log(
+            "✅ Admin fetched",
+            data.documents?.length || 0,
+            "documents"
+          );
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch documents:", error);
+        if (activeTab.startsWith("company-documents")) {
+          setCompanyDocuments([]);
+        } else {
+          setDocuments([]);
+        }
+      }
+    };
+
+    fetchDocuments();
+  }, [activeTab, user, loading]); // ✅ FIXED: Deps include activeTab to fetch only on tab change
+
+  // Auth protection useEffect
+  useEffect(() => {
+    if (loading) return;
 
     if (!user) {
-      console.log("No user found, redirecting to login");
       router.push("/login");
       return;
     }
 
-    // STRICT: Only users with admin permission can access admin dashboard
     if (!hasPermission("dashboard-read")) {
       console.log("No admin permission, redirecting to login");
-      // Clear invalid token and redirect to login
       localStorage.removeItem("authToken");
       router.push("/login");
       return;
     }
   }, [user, loading, router, hasPermission]);
+
+  // Helper functions for document categories
+  const getCurrentCategory = () => {
+    if (activeTab.startsWith("documents-")) {
+      const categoryId = activeTab.replace("documents-", "");
+      return documentCategories.find((cat) => cat.id === categoryId) || null;
+    }
+    return null;
+  };
+
+  const getCurrentCompanyCategory = () => {
+    if (activeTab.startsWith("company-documents-")) {
+      const categoryId = activeTab.replace("company-documents-", "");
+      return (
+        companyDocumentCategories.find((cat) => cat.id === categoryId) || null
+      );
+    }
+    return null;
+  };
+
+  const addNewCompanyCategory = (name) => {
+    addNewCategory(name, true);
+  };
 
   // Loading state
   if (loading) {
@@ -310,7 +382,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // If no user or wrong role, show redirecting (redirect will happen in useEffect)
   if (!user || !hasPermission("dashboard-read")) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -331,20 +402,19 @@ export default function AdminDashboard() {
   };
 
   const toggleGuardSelection = (guardId, type) => {
-    setSelectedGuards((prev) =>
-      type === "client"
-        ? prev.includes(guardId)
+    if (type === "client") {
+      setSelectedGuards((prev) =>
+        prev.includes(guardId)
           ? prev.filter((id) => id !== guardId)
           : [...prev, guardId]
-        : prev
-    );
-    setSelectedDocGuards((prev) =>
-      type === "doc"
-        ? prev.includes(guardId)
+      );
+    } else if (type === "doc") {
+      setSelectedDocGuards((prev) =>
+        prev.includes(guardId)
           ? prev.filter((id) => id !== guardId)
           : [...prev, guardId]
-        : prev
-    );
+      );
+    }
   };
 
   const handleClientRowClick = (clientId) => {
@@ -352,7 +422,7 @@ export default function AdminDashboard() {
   };
 
   const handleGuardRowClick = (guardId) => {
-    router.push(`/admin-dashboard/guard/${guardId}`);
+    router.push(`/admin-dashboard/guard-details/${guardId}`);
   };
 
   const handleAddGuardDocuments = (e) => {
@@ -366,11 +436,18 @@ export default function AdminDashboard() {
     ]);
   };
 
-  const addNewCategory = (newCategoryName) => {
-    setDocumentCategoriesState((prev) => [
-      ...prev,
-      { id: prev.length + 1, name: newCategoryName },
-    ]);
+  const addNewCategory = (newCategoryName, isCompany = false) => {
+    if (isCompany) {
+      setCompanyDocumentCategories((prev) => [
+        ...prev,
+        { id: `company-${Date.now()}`, name: newCategoryName },
+      ]);
+    } else {
+      setDocumentCategories((prev) => [
+        ...prev,
+        { id: `doc-${Date.now()}`, name: newCategoryName },
+      ]);
+    }
   };
 
   const renderTabContent = () => {
@@ -378,17 +455,37 @@ export default function AdminDashboard() {
       case activeTab.startsWith("documents"):
         return (
           <DocumentManagement
-            dummyDocuments={dummyDocuments}
+            dummyDocuments={documents} // ✅ Real data pass karen
             showSpecificClients={showSpecificClients}
             setShowSpecificClients={setShowSpecificClients}
             docGuardSearch={docGuardSearch}
             handleGuardSearch={handleGuardSearch}
             selectedDocGuards={selectedDocGuards}
             toggleGuardSelection={toggleGuardSelection}
-            filteredDocGuards={filteredDocGuards}
-            currentCategory={currentCategory}
+            filteredDocGuards={filteredDocGuards} // ✅ FIXED: filteredDocGuards use karen
+            currentCategory={getCurrentCategory()}
             addNewCategory={addNewCategory}
-            documentCategories={documentCategoriesState}
+            documentCategories={documentCategories}
+            companyDocumentCategories={companyDocumentCategories}
+            isCompanyDocuments={false}
+          />
+        );
+      case activeTab.startsWith("company-documents"):
+        return (
+          <DocumentManagement
+            dummyDocuments={companyDocuments} // ✅ Real company data pass karen
+            showSpecificClients={showSpecificClients}
+            setShowSpecificClients={setShowSpecificClients}
+            docGuardSearch={docGuardSearch}
+            handleGuardSearch={handleGuardSearch}
+            selectedDocGuards={selectedDocGuards}
+            toggleGuardSelection={toggleGuardSelection}
+            filteredDocGuards={filteredDocGuards} // ✅ FIXED: filteredDocGuards use karen
+            currentCategory={getCurrentCompanyCategory()}
+            addNewCategory={addNewCompanyCategory}
+            documentCategories={documentCategories}
+            companyDocumentCategories={companyDocumentCategories}
+            isCompanyDocuments={true}
           />
         );
       case activeTab === "roles":
@@ -459,15 +556,17 @@ export default function AdminDashboard() {
         setSettingsOpen={setSettingsOpen}
         openAdminDialog={openAdminDialog}
         setOpenAdminDialog={setOpenAdminDialog}
-        documentCategories={documentCategoriesState}
+        documentCategories={documentCategories}
+        companyDocumentCategories={companyDocumentCategories}
       />
 
       <div className="flex flex-1">
         <DesktopSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          documentCategories={documentCategoriesState}
-          setDocumentCategories={setDocumentCategoriesState}
+          documentCategories={documentCategories}
+          companyDocumentCategories={companyDocumentCategories}
+          setDocumentCategories={setDocumentCategories}
         />
 
         <main className="flex-1 overflow-auto">

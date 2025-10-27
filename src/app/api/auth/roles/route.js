@@ -1,6 +1,7 @@
 // File: src/app/api/auth/roles/route.js
 import { NextResponse } from "next/server";
-import { connectDB, Role } from "@/lib/db";
+import connectDB from "@/lib/db";
+import { Role } from "@/lib/db";
 
 export async function GET() {
   try {

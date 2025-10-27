@@ -1,6 +1,7 @@
 // File: app/api/auth/login/route.js - FIXED: Add permissions to response body
 import { NextResponse } from "next/server";
-import { connectDB, User, Role } from "@/lib/db";
+import connectDB from "@/lib/db";
+import { User, Role } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 

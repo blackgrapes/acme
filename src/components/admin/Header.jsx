@@ -1,14 +1,15 @@
-// File: src/components/admin/Header.jsx
+// File: src/components/admin/Header.jsx - CORRECTED
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
-import { Settings, Shield, User, Bell } from "lucide-react";
+import { Settings, Shield, User } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import MobileMenu from "./MobileMenu";
 import AdminProfileDialog from "./AdminProfileDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Header({
   activeTab,
@@ -17,10 +18,20 @@ export default function Header({
   setSettingsOpen,
   openAdminDialog,
   setOpenAdminDialog,
-  documentCategories,
-  frontendCategories,
+  documentCategories = [],
+  companyDocumentCategories = [], // YEH ADD KAREN
 }) {
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { user } = useAuth();
+
+  const getUserInitials = (name) => {
+    if (!name) return "AD";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <header className="border-b border-border/20 bg-card/80 backdrop-blur-sm shadow-lg sticky top-0 z-40">
@@ -33,7 +44,7 @@ export default function Header({
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 documentCategories={documentCategories}
-                frontendCategories={frontendCategories}
+                companyDocumentCategories={companyDocumentCategories} // YEH ADD KAREN
               />
             </Sheet>
             <div className="flex items-center gap-3">
@@ -48,9 +59,6 @@ export default function Header({
 
           {/* Right Side - Actions */}
           <div className="flex items-center gap-2">
-            {/* Notifications */}
-            
-
             {/* Settings */}
             <Button
               variant="ghost"
@@ -71,21 +79,24 @@ export default function Header({
               onClick={() => setOpenAdminDialog(true)}
             >
               <Avatar className="h-9 w-9">
-                <AvatarImage src="/profile-avatar.jpg" />
+                <AvatarImage src={user?.avatar} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  SJ
+                  {getUserInitials(user?.name || "Admin User")}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden md:flex flex-col items-start text-left">
                 <p className="text-sm font-medium text-foreground truncate max-w-32">
-                  Sarah Johnson
+                  {user?.name || "Admin User"}
                 </p>
-                <p className="text-xs text-muted-foreground">Administrator</p>
+                <p className="text-xs text-muted-foreground">
+                  {user?.role || "Administrator"}
+                </p>
               </div>
             </div>
             <AdminProfileDialog
               open={openAdminDialog}
               onOpenChange={setOpenAdminDialog}
+              user={user}
             />
           </div>
         </div>

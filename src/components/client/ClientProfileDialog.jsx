@@ -1,4 +1,4 @@
-// File: components/client/ClientProfileDialog.jsx
+// File: components/client/ClientProfileDialog.jsx - UPDATED
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -12,48 +12,73 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, Phone } from "lucide-react";
+import { User, Mail, Phone, Building } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export default function ClientProfileDialog({ open, onOpenChange }) {
+export default function ClientProfileDialog({ open, onOpenChange, user }) {
+  const getUserInitials = (name) => {
+    if (!name) return "CL";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Profile</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {getUserInitials(user?.name)}
+              </AvatarFallback>
+            </Avatar>
+            Client Profile
+          </DialogTitle>
           <DialogDescription>
             Update your profile information here.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <Input id="name" defaultValue="John Smith" className="col-span-3" />
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input id="name" defaultValue={user?.name || "Client User"} />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              defaultValue="client@example.com"
-              className="col-span-3"
+              type="email"
+              defaultValue={user?.email || "client@example.com"}
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">
-              Phone
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
             <Input
               id="phone"
-              defaultValue="+1 (555) 123-4567"
-              className="col-span-3"
+              defaultValue={user?.phone || "+1 (555) 123-4567"}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="organization">Organization</Label>
+            <Input
+              id="organization"
+              defaultValue={user?.organization || "Not specified"}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="clientImage">Profile Image</Label>
+            <Input id="clientImage" type="file" accept="image/*" />
           </div>
         </div>
         <DialogFooter>
-          <Button type="submit">Save changes</Button>
+          <Button type="submit" className="w-full">
+            Save changes
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

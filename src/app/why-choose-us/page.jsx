@@ -12,8 +12,30 @@ import {
 } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 export default function WhyChooseUs() {
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
+
+  const fetchTestimonials = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/frontend/testimonials");
+      const data = await response.json();
+      setTestimonials(data.filter((t) => t.showOnHome));
+    } catch (error) {
+      console.error("Error fetching testimonials:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // These could also be moved to the database if you want them to be dynamic
   const reasons = [
     {
       icon: ShieldCheck,
@@ -65,23 +87,19 @@ export default function WhyChooseUs() {
     },
   ];
 
-  const testimonials = [
-    {
-      quote:
-        "ACME’s professionalism and response time are unmatched. They make us feel secure 24/7.",
-      name: "Operations Head, TechCorp",
-    },
-    {
-      quote:
-        "We trust ACME for all our branches across India. Truly reliable security partners.",
-      name: "Admin Manager, GlobalBank",
-    },
-    {
-      quote:
-        "Their guards are well-trained and courteous. It’s rare to find such consistency.",
-      name: "HR Director, EduCare Group",
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="font-sans">
+        <SEOHead
+          title="Why Choose Us — ACME"
+          description="Why choose our services."
+        />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans">
@@ -113,7 +131,7 @@ export default function WhyChooseUs() {
               return (
                 <div
                   key={i}
-                  className="rounded-2xl  border-border bg-card shadow-sm p-4 sm:p-6 hover:shadow-md transition-all w-full flex flex-col items-center"
+                  className="rounded-2xl border-border bg-card shadow-sm p-4 sm:p-6 hover:shadow-md transition-all w-full flex flex-col items-center"
                 >
                   <Icon className="h-8 sm:h-10 w-8 sm:w-10 text-primary mb-3 sm:mb-4" />
                   <h3 className="font-semibold text-base sm:text-lg text-foreground text-center">
@@ -177,7 +195,7 @@ export default function WhyChooseUs() {
               return (
                 <div
                   key={i}
-                  className="text-center p-4 sm:p-6 rounded-xl  border-border bg-card shadow-md hover:shadow-lg transition-all w-full flex flex-col items-center"
+                  className="text-center p-4 sm:p-6 rounded-xl border-border bg-card shadow-md hover:shadow-lg transition-all w-full flex flex-col items-center"
                 >
                   <Icon className="h-8 sm:h-10 w-8 sm:w-10 text-primary mb-3 sm:mb-4" />
                   <h3 className="font-semibold text-foreground text-sm sm:text-base">
@@ -202,16 +220,21 @@ export default function WhyChooseUs() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {testimonials.map((t, i) => (
               <div
-                key={i}
-                className="rounded-2xl  border-border bg-card shadow-sm p-4 sm:p-6 hover:shadow-md transition-all w-full"
+                key={t._id}
+                className="rounded-2xl border-border bg-card shadow-sm p-4 sm:p-6 hover:shadow-md transition-all w-full"
               >
                 <p className="text-sm text-secondary italic">"{t.quote}"</p>
                 <div className="mt-4 text-xs font-medium text-foreground">
-                  — {t.name}
+                  — {t.author}
                 </div>
               </div>
             ))}
           </div>
+          {testimonials.length === 0 && (
+            <p className="text-center text-secondary py-8">
+              No testimonials to display.
+            </p>
+          )}
         </div>
       </section>
 

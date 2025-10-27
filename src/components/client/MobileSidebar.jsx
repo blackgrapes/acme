@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { SheetContent } from "@/components/ui/sheet";
 import {
   Home,
@@ -14,20 +13,28 @@ import {
   LogOut,
   ChevronDown,
   ChevronRight,
+  Building,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function MobileSidebar({
   activeTab,
   setActiveTab,
-  documentCategories,
+  documentCategories = [],
+  companyDocumentCategories = [], // DEFAULT VALUE ADD KAREN
 }) {
   const [documentDropdownOpen, setDocumentDropdownOpen] = useState(true);
-  const { hasPermission } = useAuth(); // Client has limited perms
+  const [companyDocumentDropdownOpen, setCompanyDocumentDropdownOpen] =
+    useState(true);
+  const { hasPermission } = useAuth();
   const router = useRouter();
 
   const toggleDocumentDropdown = () => {
     setDocumentDropdownOpen(!documentDropdownOpen);
+  };
+
+  const toggleCompanyDocumentDropdown = () => {
+    setCompanyDocumentDropdownOpen(!companyDocumentDropdownOpen);
   };
 
   const isActive = (tab) => activeTab === tab;
@@ -37,10 +44,18 @@ export default function MobileSidebar({
     toggleDocumentDropdown();
   };
 
+  const handleCompanyDocumentClick = () => {
+    setActiveTab("company-documents");
+    toggleCompanyDocumentDropdown();
+  };
+
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-      localStorage.removeItem("authToken"); // Also clear fallback
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      localStorage.removeItem("authToken");
       router.push("/login");
     } catch (error) {
       console.error("Logout error:", error);
@@ -51,6 +66,7 @@ export default function MobileSidebar({
   const canViewOverview = hasPermission("client-dashboard-read");
   const canViewServiceReports = hasPermission("client-dashboard-read");
   const canViewDocuments = hasPermission("client-dashboard-read");
+  const canViewCompanyDocuments = hasPermission("client-dashboard-read");
   const canViewManagement = hasPermission("client-dashboard-read");
 
   return (
@@ -108,51 +124,89 @@ export default function MobileSidebar({
                 }`}
               >
                 <div className="pl-6 space-y-1 pt-1">
-                  {documentCategories.map((category) =>
-                    category.children ? (
-                      category.children.map((child, index) => {
-                        const childSlug = child
-                          .replace(/\s+/g, "-")
-                          .toLowerCase();
-                        const isActiveChild =
-                          activeTab === `documents-${childSlug}`;
-                        return (
-                          <Button
-                            key={`${category.id}-${index}`}
-                            variant={isActiveChild ? "default" : "ghost"}
-                            className="w-full justify-start text-sm shadow-sm data-[variant=default]:bg-primary data-[variant=default]:text-white"
-                            onClick={() =>
-                              setActiveTab(`documents-${childSlug}`)
-                            }
-                          >
-                            {child}
-                          </Button>
-                        );
-                      })
-                    ) : (
+                  <Button
+                    variant={activeTab === "documents" ? "default" : "ghost"}
+                    className="w-full justify-start text-sm shadow-sm data-[variant=default]:bg-primary data-[variant=default]:text-white"
+                    onClick={() => setActiveTab("documents")}
+                  >
+                    All Documents
+                  </Button>
+
+                  {documentCategories.map((category) => (
+                    <Button
+                      key={category.id}
+                      variant={
+                        activeTab === `documents-${category.id}`
+                          ? "default"
+                          : "ghost"
+                      }
+                      className="w-full justify-start text-sm shadow-sm data-[variant=default]:bg-primary data-[variant=default]:text-white"
+                      onClick={() => setActiveTab(`documents-${category.id}`)}
+                    >
+                      {category.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Company Documents Dropdown */}
+          {canViewCompanyDocuments && (
+            <div className="space-y-1">
+              <Button
+                variant={
+                  activeTab.startsWith("company-documents")
+                    ? "default"
+                    : "ghost"
+                }
+                className="w-full justify-start shadow-sm data-[variant=default]:bg-primary data-[variant=default]:text-white"
+                onClick={handleCompanyDocumentClick}
+              >
+                <Building className="h-4 w-4 mr-2" />
+                Company Documents
+                {companyDocumentDropdownOpen ? (
+                  <ChevronDown className="h-4 w-4 ml-auto transition-transform duration-200" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 ml-auto transition-transform duration-200" />
+                )}
+              </Button>
+
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  companyDocumentDropdownOpen
+                    ? "max-h-[1000px] opacity-100"
+                    : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="pl-6 space-y-1 pt-1">
+                  <Button
+                    variant={
+                      activeTab === "company-documents" ? "default" : "ghost"
+                    }
+                    className="w-full justify-start text-sm shadow-sm data-[variant=default]:bg-primary data-[variant=default]:text-white"
+                    onClick={() => setActiveTab("company-documents")}
+                  >
+                    All Company Documents
+                  </Button>
+
+                  {companyDocumentCategories &&
+                    companyDocumentCategories.map((category) => (
                       <Button
                         key={category.id}
                         variant={
-                          activeTab ===
-                          `documents-${category.name
-                            .replace(/\s+/g, "-")
-                            .toLowerCase()}`
+                          activeTab === `company-documents-${category.id}`
                             ? "default"
                             : "ghost"
                         }
                         className="w-full justify-start text-sm shadow-sm data-[variant=default]:bg-primary data-[variant=default]:text-white"
                         onClick={() =>
-                          setActiveTab(
-                            `documents-${category.name
-                              .replace(/\s+/g, "-")
-                              .toLowerCase()}`
-                          )
+                          setActiveTab(`company-documents-${category.id}`)
                         }
                       >
                         {category.name}
                       </Button>
-                    )
-                  )}
+                    ))}
                 </div>
               </div>
             </div>

@@ -1,16 +1,6 @@
-// Updated File: components/client/ClientManagement.jsx
+// File: src/components/client/ClientManagement.jsx - UPDATED WITH REAL DATA
 "use client";
 
-import { useRouter } from "next/navigation";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -18,326 +8,244 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  Eye,
-  Plus,
-  Download,
-  Clock,
-  TrendingUp,
-  MoreHorizontal,
   Users,
   FileText,
-  CheckCircle,
-  AlertCircle,
+  Shield,
+  Star,
+  Phone,
+  Mail,
+  MapPin,
+  Eye,
+  MessageCircle,
 } from "lucide-react";
-import { Button } from "../ui/button";
-import { Progress } from "@/components/ui/progress";
 
 export default function ClientManagement({
-  dummyGuards,
-  dummyRequests,
+  dummyGuards = [], // ✅ FIXED: Fallback for assignedGuards
+  dummyRequests = [],
+  dummyDocuments = [], // ✅ FIXED: Use for clientDocuments
   handleGuardClick,
+  clientData, // ✅ FIXED: Add clientData prop if needed
 }) {
-  // Calculate metrics
-  const totalGuards = dummyGuards.length;
-  const activeGuards = dummyGuards.filter(
-    (guard) => guard.status === "Active"
-  ).length;
-  const totalRequests = dummyRequests.length;
-  const pendingRequests = dummyRequests.filter(
-    (req) => req.status === "Pending"
-  ).length;
-
-  // Mock compliance for guards
-  const guardCompliance = 88;
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header with actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Client Management
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your assigned guards and document requests efficiently
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-primary/20 hover:bg-primary/5"
-          >
-            <Clock className="h-4 w-4 mr-2 text-primary" />
-            Last 30 days
-          </Button>
-          <Button
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export Data
-          </Button>
-        </div>
+      <div>
+        <h2 className="text-3xl font-bold text-foreground">
+          Security Management
+        </h2>
+        <p className="text-muted-foreground mt-2">
+          Manage your security team and service details
+        </p>
       </div>
 
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Total Guards
-            </CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-foreground">
-              {totalGuards}
-            </div>
-            <p className="text-xs text-muted-foreground">Assigned personnel</p>
-            <div className="flex items-center gap-1 mt-1">
-              <TrendingUp className="h-3 w-3 text-primary" />
-              <p className="text-xs text-primary font-medium">
-                +{activeGuards} active
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Active Guards
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-foreground">
-              {activeGuards}
-            </div>
-            <p className="text-xs text-muted-foreground">On duty</p>
-            {totalGuards > 0 && (
-              <div className="mt-2">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Compliance</span>
-                  <span>{guardCompliance}%</span>
-                </div>
-                <Progress
-                  value={guardCompliance}
-                  className="h-1 mt-1 bg-primary/20"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Total Requests
-            </CardTitle>
-            <FileText className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-foreground">
-              {totalRequests}
-            </div>
-            <p className="text-xs text-muted-foreground">Document requests</p>
-            <p className="text-xs text-primary mt-2 font-medium">
-              {pendingRequests} pending
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Pending Requests
-            </CardTitle>
-            <div className="relative">
-              <AlertCircle className="h-4 w-4 text-primary" />
-              {pendingRequests > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-foreground">
-              {pendingRequests}
-            </div>
-            <p className="text-xs text-muted-foreground">Awaiting action</p>
-            {pendingRequests > 0 && (
-              <Button
-                variant="link"
-                className="p-0 h-auto text-xs text-primary mt-2 font-medium"
-              >
-                Review now →
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Management Sections Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Assigned Guards */}
-        <Card className="shadow-md border-0">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="text-foreground">Assigned Guards</CardTitle>
-              <CardDescription>
-                View and manage your security guards
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary/10"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dummyGuards.slice(0, 10).map((guard) => (
-                  <TableRow
-                    key={guard.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => handleGuardClick(guard.id)}
-                  >
-                    <TableCell className="font-medium">{guard.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {guard.email}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {guard.phone}
-                    </TableCell>
-                    <TableCell>
+      {/* Assigned Guards Section */}
+      <Card className="rounded-2xl border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            Your Security Team ({dummyGuards.length})
+          </CardTitle>
+          <CardDescription>
+            Security personnel currently assigned to your location
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {dummyGuards.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {dummyGuards.map((guard) => (
+                <Card
+                  key={guard._id || guard.id}
+                  className="rounded-xl border-border/30 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleGuardClick(guard._id || guard.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">
+                            {guard.name}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {guard.type || "Security Guard"} •{" "}
+                            {guard.experience || "2+ years"}
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Star className="h-3 w-3 fill-current text-yellow-500" />
+                            <span className="text-xs font-medium">
+                              {guard.rating || 4.5}/5
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                       <Badge
                         variant={
                           guard.status === "Active" ? "default" : "secondary"
                         }
-                        className={
+                        className={`rounded-full ${
                           guard.status === "Active"
                             ? "bg-green-500 text-white"
-                            : "bg-yellow-500 text-white"
-                        }
+                            : "bg-gray-200 text-gray-700"
+                        }`}
                       >
                         {guard.status}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {dummyGuards.length > 10 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">
-                      <Button
-                        variant="link"
-                        className="p-0 h-auto text-sm text-primary"
-                      >
-                        View all {totalGuards} guards →
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    </div>
+
+                    {guard.specialization &&
+                      guard.specialization.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1">
+                          {guard.specialization
+                            .slice(0, 3)
+                            .map((skill, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-xs rounded-full"
+                              >
+                                {skill}
+                              </Badge>
+                            ))}
+                        </div>
+                      )}
+
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {guard.phone || "(555) 111-2222"}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {guard.location || "Mumbai"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Users className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                No guards assigned
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Your security team will appear here once assigned by the
+                administrator
+              </p>
+              <Button>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Contact Support
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Service Information */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card className="rounded-2xl border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Service Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">
+                Security Plan
+              </span>
+              <Badge variant="outline" className="rounded-full">
+                {clientData?.securityPlan || "Standard"}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">
+                Service Status
+              </span>
+              <Badge variant="default" className="rounded-full bg-green-500">
+                Active
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">
+                Assigned Since
+              </span>
+              <span className="text-sm text-foreground">
+                {formatDate(clientData?.createdAt)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">
+                Total Documents
+              </span>
+              <span className="text-sm text-foreground">
+                {dummyDocuments.length}
+              </span>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Document Requests */}
-        <Card className="shadow-md border-0">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="text-foreground">
-                Document Requests
-              </CardTitle>
-              <CardDescription>
-                View your previous document requests
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+        <Card className="rounded-2xl border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Quick Actions
+            </CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dummyRequests.slice(0, 10).map((req) => (
-                  <TableRow
-                    key={req.id}
-                    className="hover:bg-muted/50 transition-colors"
-                  >
-                    <TableCell className="font-medium">{req.type}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          req.status === "Pending" ? "secondary" : "default"
-                        }
-                        className={
-                          req.status === "Pending"
-                            ? "bg-yellow-500 text-white"
-                            : "bg-green-500 text-white"
-                        }
-                      >
-                        {req.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {req.date}
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {dummyRequests.length > 10 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4">
-                      <Button
-                        variant="link"
-                        className="p-0 h-auto text-sm text-primary"
-                      >
-                        View all {totalRequests} requests →
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start" asChild>
+              <a
+                href={`mailto:support@elitesecurity.com?subject=Support Request - ${clientData?.name}`}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Contact Support
+              </a>
+            </Button>
+            <Button variant="outline" className="w-full justify-start">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Request Service Change
+            </Button>
+            <Button variant="outline" className="w-full justify-start">
+              <FileText className="h-4 w-4 mr-2" />
+              Download Service Report
+            </Button>
+            <Button variant="outline" className="w-full justify-start">
+              <Shield className="h-4 w-4 mr-2" />
+              Emergency Contact
+            </Button>
           </CardContent>
         </Card>
       </div>

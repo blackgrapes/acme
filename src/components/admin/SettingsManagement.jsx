@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -24,6 +24,7 @@ import {
   Minus,
   Edit,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import {
   Select,
@@ -38,443 +39,992 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
+
+// Frontend Categories
+const FRONTEND_CATEGORIES = [
+  { id: "weprovide", name: "We Provide" },
+  { id: "gallery", name: "Gallery" },
+  { id: "clients", name: "Clients" },
+  { id: "testimonials", name: "Testimonials" },
+];
 
 export default function SettingsManagement({
   companyInfo,
   securitySettings,
   notificationSettings,
   emailSettings,
-  frontendCategories = [],
-  dummyWeProvideServices = [],
-  dummyGalleryItems = [],
-  dummyFrontendClients = [],
-  dummyTestimonials = [],
 }) {
   const [currentFrontendCategory, setCurrentFrontendCategory] = useState(
-    frontendCategories[0] || { id: "weprovide", name: "We Provide" }
+    FRONTEND_CATEGORIES[0]
   );
-  const [benefits, setBenefits] = useState([""]); // Start with one empty benefit
 
-  // Add new benefit field
-  const addBenefit = () => {
-    setBenefits([...benefits, ""]);
-  };
+  // State for frontend data
+  const [weProvideServices, setWeProvideServices] = useState([]);
+  const [galleryItems, setGalleryItems] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Remove benefit field
-  const removeBenefit = (index) => {
-    if (benefits.length > 1) {
-      const newBenefits = benefits.filter((_, i) => i !== index);
-      setBenefits(newBenefits);
+  // Load data when category changes
+  useEffect(() => {
+    loadFrontendData();
+  }, [currentFrontendCategory]);
+
+  const loadFrontendData = async () => {
+    setLoading(true);
+    try {
+      const endpoint = `/api/frontend/${currentFrontendCategory.id}`;
+      const response = await fetch(endpoint);
+
+      if (response.ok) {
+        const data = await response.json();
+        switch (currentFrontendCategory.id) {
+          case "weprovide":
+            setWeProvideServices(data);
+            break;
+          case "gallery":
+            setGalleryItems(data);
+            break;
+          case "clients":
+            setClients(data);
+            break;
+          case "testimonials":
+            setTestimonials(data);
+            break;
+        }
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Update benefit value
-  const updateBenefit = (index, value) => {
-    const newBenefits = [...benefits];
-    newBenefits[index] = value;
-    setBenefits(newBenefits);
+  // Common upload function
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+
+      const result = await response.json();
+      return result.fileUrl;
+    } catch (error) {
+      throw new Error("File upload failed");
+    }
   };
 
-  const renderWeProvideContent = () => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>We Provide Services</CardTitle>
-          <CardDescription>
-            Manage services displayed on the frontend
-          </CardDescription>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Service
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Service</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Service Title</Label>
-                <Input placeholder="Personal Security Officer" />
-              </div>
-              <div className="space-y-2">
-                <Label>Summary</Label>
-                <Input placeholder="Professional personal security for high-profile individuals" />
-              </div>
+  // Common toggle function
+  const handleToggleVisibility = async (endpoint, id, currentStatus) => {
+    try {
+      const response = await fetch(`/api/frontend/${endpoint}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showOnHome: !currentStatus }),
+      });
 
-              {/* Dynamic Benefits Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Benefits</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addBenefit}
-                    className="h-8"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add Benefit
-                  </Button>
+      if (response.ok) {
+        toast({ title: "Success", description: "Visibility updated" });
+        loadFrontendData();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update visibility",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Common delete function
+  const handleDeleteItem = async (endpoint, id, itemName) => {
+    if (!confirm(`Are you sure you want to delete this ${itemName}?`)) return;
+
+    try {
+      const response = await fetch(`/api/frontend/${endpoint}/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast({ title: "Success", description: `${itemName} deleted` });
+        loadFrontendData();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to delete ${itemName}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // We Provide Services Management
+  const WeProvideContent = () => {
+    const [benefits, setBenefits] = useState([""]);
+    const [newService, setNewService] = useState({
+      title: "",
+      summary: "",
+      benefits: [],
+      slug: "",
+    });
+    const [imageFile, setImageFile] = useState(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const handleAddService = async () => {
+      try {
+        let imageUrl = "";
+        if (imageFile) {
+          imageUrl = await uploadFile(imageFile);
+        }
+
+        const serviceData = {
+          ...newService,
+          benefits: benefits.filter((b) => b.trim() !== ""),
+          img: imageUrl,
+        };
+
+        const response = await fetch("/api/frontend/weprovide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(serviceData),
+        });
+
+        if (response.ok) {
+          toast({
+            title: "Success",
+            description: "Service added successfully",
+          });
+          setIsDialogOpen(false);
+          resetForm();
+          loadFrontendData();
+        } else {
+          throw new Error("Failed to add service");
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    };
+
+    const resetForm = () => {
+      setNewService({ title: "", summary: "", benefits: [], slug: "" });
+      setBenefits([""]);
+      setImageFile(null);
+    };
+
+    const addBenefit = () => setBenefits([...benefits, ""]);
+    const removeBenefit = (index) => {
+      if (benefits.length > 1) {
+        setBenefits(benefits.filter((_, i) => i !== index));
+      }
+    };
+    const updateBenefit = (index, value) => {
+      const newBenefits = [...benefits];
+      newBenefits[index] = value;
+      setBenefits(newBenefits);
+    };
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>We Provide Services</CardTitle>
+            <CardDescription>
+              Manage services displayed on the frontend
+            </CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Service
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Service</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Service Title</Label>
+                  <Input
+                    placeholder="Personal Security Officer"
+                    value={newService.title}
+                    onChange={(e) =>
+                      setNewService({ ...newService, title: e.target.value })
+                    }
+                  />
                 </div>
                 <div className="space-y-2">
-                  {benefits.map((benefit, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        placeholder={`Benefit ${index + 1}`}
-                        value={benefit}
-                        onChange={(e) => updateBenefit(index, e.target.value)}
-                      />
-                      {benefits.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeBenefit(index)}
-                          className="h-10 w-10 flex-shrink-0"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Service Image</Label>
-                <Input type="file" accept="image/*" />
-              </div>
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input placeholder="pso" />
-              </div>
-              <Button className="w-full">Add Service</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {dummyWeProvideServices.map((service) => (
-            <div key={service.id} className="p-4 border rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-medium">{service.title}</h3>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      service.showOnHome
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {service.showOnHome ? "Visible" : "Hidden"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={service.showOnHome}
-                    className="data-[state=checked]:bg-primary"
+                  <Label>Summary</Label>
+                  <Input
+                    placeholder="Professional personal security for high-profile individuals"
+                    value={newService.summary}
+                    onChange={(e) =>
+                      setNewService({ ...newService, summary: e.target.value })
+                    }
                   />
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
                 </div>
-              </div>
-              <p className="text-sm text-muted-foreground">{service.summary}</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                {service.benefits.map((benefit, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-primary mt-1 flex-shrink-0">✓</span>
-                    <span>{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span>Image: {service.img ? "Uploaded" : "No Image"}</span>
-                <span>Slug: {service.slug}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
 
-  const renderGalleryContent = () => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Gallery Management</CardTitle>
-          <CardDescription>
-            Manage images and videos in the gallery
-          </CardDescription>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Gallery Item</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tag</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Tag" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="events">Events</SelectItem>
-                    <SelectItem value="training">Training</SelectItem>
-                    <SelectItem value="patrols">Patrols</SelectItem>
-                    <SelectItem value="team">Team</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Media Files</Label>
-                <Input type="file" accept="image/*,video/*" multiple />
-              </div>
-              <div className="space-y-2">
-                <Label>Caption</Label>
-                <Input placeholder="Security Training Session" />
-              </div>
-              <Button className="w-full">Add Item</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {dummyGalleryItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between p-3 border rounded-lg"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-medium">{item.caption}</h3>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      item.showOnHome
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {item.showOnHome ? "Visible" : "Hidden"}
-                  </span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Benefits</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addBenefit}
+                      className="h-8"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Benefit
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {benefits.map((benefit, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          placeholder={`Benefit ${index + 1}`}
+                          value={benefit}
+                          onChange={(e) => updateBenefit(index, e.target.value)}
+                        />
+                        {benefits.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeBenefit(index)}
+                            className="h-10 w-10 flex-shrink-0"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Type: {item.type} • Tag: {item.tag}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={item.showOnHome}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <Button variant="outline" size="sm">
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
 
-  const renderClientsContent = () => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Client Management</CardTitle>
-          <CardDescription>
-            Manage client logos and testimonials
-          </CardDescription>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Client</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Client Name</Label>
-                <Input placeholder="ABC Corporation" />
-              </div>
-              <div className="space-y-2">
-                <Label>Client Logo</Label>
-                <Input type="file" accept="image/*" />
-              </div>
-              <div className="space-y-2">
-                <Label>Quote (Optional)</Label>
-                <Input placeholder="Excellent security services!" />
-              </div>
-              <Button className="w-full">Add Client</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {dummyFrontendClients.map((client) => (
-            <div
-              key={client.id}
-              className="flex items-center justify-between p-3 border rounded-lg"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-medium">{client.name}</h3>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      client.showOnHome
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {client.showOnHome ? "Visible" : "Hidden"}
-                  </span>
+                <div className="space-y-2">
+                  <Label>Service Image</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files[0])}
+                  />
                 </div>
-                {client.quote && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    "{client.quote}"
+                <div className="space-y-2">
+                  <Label>Slug</Label>
+                  <Input
+                    placeholder="pso"
+                    value={newService.slug}
+                    onChange={(e) =>
+                      setNewService({ ...newService, slug: e.target.value })
+                    }
+                  />
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddService}>Add Service</Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {weProvideServices.map((service) => (
+                <div
+                  key={service._id}
+                  className="p-4 border rounded-lg space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-medium">{service.title}</h3>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          service.showOnHome
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {service.showOnHome ? "Visible" : "Hidden"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={service.showOnHome}
+                        onCheckedChange={() =>
+                          handleToggleVisibility(
+                            "weprovide",
+                            service._id,
+                            service.showOnHome
+                          )
+                        }
+                        className="data-[state=checked]:bg-primary"
+                      />
+                      <Button variant="outline" size="sm">
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleDeleteItem("weprovide", service._id, "service")
+                        }
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {service.summary}
                   </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={client.showOnHome}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <Button variant="outline" size="sm">
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const renderTestimonialsContent = () => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Testimonials</CardTitle>
-          <CardDescription>
-            Manage customer testimonials and reviews
-          </CardDescription>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Testimonial
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Testimonial</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Quote</Label>
-                <Input placeholder="Best security team we've worked with" />
-              </div>
-              <div className="space-y-2">
-                <Label>Author</Label>
-                <Input placeholder="John D." />
-              </div>
-              <div className="space-y-2">
-                <Label>Video (Optional)</Label>
-                <Input type="file" accept="video/*" />
-              </div>
-              <Button className="w-full">Add Testimonial</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {dummyTestimonials.map((testimonial) => (
-            <div
-              key={testimonial.id}
-              className="flex items-center justify-between p-3 border rounded-lg"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <p className="font-medium">"{testimonial.quote}"</p>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      testimonial.showOnHome
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {testimonial.showOnHome ? "Visible" : "Hidden"}
-                  </span>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    {service.benefits.map((benefit, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-primary mt-1 flex-shrink-0">
+                          ✓
+                        </span>
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span>Image: {service.img ? "Uploaded" : "No Image"}</span>
+                    <span>Slug: {service.slug}</span>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  - {testimonial.author}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={testimonial.showOnHome}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <Button variant="outline" size="sm">
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
+              ))}
+              {weProvideServices.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No services added yet
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Gallery Management
+  const GalleryContent = () => {
+    const [newItem, setNewItem] = useState({
+      tag: "",
+      caption: "",
+      type: "image",
+    });
+    const [mediaFiles, setMediaFiles] = useState([]);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const handleAddGalleryItem = async () => {
+      try {
+        let uploadedUrls = [];
+
+        // Upload all files
+        for (const file of mediaFiles) {
+          const url = await uploadFile(file);
+          uploadedUrls.push(url);
+        }
+
+        const galleryData = {
+          ...newItem,
+          mediaFiles: uploadedUrls,
+        };
+
+        const response = await fetch("/api/frontend/gallery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(galleryData),
+        });
+
+        if (response.ok) {
+          toast({
+            title: "Success",
+            description: "Gallery item added successfully",
+          });
+          setIsDialogOpen(false);
+          resetForm();
+          loadFrontendData();
+        } else {
+          throw new Error("Failed to add gallery item");
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    };
+
+    const resetForm = () => {
+      setNewItem({ tag: "", caption: "", type: "image" });
+      setMediaFiles([]);
+    };
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Gallery Management</CardTitle>
+            <CardDescription>
+              Manage images and videos in the gallery
+            </CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Gallery Item</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Tag</Label>
+                  <Select
+                    value={newItem.tag}
+                    onValueChange={(value) =>
+                      setNewItem({ ...newItem, tag: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Tag" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="events">Events</SelectItem>
+                      <SelectItem value="training">Training</SelectItem>
+                      <SelectItem value="patrols">Patrols</SelectItem>
+                      <SelectItem value="team">Team</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Media Type</Label>
+                  <Select
+                    value={newItem.type}
+                    onValueChange={(value) =>
+                      setNewItem({ ...newItem, type: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="image">Image</SelectItem>
+                      <SelectItem value="video">Video</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Media Files</Label>
+                  <Input
+                    type="file"
+                    accept={newItem.type === "image" ? "image/*" : "video/*"}
+                    multiple
+                    onChange={(e) => setMediaFiles(Array.from(e.target.files))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Caption</Label>
+                  <Input
+                    placeholder="Security Training Session"
+                    value={newItem.caption}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, caption: e.target.value })
+                    }
+                  />
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddGalleryItem}>Add Item</Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {galleryItems.map((item) => (
+                <div
+                  key={item._id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-medium">{item.caption}</h3>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          item.showOnHome
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {item.showOnHome ? "Visible" : "Hidden"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Type: {item.type} • Tag: {item.tag}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Files: {item.mediaFiles?.length || 0}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={item.showOnHome}
+                      onCheckedChange={() =>
+                        handleToggleVisibility(
+                          "gallery",
+                          item._id,
+                          item.showOnHome
+                        )
+                      }
+                      className="data-[state=checked]:bg-primary"
+                    />
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleDeleteItem("gallery", item._id, "gallery item")
+                      }
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {galleryItems.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No gallery items added yet
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Clients Management
+  const ClientsContent = () => {
+    const [newClient, setNewClient] = useState({
+      name: "",
+      quote: "",
+    });
+    const [logoFile, setLogoFile] = useState(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const handleAddClient = async () => {
+      try {
+        let logoUrl = "";
+        if (logoFile) {
+          logoUrl = await uploadFile(logoFile);
+        }
+
+        const clientData = {
+          ...newClient,
+          logo: logoUrl,
+        };
+
+        const response = await fetch("/api/frontend/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(clientData),
+        });
+
+        if (response.ok) {
+          toast({
+            title: "Success",
+            description: "Client added successfully",
+          });
+          setIsDialogOpen(false);
+          resetForm();
+          loadFrontendData();
+        } else {
+          throw new Error("Failed to add client");
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    };
+
+    const resetForm = () => {
+      setNewClient({ name: "", quote: "" });
+      setLogoFile(null);
+    };
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Client Management</CardTitle>
+            <CardDescription>
+              Manage client logos and testimonials
+            </CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Client
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Client</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Client Name</Label>
+                  <Input
+                    placeholder="ABC Corporation"
+                    value={newClient.name}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Client Logo</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setLogoFile(e.target.files[0])}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Quote (Optional)</Label>
+                  <Input
+                    placeholder="Excellent security services!"
+                    value={newClient.quote}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, quote: e.target.value })
+                    }
+                  />
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddClient}>Add Client</Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {clients.map((client) => (
+                <div
+                  key={client._id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-medium">{client.name}</h3>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          client.showOnHome
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {client.showOnHome ? "Visible" : "Hidden"}
+                      </span>
+                    </div>
+                    {client.quote && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        "{client.quote}"
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Logo: {client.logo ? "Uploaded" : "No Logo"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={client.showOnHome}
+                      onCheckedChange={() =>
+                        handleToggleVisibility(
+                          "clients",
+                          client._id,
+                          client.showOnHome
+                        )
+                      }
+                      className="data-[state=checked]:bg-primary"
+                    />
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleDeleteItem("clients", client._id, "client")
+                      }
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {clients.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No clients added yet
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Testimonials Management
+  // Testimonials Management
+  const TestimonialsContent = () => {
+    const [newTestimonial, setNewTestimonial] = useState({
+      quote: "",
+      author: "",
+    });
+    const [videoFile, setVideoFile] = useState(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const handleAddTestimonial = async () => {
+      try {
+        let videoUrl = "";
+        if (videoFile) {
+          videoUrl = await uploadFile(videoFile);
+        }
+
+        const testimonialData = {
+          ...newTestimonial,
+          video: videoUrl,
+        };
+
+        const response = await fetch("/api/frontend/testimonials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(testimonialData),
+        });
+
+        if (response.ok) {
+          toast({
+            title: "Success",
+            description: "Testimonial added successfully",
+          });
+          setIsDialogOpen(false);
+          resetForm();
+          loadFrontendData();
+        } else {
+          throw new Error("Failed to add testimonial");
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    };
+
+    const resetForm = () => {
+      setNewTestimonial({ quote: "", author: "" });
+      setVideoFile(null);
+    };
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Testimonials</CardTitle>
+            <CardDescription>
+              Manage customer testimonials and reviews
+            </CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Testimonial
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Testimonial</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Quote</Label>
+                  <Input
+                    placeholder="Best security team we've worked with"
+                    value={newTestimonial.quote}
+                    onChange={(e) =>
+                      setNewTestimonial({
+                        ...newTestimonial,
+                        quote: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Author</Label>
+                  <Input
+                    placeholder="John D."
+                    value={newTestimonial.author}
+                    onChange={(e) =>
+                      setNewTestimonial({
+                        ...newTestimonial,
+                        author: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Video (Optional)</Label>
+                  <Input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => setVideoFile(e.target.files[0])}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddTestimonial}>
+                    Add Testimonial
+                  </Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {testimonials.map((testimonial) => (
+                <div
+                  key={testimonial._id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <p className="font-medium">"{testimonial.quote}"</p>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          testimonial.showOnHome
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {testimonial.showOnHome ? "Visible" : "Hidden"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      - {testimonial.author}
+                    </p>
+                    {testimonial.video && (
+                      <p className="text-xs text-muted-foreground">
+                        Video: Available
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={testimonial.showOnHome}
+                      onCheckedChange={() =>
+                        handleToggleVisibility(
+                          "testimonials",
+                          testimonial._id,
+                          testimonial.showOnHome
+                        )
+                      }
+                      className="data-[state=checked]:bg-primary"
+                    />
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleDeleteItem(
+                          "testimonials",
+                          testimonial._id,
+                          "testimonial"
+                        )
+                      }
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {testimonials.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No testimonials added yet
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderFrontendContent = () => {
     if (!currentFrontendCategory) return null;
 
     switch (currentFrontendCategory.id) {
       case "weprovide":
-        return renderWeProvideContent();
+        return <WeProvideContent />;
       case "gallery":
-        return renderGalleryContent();
+        return <GalleryContent />;
       case "clients":
-        return renderClientsContent();
+        return <ClientsContent />;
       case "testimonials":
-        return renderTestimonialsContent();
+        return <TestimonialsContent />;
       default:
         return null;
     }
@@ -824,7 +1374,7 @@ export default function SettingsManagement({
                   value={currentFrontendCategory.id}
                   onValueChange={(value) =>
                     setCurrentFrontendCategory(
-                      frontendCategories.find((c) => c.id === value)
+                      FRONTEND_CATEGORIES.find((c) => c.id === value)
                     )
                   }
                 >
@@ -832,7 +1382,7 @@ export default function SettingsManagement({
                     <SelectValue placeholder={currentFrontendCategory.name} />
                   </SelectTrigger>
                   <SelectContent>
-                    {frontendCategories.map((category) => (
+                    {FRONTEND_CATEGORIES.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
                       </SelectItem>
