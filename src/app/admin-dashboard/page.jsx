@@ -525,7 +525,7 @@ export default function AdminDashboard() {
           <ContactManagement
             contactTab={contactTab}
             setContactTab={setContactTab}
-            dummyContactSubmissions={dummyContactSubmissions}
+            // dummyContactSubmissions={dummyContactSubmissions}
           />
         );
       case activeTab === "settings":
@@ -536,11 +536,11 @@ export default function AdminDashboard() {
             notificationSettings={notificationSettings}
             emailSettings={emailSettings}
             frontendCategories={frontendCategories}
-            dummyWeProvideServices={dummyWeProvideServices}
-            dummyGalleryItems={dummyGalleryItems}
-            dummyFrontendClients={dummyFrontendClients}
-            dummyTestimonials={dummyTestimonials}
-          />
+          //   dummyWeProvideServices={dummyWeProvideServices}
+          //   dummyGalleryItems={dummyGalleryItems}
+          //   dummyFrontendClients={dummyFrontendClients}
+          //   dummyTestimonials={dummyTestimonials}
+          // />
         );
       default:
         return null;
