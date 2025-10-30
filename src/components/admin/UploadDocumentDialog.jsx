@@ -191,7 +191,7 @@ export function UploadDocumentDialog({
           // Also try to reload the page as fallback
           window.location.reload();
         }
-      }, 1500);
+      }, 700);
 
       onOpenChange(false);
       resetForm();

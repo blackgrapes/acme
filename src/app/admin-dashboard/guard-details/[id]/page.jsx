@@ -86,7 +86,8 @@ import {
   Loader2,
 } from "lucide-react";
 import Header from "@/components/admin/Header";
-import DesktopSidebar from "@/components/admin/DesktopSidebar";
+// import DesktopSidebar from "@/components/admin/DesktopSidebar";
+import UnifiedSidebar from "@/components/admin/UnifiedSidebar";
 import MobileMenu from "@/components/admin/MobileMenu";
 import AdminProfileDialog from "@/components/admin/AdminProfileDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
@@ -260,13 +261,18 @@ export default function GuardDetails() {
           frontendCategories={dummyFrontendCategories}
         />
         <div className="flex flex-1">
-          <DesktopSidebar
+          <UnifiedSidebar
             activeTab="guards"
-            setActiveTab={() => router.push("/admin-dashboard")}
+            setActiveTab={(tab) => {
+              if (tab === "guards") {
+                router.push("/admin-dashboard?tab=guards");
+              } else {
+                setActiveTab(tab);
+              }
+            }}
             documentCategories={dummyDocumentCategories}
-            setDocumentCategories={() => {}}
-            frontendCategories={dummyFrontendCategories}
-            setFrontendCategories={() => {}}
+            companyDocumentCategories={dummyFrontendCategories}
+            isMobile={false}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -303,13 +309,18 @@ export default function GuardDetails() {
           frontendCategories={dummyFrontendCategories}
         />
         <div className="flex flex-1">
-          <DesktopSidebar
+          <UnifiedSidebar
             activeTab="guards"
-            setActiveTab={() => router.push("/admin-dashboard")}
+            setActiveTab={(tab) => {
+              if (tab === "guards") {
+                router.push("/admin-dashboard?tab=guards");
+              } else {
+                setActiveTab(tab);
+              }
+            }}
             documentCategories={dummyDocumentCategories}
-            setDocumentCategories={() => {}}
-            frontendCategories={dummyFrontendCategories}
-            setFrontendCategories={() => {}}
+            companyDocumentCategories={dummyFrontendCategories}
+            isMobile={false}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -400,13 +411,18 @@ export default function GuardDetails() {
       />
 
       <div className="flex flex-1">
-        <DesktopSidebar
+        <UnifiedSidebar
           activeTab="guards"
-          setActiveTab={() => router.push("/admin-dashboard")}
+          setActiveTab={(tab) => {
+            if (tab === "guards") {
+              router.push("/admin-dashboard?tab=guards");
+            } else {
+              setActiveTab(tab);
+            }
+          }}
           documentCategories={dummyDocumentCategories}
-          setDocumentCategories={() => {}}
-          frontendCategories={dummyFrontendCategories}
-          setFrontendCategories={() => {}}
+          companyDocumentCategories={dummyFrontendCategories}
+          isMobile={false}
         />
 
         <main className="flex-1 overflow-auto">

@@ -24,14 +24,43 @@ import {
   Settings,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
 
-export default function DashboardContent({ dummyClients, dummyDocuments }) {
-  // Calculate some metrics for enhanced data visualization
-  const totalClients = dummyClients.length;
-  const activeClients = dummyClients.filter(
+export default function DashboardContent({ dummyDocuments }) {
+
+  const [clients, setClients] = useState([]);
+
+ const fetchClients = async () => {
+   try {
+     console.log("🔄 Fetching clients...");
+     const response = await fetch("/api/auth/client");
+     const data = await response.json();
+
+     if (response.ok) {
+       console.log("✅ Clients fetched:", data.clients);
+       // Only show users with role "Client"
+       const clientUsers = data.clients.filter(
+         (user) =>
+           user.role && (user.role.name === "Client" || user.role === "Client")
+       );
+       setClients(clientUsers);
+     } else {
+       console.error("❌ Failed to fetch clients:", data.error);
+       setClients([]);
+     }
+   } catch (error) {
+     console.error("💥 Error fetching clients:", error);
+     setClients([]);
+   } finally {
+     setLoading(false);
+   }
+  };
+  
+  const totalClients = clients.length;
+  const activeClients = clients.filter(
     (client) => client.status === "Active"
   ).length;
-  const pendingClients = dummyClients.filter(
+  const pendingClients = clients.filter(
     (client) => client.status === "Pending"
   ).length;
   const totalDocuments = dummyDocuments.length;
@@ -206,11 +235,11 @@ export default function DashboardContent({ dummyClients, dummyDocuments }) {
             </Button>
           </CardHeader>
           <CardContent className="p-0">
-            {dummyClients.slice(0, 4).map((client, index) => (
+            {clients.slice(0, 4).map((client, index) => (
               <div
                 key={client.id}
                 className={`flex items-center space-x-3 p-4 ${
-                  index < dummyClients.slice(0, 4).length - 1
+                  index < clients.slice(0, 4).length - 1
                     ? "border-b border-primary/10"
                     : ""
                 }`}

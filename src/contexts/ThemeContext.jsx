@@ -1,4 +1,6 @@
-"use client"; // 👈 Add this line at the very top
+//src/contexts/ThemeContext.js
+
+"use client"// 👈 Add this line at the very top
 
 import { createContext, useContext, useEffect, useState } from "react";
 

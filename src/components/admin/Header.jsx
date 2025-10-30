@@ -1,14 +1,14 @@
-// File: src/components/admin/Header.jsx - CORRECTED
+//File: src/components/admin/Header.jsx
+// Updated Admin Header using Unified Sidebar
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Sheet } from "@/components/ui/sheet";
-import { Settings, Shield, User } from "lucide-react";
+import { Sheet, SheetTrigger } from "@/components/ui/sheet";
+import { Settings, Shield, Menu } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
-import MobileMenu from "./MobileMenu";
+import UnifiedSidebar from "./UnifiedSidebar";
 import AdminProfileDialog from "./AdminProfileDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Header({
@@ -19,7 +19,7 @@ export default function Header({
   openAdminDialog,
   setOpenAdminDialog,
   documentCategories = [],
-  companyDocumentCategories = [], // YEH ADD KAREN
+  companyDocumentCategories = [],
 }) {
   const { user } = useAuth();
 
@@ -40,11 +40,17 @@ export default function Header({
           {/* Left Side - Logo & Mobile Menu */}
           <div className="flex items-center gap-4">
             <Sheet>
-              <MobileMenu
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <UnifiedSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 documentCategories={documentCategories}
-                companyDocumentCategories={companyDocumentCategories} // YEH ADD KAREN
+                companyDocumentCategories={companyDocumentCategories}
+                isMobile={true}
               />
             </Sheet>
             <div className="flex items-center gap-3">

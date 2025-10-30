@@ -1,3 +1,5 @@
+// src/component/ClientRel.jsx
+
 "use client";
 
 import { usePathname } from "next/navigation";

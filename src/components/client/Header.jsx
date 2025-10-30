@@ -1,20 +1,11 @@
-// Updated File: src/components/client/Header.jsx
+//File: src/components/client/Header.jsx
+// Updated Client Header using Unified Sidebar
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Bell,
-  Search,
-  User,
-  Menu,
-  FileText,
-  Mail,
-  Setting,
-  Settings,
-} from "lucide-react";
-import MobileSidebar from "./MobileSidebar";
+import { Mail, FileText, Settings, Menu } from "lucide-react";
+import UnifiedSidebar from "./UnifiedSidebar";
 import ClientProfileDialog from "./ClientProfileDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import RequestDocumentDialog from "./RequestDocumentDialog";
@@ -27,9 +18,8 @@ export default function Header({
   activeTab,
   setActiveTab,
   documentCategories = [],
-  companyDocumentCategories = [], // DEFAULT VALUE ADD KAREN
+  companyDocumentCategories = [],
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
   const [openMobile, setOpenMobile] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -47,6 +37,10 @@ export default function Header({
       .slice(0, 2);
   };
 
+  const handleMobileNavigate = () => {
+    setOpenMobile(false);
+  };
+
   return (
     <header className="border-b border-border/20 bg-card/80 backdrop-blur-sm shadow-lg sticky top-0 z-40">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,11 +53,13 @@ export default function Header({
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <MobileSidebar
+              <UnifiedSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 documentCategories={documentCategories}
-                companyDocumentCategories={companyDocumentCategories} // YEH PASS KAREN
+                companyDocumentCategories={companyDocumentCategories}
+                isMobile={true}
+                onNavigate={handleMobileNavigate}
               />
             </Sheet>
             <div className="flex items-center gap-3">
@@ -75,8 +71,6 @@ export default function Header({
               </h1>
             </div>
           </div>
-
-          {/* Center - Search */}
 
           {/* Right Side - Actions */}
           <div className="flex items-center gap-2">

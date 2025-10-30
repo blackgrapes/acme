@@ -61,7 +61,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/client/Header";
-import DesktopSidebar from "@/components/client/DesktopSidebar";
+// import DesktopSidebar from "@/components/client/DesktopSidebar";
+import UnifiedSidebar from "@/components/client/UnifiedSidebar";
 import { toast } from "@/hooks/use-toast";
 
 // Dummy document categories for consistency
@@ -139,10 +140,17 @@ export default function GuardDetails() {
           documentCategories={dummyDocumentCategories}
         />
         <div className="flex flex-1">
-          <DesktopSidebar
+          <UnifiedSidebar
             activeTab="management"
-            setActiveTab={handleTabChange}
+            setActiveTab={(tab) => {
+              if (tab === "management") {
+                router.push("/client-dashboard?tab=management");
+              } else {
+                setActiveTab(tab);
+              }
+            }}
             documentCategories={dummyDocumentCategories}
+            isMobile={false}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -170,10 +178,17 @@ export default function GuardDetails() {
           documentCategories={dummyDocumentCategories}
         />
         <div className="flex flex-1">
-          <DesktopSidebar
+          <UnifiedSidebar
             activeTab="management"
-            setActiveTab={handleTabChange}
+            setActiveTab={(tab) => {
+              if (tab === "management") {
+                router.push("/client-dashboard?tab=management");
+              } else {
+                setActiveTab(tab);
+              }
+            }}
             documentCategories={dummyDocumentCategories}
+            isMobile={false}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -231,10 +246,17 @@ export default function GuardDetails() {
         documentCategories={dummyDocumentCategories}
       />
       <div className="flex flex-1">
-        <DesktopSidebar
+        <UnifiedSidebar
           activeTab="management"
-          setActiveTab={handleTabChange}
+          setActiveTab={(tab) => {
+            if (tab === "management") {
+              router.push("/client-dashboard?tab=management");
+            } else {
+              setActiveTab(tab);
+            }
+          }}
           documentCategories={dummyDocumentCategories}
+          isMobile={false}
         />
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto px-4 py-6 sm:py-8 lg:py-12 max-w-7xl">

@@ -91,7 +91,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import Header from "@/components/admin/Header";
-import DesktopSidebar from "@/components/admin/DesktopSidebar";
+// import DesktopSidebar from "@/components/admin/DesktopSidebar";
+import UnifiedSidebar from "@/components/admin/UnifiedSidebar";
 import AdminProfileDialog from "@/components/admin/AdminProfileDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { AssignGuardDialog } from "@/components/admin/AssignGuardDialog";
@@ -568,13 +569,18 @@ export default function ClientDetails() {
           frontendCategories={dummyFrontendCategories}
         />
         <div className="flex flex-1">
-          <DesktopSidebar
+          <UnifiedSidebar
             activeTab="clients"
-            setActiveTab={() => router.push("/admin-dashboard")}
+            setActiveTab={(tab) => {
+              if (tab === "clients") {
+                router.push("/admin-dashboard?tab=clients");
+              } else {
+                setActiveTab(tab);
+              }
+            }}
             documentCategories={dummyDocumentCategories}
-            setDocumentCategories={() => {}}
-            frontendCategories={dummyFrontendCategories}
-            setFrontendCategories={() => {}}
+            companyDocumentCategories={dummyFrontendCategories}
+            isMobile={false}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -611,13 +617,18 @@ export default function ClientDetails() {
           frontendCategories={dummyFrontendCategories}
         />
         <div className="flex flex-1">
-          <DesktopSidebar
+          <UnifiedSidebar
             activeTab="clients"
-            setActiveTab={() => router.push("/admin-dashboard")}
+            setActiveTab={(tab) => {
+              if (tab === "clients") {
+                router.push("/admin-dashboard?tab=clients");
+              } else {
+                setActiveTab(tab);
+              }
+            }}
             documentCategories={dummyDocumentCategories}
-            setDocumentCategories={() => {}}
-            frontendCategories={dummyFrontendCategories}
-            setFrontendCategories={() => {}}
+            companyDocumentCategories={dummyFrontendCategories}
+            isMobile={false}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -658,13 +669,18 @@ export default function ClientDetails() {
           frontendCategories={dummyFrontendCategories}
         />
         <div className="flex flex-1">
-          <DesktopSidebar
+          <UnifiedSidebar
             activeTab="clients"
-            setActiveTab={() => router.push("/admin-dashboard")}
+            setActiveTab={(tab) => {
+              if (tab === "clients") {
+                router.push("/admin-dashboard?tab=clients");
+              } else {
+                setActiveTab(tab);
+              }
+            }}
             documentCategories={dummyDocumentCategories}
-            setDocumentCategories={() => {}}
-            frontendCategories={dummyFrontendCategories}
-            setFrontendCategories={() => {}}
+            companyDocumentCategories={dummyFrontendCategories}
+            isMobile={false}
           />
           <main className="flex-1">
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
@@ -701,13 +717,18 @@ export default function ClientDetails() {
         frontendCategories={dummyFrontendCategories}
       />
       <div className="flex flex-1">
-        <DesktopSidebar
+        <UnifiedSidebar
           activeTab="clients"
-          setActiveTab={() => router.push("/admin-dashboard")}
+          setActiveTab={(tab) => {
+            if (tab === "clients") {
+              router.push("/admin-dashboard?tab=clients");
+            } else {
+              setActiveTab(tab);
+            }
+          }}
           documentCategories={dummyDocumentCategories}
-          setDocumentCategories={() => {}}
-          frontendCategories={dummyFrontendCategories}
-          setFrontendCategories={() => {}}
+          companyDocumentCategories={dummyFrontendCategories}
+          isMobile={false}
         />
 
         <main className="flex-1 overflow-auto">
