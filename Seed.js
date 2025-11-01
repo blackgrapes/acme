@@ -9,7 +9,7 @@ console.log("🔧 Starting seed process...");
 console.log("📁 Current directory:", process.cwd());
 console.log("🗄️ MONGODB_URI:", process.env.MONGODB_URI);
 
-import { connectDB } from "./src/lib/db.js";
+import connectDB from "./src/lib/db.js";
 import Role from "./src/lib/models/Role.js";
 import User from "./src/lib/models/User.js";
 import bcrypt from "bcryptjs";
