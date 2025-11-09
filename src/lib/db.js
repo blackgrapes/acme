@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-console.log("🔧 db.js - MONGODB_URI:", MONGODB_URI ? "✅ Found" : "❌ Missing");
+console.log("🔧 db.js - MONGODB_URI:", MONGODB_URI ? "Found" : "Missing");
 
 if (!MONGODB_URI) {
   throw new Error("Please add your MongoDB URI to .env.local");
@@ -56,3 +56,6 @@ export { default as Testimonial } from "./models/Testimonial.js";
 export { default as Client } from "./models/Client.js";
 export { default as ContactSubmission } from "./models/ContactSubmission.js";
 export { default as Document } from "./models/Document.js";
+export { default as PasswordReset } from "./models/PasswordReset.js";
+export { default as FallbackRequest } from "./models/FallbackRequest.js";
+export { default as EmailLimit } from "./models/EmailLimit.js";

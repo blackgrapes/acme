@@ -1,93 +1,81 @@
-"use client";
-
+import { motion } from "framer-motion";
 import { Shield, Building2, FileCheck2 } from "lucide-react";
 
-function IconCard({ title, icon, text, className }) {
+function IconCard({ title, text, icon, className }) {
   return (
-    <div className={`${className} text-foreground text-center`}>
-      <div className="flex justify-center items-center gap-2 mb-2">{icon}</div>
-      <h3 className="font-semibold text-sm text-foreground">{title}</h3>
-      <p className="text-secondary mt-1 text-xs">{text}</p>
+    <div className={`rounded-2xl border p-4 shadow-sm ${className}`}>
+      <div className="inline-flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <div className="mt-2 font-semibold text-sm md:text-base">{title}</div>
+      <div className="text-xs md:text-sm text-muted-foreground">{text}</div>
     </div>
   );
 }
 
-export function MissionSection() {
+export default function IntroSection() {
   return (
-    <section className="container mx-auto mt-8 md:mt-12 px-4">
-      <div
-        className="rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-2 min-h-[350px] shadow-lg"
-        style={{
-          background: `linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--card)))`,
-        }}
-      >
-        {/* Left Content */}
-        <div className="p-4 md:p-8 lg:p-10 xl:p-14 flex flex-col justify-center items-center md:items-start text-center md:text-left">
-          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-tight text-foreground max-w-2xl">
-            Professional{" "}
-            <span className="text-primary">Security Solutions</span>
-            <br className="hidden md:block" /> for Workplaces & Events
-          </h2>
+    <section className="w-full px-4 sm:px-6 lg:px-8 mt-8 md:mt-12 lg:mt-16">
+      <div className="container mx-auto">
+        <div className="rounded-2xl md:rounded-3xl bg-linear-to-br from-white via-gray-50 to-gray-100 border border-gray-200 overflow-hidden grid md:grid-cols-2 min-h-[400px] md:min-h-[500px] shadow-lg">
+          {/* Left Content */}
+          <div className="p-6 md:p-10 lg:p-14 flex flex-col justify-center order-2 md:order-1">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight text-gray-900 text-center md:text-left">
+              Professional{" "}
+              <span className="text-primary">Security Solutions</span>
+              <br className="hidden md:block" /> for Workplaces & Events
+            </h2>
+            <p className="mt-4 md:mt-5 text-gray-600 text-base md:text-lg leading-relaxed max-w-xl text-center md:text-left">
+              We provide{" "}
+              <span className="font-medium text-gray-900">
+                on-site guarding
+              </span>
+              ,
+              <span className="font-medium text-gray-900"> night patrols</span>
+              ,
+              <span className="font-medium text-gray-900"> event security</span>
+              , and customized protection plans backed by
+              <span className="font-medium text-gray-900">
+                {" "}
+                training & compliance
+              </span>
+              .
+            </p>
 
-          <p className="mt-3 text-xs sm:text-sm leading-relaxed max-w-xl text-secondary">
-            We provide{" "}
-            <span className="font-medium text-foreground">
-              on-site guarding
-            </span>
-            , <span className="font-medium text-foreground">night patrols</span>
-            ,{" "}
-            <span className="font-medium text-foreground">event security</span>,
-            and customized protection plans backed by{" "}
-            <span className="font-medium text-foreground">
-              training & compliance
-            </span>
-            .
-          </p>
-
-          {/* Features */}
-          <div className="mt-5 md:mt-6 lg:mt-8 w-full grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
-            <IconCard
-              title="Mission"
-              icon={
-                <Shield className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
-              }
-              text="Protect with integrity."
-              className="bg-card/70 backdrop-blur-md rounded-2xl p-2 shadow-sm hover:shadow-md hover:scale-105 transition-all"
-            />
-            <IconCard
-              title="Vision"
-              icon={
-                <Building2 className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
-              }
-              text="Safer communities."
-              className="bg-card/70 backdrop-blur-md rounded-2xl p-2 shadow-sm hover:shadow-md hover:scale-105 transition-all"
-            />
-            <IconCard
-              title="Values"
-              icon={
-                <FileCheck2 className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
-              }
-              text="Trust & transparency."
-              className="bg-card/70 backdrop-blur-md rounded-2xl p-2 shadow-sm hover:shadow-md hover:scale-105 transition-all"
-            />
+            {/* Features */}
+            <div className="mt-6 md:mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+              <IconCard
+                title="Mission"
+                icon={<Shield className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
+                text="Protect with integrity."
+                className="bg-white/70 backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md hover:scale-105 transition-all"
+              />
+              <IconCard
+                title="Vision"
+                icon={<Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
+                text="Safer communities."
+                className="bg-white/70 backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md hover:scale-105 transition-all"
+              />
+              <IconCard
+                title="Values"
+                icon={<FileCheck2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
+                text="Trust & transparency."
+                className="bg-white/70 backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md hover:scale-105 transition-all"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Right Image */}
-        <div className="relative h-[200px] sm:h-[250px] md:h-full">
-          <img
-            src="https://images.pexels.com/photos/433502/pexels-photo-433502.jpeg?auto=compress&cs=tinysrgb&w=1600"
-            alt="Corporate security team"
-            className="w-full h-full object-cover rounded-b-3xl md:rounded-l-3xl"
-            loading="lazy"
-          />
-          {/* Overlay gradient for style */}
-          <div
-            className="absolute inset-0 rounded-b-3xl md:rounded-l-3xl md:rounded-br-none"
-            style={{
-              background: `linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0.1), transparent)`,
-            }}
-          />
+          {/* Right Image */}
+          <div className="relative h-[250px] sm:h-[300px] md:h-full order-1 md:order-2">
+            <img
+              src="https://images.pexels.com/photos/433502/pexels-photo-433502.jpeg?auto=compress&cs=tinysrgb&w=1600"
+              alt="Corporate security team"
+              className="w-full h-full object-cover md:rounded-tl-[4rem]"
+              loading="lazy"
+            />
+            {/* Overlay gradient for style */}
+            <div className="absolute inset-0 bg-linear-to-t from-black/40 via-black/10 to-transparent md:rounded-tl-[4rem]" />
+          </div>
         </div>
       </div>
     </section>

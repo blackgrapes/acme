@@ -201,7 +201,7 @@ const tabPermissions = [
       },
     ],
   },
-  // ❌ REMOVE FRONTEND MANAGEMENT FROM HERE - IT'S INSIDE SETTINGS
+  // REMOVE FRONTEND MANAGEMENT FROM HERE - IT'S INSIDE SETTINGS
   {
     id: "roles",
     name: "Roles & Users",

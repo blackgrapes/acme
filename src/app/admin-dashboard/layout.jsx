@@ -40,7 +40,7 @@ export default function AdminDashboardLayout({ children }) {
   const pathname = usePathname();
   const { user, loading, hasPermission } = useAuth();
 
-  // ✅ FIXED: Get active tab from current pathname
+  // FIXED: Get active tab from current pathname
   useEffect(() => {
     const pathSegments = pathname.split("/");
     let currentTab = pathSegments[pathSegments.length - 1] || "dashboard";
@@ -123,7 +123,7 @@ export default function AdminDashboardLayout({ children }) {
       <div className="flex flex-1">
         <UnifiedSidebar
           activeTab={activeTab}
-          setActiveTab={setActiveTab} // ✅ Pass setActiveTab directly
+          setActiveTab={setActiveTab} // Pass setActiveTab directly
           documentCategories={documentCategories}
           companyDocumentCategories={companyDocumentCategories}
           isMobile={false}

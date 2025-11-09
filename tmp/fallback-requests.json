@@ -1,0 +1,44 @@
+[
+  {
+    "email": "superadmin@acme.com",
+    "reason": "EMAIL_SERVICE_FAILED",
+    "status": "pending",
+    "createdAt": "2025-11-03T15:14:27.796Z",
+    "id": "42m2bl95ht9mhja6ixg"
+  },
+  {
+    "email": "superadmin@acme.com",
+    "reason": "EMAIL_SERVICE_FAILED",
+    "status": "pending",
+    "createdAt": "2025-11-03T15:15:33.033Z",
+    "id": "0skznvifi1hmhja7x9m"
+  },
+  {
+    "email": "superadmin@acme.com",
+    "reason": "EMAIL_SERVICE_FAILED",
+    "status": "pending",
+    "createdAt": "2025-11-03T15:18:19.309Z",
+    "id": "et382ys4nehmhjabhkd"
+  },
+  {
+    "email": "superadmin@acme.com",
+    "reason": "EMAIL_SERVICE_FAILED",
+    "status": "pending",
+    "createdAt": "2025-11-03T15:21:33.928Z",
+    "id": "5dum58d16z3mhjafnqg"
+  },
+  {
+    "email": "superadmin@acme.com",
+    "reason": "EMAIL_SERVICE_FAILED",
+    "status": "pending",
+    "createdAt": "2025-11-03T15:27:11.755Z",
+    "id": "8jt3giqmmzfmhjamwej"
+  },
+  {
+    "email": "superadmin@acme.com",
+    "reason": "EMAIL_SERVICE_FAILED",
+    "status": "pending",
+    "createdAt": "2025-11-03T15:28:27.743Z",
+    "id": "8azetr2lx2umhjaoj1b"
+  }
+]

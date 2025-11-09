@@ -1,75 +1,110 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Shield, UserCheck, FileCheck2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Shield, UserCheck, FileCheck2,LayoutDashboard, LogIn } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
-export function Hero() {
-  const headings = [
-    "ACME Protection Services Pvt. Ltd.",
-    "Your Trusted Security Partner",
-    "Safeguarding What Matters Most",
-  ];
-  const paragraphs = [
-    "Safeguarding businesses, people, and events with unmatched vigilance and professionalism.",
-    "Delivering peace of mind through reliable, certified, and well-trained guards.",
-    "Protecting organizations and communities with modern security solutions.",
-  ];
+export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
+   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [typedTitle, setTypedTitle] = useState("");
-  const [headIndex, setHeadIndex] = useState(0);
-  const [paraIndex, setParaIndex] = useState(0);
-
-  // Typing effect
+  // Check login status on component mount
   useEffect(() => {
-    let i = 0;
-    const fullText = headings[headIndex];
-    setTypedTitle("");
-    const typing = setInterval(() => {
-      setTypedTitle(fullText.slice(0, i + 1));
-      i++;
-      if (i === fullText.length) clearInterval(typing);
-    }, 80);
-
-    const switchText = setTimeout(() => {
-      setHeadIndex((prev) => (prev + 1) % headings.length);
-      setParaIndex((prev) => (prev + 1) % paragraphs.length);
-    }, 4000);
-
+    checkAuthStatus();
+    
+    // Listen for storage changes
+    window.addEventListener('storage', checkAuthStatus);
+    window.addEventListener('authChange', checkAuthStatus);
+    
     return () => {
-      clearInterval(typing);
-      clearTimeout(switchText);
+      window.removeEventListener('storage', checkAuthStatus);
+      window.removeEventListener('authChange', checkAuthStatus);
     };
-  }, [headIndex]);
+  }, []);
+
+  const checkAuthStatus = () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('userData');
+      
+      if (token && userData) {
+        setIsLoggedIn(true);
+        const user = JSON.parse(userData);
+        setUserRole(user.role || user.roleName);
+      } else {
+        setIsLoggedIn(false);
+        setUserRole(null);
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      setIsLoggedIn(false);
+      setUserRole(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDashboardClick = () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+
+    // Redirect based on user role
+    if (userRole === 'Super Admin' || userRole === 'Admin') {
+      router.push('/admin-dashboard');
+    } else if (userRole === 'Client') {
+      router.push('/client-dashboard');
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
+  const getDashboardButtonText = () => {
+    if (isLoading) return "Loading...";
+    return isLoggedIn ? "Dashboard" : "Portal Login";
+  };
+
+  const getDashboardButtonIcon = () => {
+    if (isLoading) return <LogIn className="h-4 w-4 mr-2" />;
+    return isLoggedIn ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <LogIn className="h-4 w-4 mr-2" />;
+  };
 
   return (
-    <section className="relative min-h-[75vh] flex items-center">
-      <div className="container mx-auto grid md:grid-cols-2 items-center gap-6 sm:gap-8 relative px-4">
-        {/* Left Column */}
+    <section className="relative w-full overflow-hidden min-h-[85vh] flex items-center px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto grid md:grid-cols-2 items-center gap-6 lg:gap-10 relative">
+        {/* Left Content */}
         <motion.div
-          className="flex flex-col justify-center space-y-4 text-center md:text-left"
-          initial={{ opacity: 0, x: -50 }}
+          className="relative z-10 text-center md:text-left"
+          initial={{ opacity: 0, x: -60 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           {/* Badge */}
           <motion.span
-            className="inline-flex items-center rounded-full px-4 py-1 text-sm font-medium mb-4 justify-center md:justify-start"
-            style={{
-              backgroundColor: `hsl(var(--primary) / 0.05)`,
-            }}
+            className="inline-flex items-center rounded-full bg-primary/10 text-primary px-4 py-2 text-sm font-medium tracking-wide mb-4 md:mb-6 shadow-sm mx-auto md:mx-0"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <span className="text-primary">Trusted Security Partner</span>
+            Trusted Security Partner
           </motion.span>
 
-          {/* Heading */}
+          {/* Typing Heading */}
           <motion.h1
-            className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-snug"
-            style={{ color: `hsl(var(--foreground))` }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight bg-clip-text text-transparent min-h-20 md:min-h-[90px]"
+            style={{
+              backgroundImage: `linear-gradient(to right, #000000, hsl(var(--primary)))`,
+              whiteSpace: "pre-wrap",
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
           >
             {typedTitle}
           </motion.h1>
@@ -77,120 +112,121 @@ export function Hero() {
           {/* Subtitle */}
           <motion.p
             key={paraIndex}
-            className="text-base sm:text-lg max-w-xl"
-            style={{ color: `hsl(var(--secondary))` }}
-            initial={{ opacity: 0, y: 10 }}
+            className="mt-4 md:mt-6 text-base md:text-lg lg:text-xl text-gray-700 max-w-2xl min-h-[70px] md:min-h-[90px] mx-auto md:mx-0"
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
           >
             {paragraphs[paraIndex]}
           </motion.p>
 
-          {/* Buttons */}
-          <div className="flex flex-wrap gap-4 mt-4 justify-center md:justify-start">
-            <Button
-              className="rounded-full px-6 py-2"
-              style={{
-                backgroundColor: `hsl(var(--primary))`,
-                color: `hsl(var(--background))`,
-              }}
+          {/* CTA Buttons */}
+          <motion.div
+            className="mt-6 md:mt-10 flex flex-col sm:flex-row gap-3 md:gap-5 justify-center md:justify-start"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+          >
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="w-full sm:w-auto"
             >
-              <Shield className="h-4 w-4 mr-2" /> Client Portal Login
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full px-6 py-2 border"
-              style={{
-                color: `hsl(var(--foreground))`,
-                borderColor: `hsl(var(--border))`,
-              }}
+              <Button 
+                onClick={handleDashboardClick}
+                className="rounded-full cursor-pointer bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 px-6 py-3 w-full sm:w-auto"
+                disabled={isLoading}
+              >
+                {getDashboardButtonIcon()} {getDashboardButtonText()}
+              </Button>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="w-full sm:w-auto"
             >
-              Learn More
-            </Button>
-          </div>
+              <Link href={"/services"}>
+             
+              <Button
+                variant="outline"
+                className="rounded-full cursor-pointer border-gray-400 text-gray-800 hover:bg-gray-100 px-6 py-3 w-full sm:w-auto"
+              >
+                Learn More
+              </Button>
+
+               </Link>
+            </motion.div>
+          </motion.div>
 
           {/* Stats */}
-          <div className="flex flex-wrap gap-3 mt-6 justify-center md:justify-start">
+          <div className="mt-8 md:mt-12 flex flex-wrap gap-3 md:gap-5 text-sm justify-center md:justify-start">
             {[
               {
-                icon: (
-                  <UserCheck
-                    className="h-4 w-4"
-                    style={{ color: `hsl(var(--primary))` }}
-                  />
-                ),
+                icon: <UserCheck className="h-4 w-4 text-primary" />,
                 text: "200+ Vetted Guards",
               },
               {
-                icon: (
-                  <FileCheck2
-                    className="h-4 w-4"
-                    style={{ color: `hsl(var(--primary))` }}
-                  />
-                ),
+                icon: <FileCheck2 className="h-4 w-4 text-primary" />,
                 text: "ISO Certified",
               },
               {
-                icon: (
-                  <Shield
-                    className="h-4 w-4"
-                    style={{ color: `hsl(var(--primary))` }}
-                  />
-                ),
+                icon: <Shield className="h-4 w-4 text-primary" />,
                 text: "120+ Clients",
               },
             ].map((item, i) => (
-              <span
+              <motion.span
                 key={i}
-                className="flex items-center gap-2 px-3 py-1 bg-card rounded-full shadow-sm border"
-                style={{ borderColor: `hsl(var(--border))` }}
+                className="flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-sm border text-xs md:text-sm"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 + i * 0.2, duration: 0.6 }}
               >
                 {item.icon} {item.text}
-              </span>
+              </motion.span>
             ))}
           </div>
         </motion.div>
 
-        {/* Right Column */}
+        {/* Right Side */}
         <motion.div
-          className="flex justify-center md:justify-end relative"
-          initial={{ opacity: 0, scale: 0.95 }}
+          className="flex justify-center relative order-first md:order-last mt-8 md:mt-0"
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9 }}
         >
-          <div
-            className="absolute -inset-12 blur-3xl rounded-full animate-pulse -z-10"
-            style={{ backgroundColor: `hsl(var(--primary) / 0.1)` }}
-          />
+          <div className="absolute -inset-8 md:-inset-12 bg-primary/10 blur-3xl rounded-full animate-pulse -z-10" />
           <motion.img
             src="/gaurd_image1-Photoroom.png"
             alt="Guard Illustration"
-            className="max-h-[450px] w-auto drop-shadow-2xl relative z-10"
-            animate={{ y: [0, -10, 0] }}
+            className="max-h-[300px] sm:max-h-[400px] md:max-h-[520px] w-auto drop-shadow-2xl relative z-10"
+            animate={{ y: [0, -15, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
         </motion.div>
       </div>
-      {/* Bottom Wave + Trust Bar */}
-      <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-        {/* Wave Shape */}
-        <svg
-          className="w-[90%] mx-auto h-16 sm:h-20 text-primary"
-          preserveAspectRatio="none"
-          viewBox="0 0 1440 320"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            fill="currentColor"
-            d="M0,160L48,149.3C96,139,192,117,288,128C384,139,480,181,576,192C672,203,768,181,864,154.7C960,128,1056,96,1152,112C1248,128,1344,192,1392,224L1440,256L1440,320L0,320Z"
-          ></path>
-        </svg>
 
-        {/* Optional Trust Bar */}
-        <div className="absolute bottom-0 flex justify-center w-[90%] mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 opacity-70">
-            {/* Trust items go here */}
-          </div>
+      {/* 🔥 Bottom Wave + Trust Bar - Extra Wavy */}
+      <div className="absolute bottom-0 left-0 right-0 overflow-hidden hidden md:block">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="relative"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            transition={{
+              duration: 5,
+              ease: [0.4, 0, 0.2, 1],
+            }}
+          >
+            <svg
+              className="w-full h-20 md:h-24 text-primary"
+              preserveAspectRatio="none"
+              viewBox="0 0 1440 320"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill="currentColor"
+                d="M0,256L48,240C96,224,192,192,288,181.3C384,171,480,181,576,192C672,203,768,213,864,202.7C960,192,1056,160,1152,144C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+              ></path>
+            </svg>
+          </motion.div>
         </div>
       </div>
     </section>

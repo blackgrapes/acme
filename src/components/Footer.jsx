@@ -19,10 +19,16 @@ import {
   Youtube,
   Clock,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
+import { SettingsDialog } from "./SettingsDialog";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Palette } from "lucide-react";
 
 export function Footer() {
   const [time, setTime] = useState("");
-
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { palette } = useTheme();
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -65,7 +71,17 @@ export function Footer() {
               <div className="text-sm font-medium flex items-center gap-2 text-primary">
                 <Clock className="h-5 w-5" />
                 {time || "Loading..."}
+                 <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSettingsOpen(true)}
+                className="flex items-center cursor-pointer gap-2 text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105"
+              >
+                <Palette className="h-4 w-4" />
+                <span className="text-sm">Theme</span>
+              </Button>
               </div>
+             
             </div>
 
             {/* Quick Links */}
@@ -222,6 +238,8 @@ export function Footer() {
           </div>
         </div>
       </div>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </footer>
   );
 }

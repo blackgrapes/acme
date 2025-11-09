@@ -1,34 +1,47 @@
-//src/app/layout.jsx
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ClientRel from "@/components/ClientRel";
+import { Toaster } from "@/components/ui/toaster";
+import PWARegister from "@/components/PWARegister";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata = {
   title: "Accent Art Security Services",
   description: "Professional security service provider in India",
+  manifest: "/manifest.json",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ACME Security",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon-192.png",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
+        className={`${inter.variable} antialiased font-sans`}
         suppressHydrationWarning={true}
       >
-        {/* Suppresses extension mismatches on <body> */}
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider>
           <ClientRel>{children}</ClientRel>
+          <Toaster />
+          <PWARegister />
         </ThemeProvider>
       </body>
     </html>
