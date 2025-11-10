@@ -41,7 +41,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Base
-        "fixed z-50 grid w-full gap-4 bg-background p-6 shadow-2xl duration-200",
+        "fixed z-50 grid w-full gap-4 bg-white p-6 shadow-2xl duration-200", // 👈 bg-background replaced with bg-white
         // Desktop Center
         "sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]",
         "sm:max-w-lg sm:rounded-2xl sm:border",

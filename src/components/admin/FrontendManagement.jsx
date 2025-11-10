@@ -1,317 +1,257 @@
-// File: src/components/admin/FrontendManagement.jsx
+// File: src/components/admin/SettingsManagement.jsx
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "@/hooks/use-toast";
+import StatsCards from "./StatsCards";
+import CategoryTabs from "./CategoryTabs";
+import ActionBar from "./ActionBar";
+import ContentTable from "./ContentTable";
+import { WeProvideDialog, GalleryDialog, ClientsDialog, TestimonialsDialog } from "./Dialogs";
+import { Shield, ImageIcon, Users, MessageSquare } from "lucide-react";
 
-export default function FrontendManagement({
-  currentCategory,
-  dummyWeProvideServices,
-  dummyGalleryItems,
-  dummyFrontendClients,
-  dummyTestimonials,
-  frontendCategories,
-  setActiveTab,
-}) {
-  const renderWeProvideContent = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Manage We Provide Services</CardTitle>
-        <CardDescription>
-          Full details for We Provide section, toggle on home.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {dummyWeProvideServices.map((service) => (
-            <div key={service.id} className="p-4 border rounded-md space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">{service.title}</h3>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={service.showOnHome}
-                    onChange={() => {
-                      /* Toggle logic */
-                    }}
-                  />
-                  <Label>Show on Frontend</Label>
-                </div>
-              </div>
-              <p className="text-sm text-secondary">{service.summary}</p>
-              <ul className="text-sm text-secondary space-y-1">
-                {service.benefits.map((benefit, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-primary mt-1 flex-shrink-0">✓</span>
-                    <span>{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span>Image: {service.img ? "Uploaded" : "No Image"}</span>
-                <span>Slug: {service.slug}</span>
-              </div>
-            </div>
-          ))}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" /> Add We Provide Service
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add We Provide Service</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <Input placeholder="Title (e.g., Personal Security Officer)" />
-                <Input placeholder="Summary" />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <Input placeholder="Benefit 1" />
-                  <Input placeholder="Benefit 2" />
-                  <Input placeholder="Benefit 3" />
-                </div>
-                <Input type="file" accept="image/*" />
-                <Input placeholder="Slug (e.g., pso)" />
-                <Button type="submit">Add Service</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardContent>
-    </Card>
-  );
+const FRONTEND_CATEGORIES = [
+  {
+    id: "weprovide",
+    name: "Our Services",
+    icon: Shield,
+    color: "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400",
+  },
+  {
+    id: "gallery",
+    name: "Gallery",
+    icon: ImageIcon,
+    color: "bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400",
+  },
+  {
+    id: "clients",
+    name: "Clients",
+    icon: Users,
+    color: "bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400",
+  },
+  {
+    id: "testimonials",
+    name: "Testimonials",
+    icon: MessageSquare,
+    color: "bg-purple-50 text-purple-600 dark:bg-purple-950/20 dark:text-purple-400",
+  },
+];
 
-  const renderGalleryContent = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Manage Gallery</CardTitle>
-        <CardDescription>
-          Add images/videos with tags and toggle on home.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {dummyGalleryItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between p-4 border rounded-md"
-            >
-              <div>
-                <h3 className="font-medium">{item.caption}</h3>
-                <p className="text-sm text-secondary">
-                  Tag: {item.tag}, Type: {item.type}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={item.showOnHome} />
-                <Label>Show on Home</Label>
-              </div>
-            </div>
-          ))}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" /> Add Item
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Gallery Item</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label>Tag</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Tag" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="events">Events</SelectItem>
-                      <SelectItem value="training">Training</SelectItem>
-                      <SelectItem value="patrols">Patrols</SelectItem>
-                      <SelectItem value="team">Team</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Custom tag name (if Other selected)"
-                    className="mt-1"
-                  />
-                </div>
-                <Input type="file" accept="image/*,video/*" multiple />
-                <Input placeholder="Caption" />
-                <Button type="submit">Add Item</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardContent>
-    </Card>
-  );
+export default function FrontendManagement({ settings }) {
+  const [activeCategory, setActiveCategory] = useState(FRONTEND_CATEGORIES[0]);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const renderClientsContent = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Manage Clients</CardTitle>
-        <CardDescription>Edit clients and toggle on home.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {dummyFrontendClients.map((client) => (
-            <div
-              key={client.id}
-              className="flex items-center justify-between p-4 border rounded-md"
-            >
-              <div>
-                <h3 className="font-medium">{client.name || "Client Logo"}</h3>
-                <p className="text-sm text-secondary">
-                  {client.quote || "Past Client"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={client.showOnHome} />
-                <Label>Show on Home</Label>
-              </div>
-            </div>
-          ))}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" /> Add Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Client</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <Input placeholder="Client Name" />
-                <Input type="file" accept="image/*" />
-                <Input placeholder="Quote (optional)" />
-                <Button type="submit">Add Client</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  // Refs
+  const searchInputRef = useRef(null);
 
-  const renderTestimonialsContent = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Manage Testimonials</CardTitle>
-        <CardDescription>Edit testimonials and toggle on home.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {dummyTestimonials.map((testimonial) => (
-            <div
-              key={testimonial.id}
-              className="flex items-center justify-between p-4 border rounded-md"
-            >
-              <div>
-                <p className="font-medium">"{testimonial.quote}"</p>
-                <p className="text-sm text-secondary">{testimonial.author}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={testimonial.showOnHome} />
-                <Label>Show on Home</Label>
-              </div>
-            </div>
-          ))}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" /> Add Testimonial
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Testimonial</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <Input placeholder="Quote" />
-                <Input placeholder="Author" />
-                <Input
-                  type="file"
-                  accept="video/*"
-                  placeholder="Video (optional)"
-                />
-                <Button type="submit">Add Testimonial</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  // Effects
+  useEffect(() => {
+    if (document.activeElement !== searchInputRef.current && searchQuery !== "") {
+      searchInputRef.current?.focus();
+    }
+  }, [searchQuery]);
 
-  const renderContent = () => {
-    if (!currentCategory) return null;
+  useEffect(() => {
+    loadData();
+  }, [activeCategory]);
 
-    switch (currentCategory.id) {
+  // Data Management
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/frontend/${activeCategory.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setItems(Array.isArray(data) ? data : []);
+      } else {
+        setItems([]);
+      }
+    } catch (error) {
+      showError("Failed to load data");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Enhanced filtering based on schema fields
+  const filteredItems = items.filter((item) => {
+    if (!searchQuery) return true;
+    
+    const searchLower = searchQuery.toLowerCase();
+    
+    switch (activeCategory.id) {
       case "weprovide":
-        return renderWeProvideContent();
+        return (
+          item.title?.toLowerCase().includes(searchLower) ||
+          item.summary?.toLowerCase().includes(searchLower) ||
+          item.slug?.toLowerCase().includes(searchLower) ||
+          item.benefits?.some(benefit => benefit.toLowerCase().includes(searchLower))
+        );
       case "gallery":
-        return renderGalleryContent();
+        return (
+          item.caption?.toLowerCase().includes(searchLower) ||
+          item.tag?.toLowerCase().includes(searchLower) ||
+          item.type?.toLowerCase().includes(searchLower)
+        );
       case "clients":
-        return renderClientsContent();
+        return (
+          item.name?.toLowerCase().includes(searchLower) ||
+          item.quote?.toLowerCase().includes(searchLower) ||
+          item.description?.toLowerCase().includes(searchLower)
+        );
       case "testimonials":
-        return renderTestimonialsContent();
+        return (
+          item.quote?.toLowerCase().includes(searchLower) ||
+          item.author?.toLowerCase().includes(searchLower) ||
+          item.position?.toLowerCase().includes(searchLower)
+        );
       default:
-        return null;
+        return true;
+    }
+  });
+
+  const showError = (message) => {
+    toast({ title: "Error", description: message, variant: "destructive" });
+  };
+
+  const showSuccess = (message) => {
+    toast({ title: "Success", description: message });
+  };
+
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    if (!response.ok) throw new Error("Upload failed");
+
+    const result = await response.json();
+    return result.fileUrl;
+  };
+
+  const toggleVisibility = async (id, currentStatus) => {
+    try {
+      const response = await fetch(`/api/frontend/${activeCategory.id}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showOnHome: !currentStatus }),
+      });
+
+      if (response.ok) {
+        showSuccess("Visibility updated");
+        loadData();
+      }
+    } catch (error) {
+      showError("Failed to update visibility");
+    }
+  };
+
+  const deleteItem = async (id, itemName) => {
+    // if (!confirm(`Delete this ${itemName}?`)) return;
+
+    try {
+      const response = await fetch(`/api/frontend/${activeCategory.id}/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        showSuccess(`${itemName} deleted`);
+        loadData();
+      }
+    } catch (error) {
+      showError(`Failed to delete ${itemName}`);
+    }
+  };
+
+  // Dialog Content Renderer
+  const renderDialogContent = () => {
+    const dialogProps = {
+      onSuccess: () => {
+        showSuccess("Item added successfully");
+        setDialogOpen(false);
+        loadData();
+      },
+      onError: showError,
+      uploadFile,
+    };
+
+    switch (activeCategory.id) {
+      case "weprovide":
+        return <WeProvideDialog {...dialogProps} />;
+      case "gallery":
+        return <GalleryDialog {...dialogProps} />;
+      case "clients":
+        return <ClientsDialog {...dialogProps} />;
+      case "testimonials":
+        return <TestimonialsDialog {...dialogProps} />;
+      default:
+        return <WeProvideDialog {...dialogProps} />;
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-          Frontend Management
-        </h2>
-        <Select
-          value={currentCategory.id}
-          onValueChange={(value) => setActiveTab(`frontend-${value}`)}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={currentCategory.name} />
-          </SelectTrigger>
-          <SelectContent>
-            {frontendCategories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="min-h-screen bg-background p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <HeaderSection />
+
+        {/* Stats Cards - Only show if we have data */}
+        {(items.length > 0 || loading) && (
+          <StatsCards 
+            items={items} 
+            activeCategory={activeCategory} 
+          />
+        )}
+
+        {/* Category Tabs */}
+        <CategoryTabs
+          categories={FRONTEND_CATEGORIES}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+        />
+
+        {/* Action Bar */}
+        <ActionBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchInputRef={searchInputRef}
+          activeCategory={activeCategory}
+          dialogOpen={dialogOpen}
+          onDialogChange={setDialogOpen}
+          renderDialogContent={renderDialogContent}
+        />
+
+        {/* Content Table */}
+        <ContentTable
+          activeCategory={activeCategory}
+          filteredItems={filteredItems}
+          loading={loading}
+          onToggleVisibility={toggleVisibility}
+          onDeleteItem={deleteItem}
+        />
       </div>
-      {renderContent()}
     </div>
   );
 }
+
+// Header Section Component
+const HeaderSection = () => (
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Frontend Management</h1>
+      <p className="text-sm text-muted-foreground mt-1">
+        Manage your frontend content sections
+      </p>
+    </div>
+    <div className="p-3 bg-primary/10 rounded-lg self-start sm:self-auto">
+      <Shield className="h-6 w-6 text-primary" />
+    </div>
+  </div>
+);

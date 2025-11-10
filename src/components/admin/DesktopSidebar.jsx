@@ -86,6 +86,7 @@ export default function DesktopSidebar({
   const canManageGuards = hasPermission("guards-read");
   const canManageRoles = hasPermission("roles-read");
   const canManageContact = hasPermission("contact-read");
+  const canManageFrontend = hasPermission("frontend-read");
   const canManageSettings = hasPermission("settings-read");
 
   return (
@@ -355,6 +356,20 @@ export default function DesktopSidebar({
             >
               <Mail className="h-4 w-4 mr-2" />
               Contact
+            </Button>
+          )}
+          {canManageSettings && (
+            <Button
+              variant={isActive("frontendManagment") ? "default" : "ghost"}
+              className={`w-full justify-start shadow-sm ${
+                isActive("frontendManagment")
+                  ? "bg-primary text-white"
+                  : "text-primary-foreground"
+              }`}
+              onClick={() => setActiveTab("frontendManagment")}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Frontend Management
             </Button>
           )}
 

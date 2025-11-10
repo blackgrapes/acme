@@ -110,7 +110,9 @@ export default function UnifiedSidebar({
     canManageGuards: hasPermission("guards-read"),
     canManageRoles: hasPermission("roles-read"),
     canManageContact: hasPermission("contact-read"),
+    canManageFrontend: hasPermission("frontend-read"),
     canManageSettings: hasPermission("settings-read"),
+    
   };
 
   // ✅ FIXED: Check if tab is active (including dashboard on /admin-dashboard)
@@ -358,6 +360,20 @@ export default function UnifiedSidebar({
             Contact
           </Button>
         )}
+         {permissions.canManageSettings && (
+          <Button
+            variant={isActive("frontend") ? "default" : "ghost"}
+            className={`w-full justify-start shadow-sm ${
+              isActive("frontend")
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            onClick={() => handleNavigation("frontend")}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Frontend Managment
+          </Button>
+        )}
         {permissions.canManageSettings && (
           <Button
             variant={isActive("settings") ? "default" : "ghost"}
@@ -372,6 +388,7 @@ export default function UnifiedSidebar({
             Settings
           </Button>
         )}
+       
       </div>
 
       <div

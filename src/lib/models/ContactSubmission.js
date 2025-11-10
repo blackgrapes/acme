@@ -57,10 +57,6 @@ const ContactSubmissionSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    assignedTo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
     notes: {
       type: String,
       trim: true,

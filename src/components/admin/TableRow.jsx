@@ -1,7 +1,7 @@
 // File: src/components/admin/components/TableRow.jsx
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, EyeOff, Video, ImageIcon, MoreHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Edit, Trash2, Eye, EyeOff, Video, ImageIcon, MoreHorizontal, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,10 +9,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
-const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem }) => {
+const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEditItem }) => {
   const [previewImages, setPreviewImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
+  const [deletingItem, setDeletingItem] = useState(false);
 
   const getItemName = () => {
     switch (activeCategory.id) {
@@ -92,6 +104,42 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem }) =>
     }
   };
 
+  // Handle visibility toggle with loading state
+  const handleToggleVisibility = async () => {
+    setTogglingVisibility(true);
+    try {
+      await onToggleVisibility(item._id, item.showOnHome);
+    } catch (error) {
+      console.error('Error toggling visibility:', error);
+    } finally {
+      setTogglingVisibility(false);
+    }
+  };
+
+  // Handle delete with confirmation
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeletingItem(true);
+    try {
+      await onDeleteItem(item._id, getItemName());
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    } finally {
+      setDeletingItem(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  // Handle edit
+  const handleEditClick = () => {
+    if (onEditItem) {
+      onEditItem(item);
+    }
+  };
+
   return (
     <>
       <div className="border-b border-border hover:bg-muted/30 transition-colors">
@@ -103,10 +151,12 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem }) =>
           <CommonColumns 
             item={item}
             activeCategory={activeCategory}
-            onToggleVisibility={onToggleVisibility}
-            onDeleteItem={onDeleteItem}
+            onToggleVisibility={handleToggleVisibility}
+            onDeleteItem={handleDeleteClick}
+            onEditItem={handleEditClick}
             getItemName={getItemName}
             formatDate={formatDate}
+            togglingVisibility={togglingVisibility}
           />
         </div>
 
@@ -119,7 +169,8 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem }) =>
               <StatusBadge showOnHome={item.showOnHome} />
               <VisibilityToggle 
                 item={item}
-                onToggleVisibility={onToggleVisibility}
+                onToggleVisibility={handleToggleVisibility}
+                togglingVisibility={togglingVisibility}
                 mobile={true}
               />
             </div>
@@ -131,7 +182,9 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem }) =>
               <MobileActions 
                 item={item}
                 getItemName={getItemName}
-                onDeleteItem={onDeleteItem}
+                onDeleteItem={handleDeleteClick}
+                onEditItem={handleEditClick}
+                togglingVisibility={togglingVisibility}
               />
             </div>
           </div>
@@ -220,31 +273,54 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem }) =>
                 </div>
               </div>
             )}
-            
-            {/* Image Info */}
-            {/* <div className="px-6 py-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {previewImages.length > 1 
-                      ? `Use arrow keys or click thumbnails to navigate • ${currentImageIndex + 1} of ${previewImages.length}`
-                      : "Click outside or press ESC to close"
-                    }
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={closePreview}
-                  className="cursor-pointer"
-                >
-                  Close
-                </Button>
-              </div>
-            </div> */}
           </div>
         </div>
       )}
+
+      {/* Custom Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Confirm Delete
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>"{getItemName()}"</strong>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-3">
+            <DialogClose asChild>
+              <Button
+                variant="outline"
+                disabled={deletingItem}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deletingItem}
+              className="flex-1"
+            >
+              {deletingItem ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Yes, Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -700,7 +776,7 @@ const TestimonialsMobileRow = ({ item, onImageClick, getImagesForItem }) => {
 };
 
 // Common Columns Component - Status, Last Updated, Visibility, Actions
-const CommonColumns = ({ item, onToggleVisibility, onDeleteItem, getItemName, formatDate }) => (
+const CommonColumns = ({ item, onToggleVisibility, onDeleteItem, onEditItem, getItemName, formatDate, togglingVisibility }) => (
   <>
     {/* Status - w-24 */}
     <div className="w-24 px-3 sm:px-4 py-3 sm:py-4 hidden sm:flex items-center flex-shrink-0">
@@ -719,20 +795,28 @@ const CommonColumns = ({ item, onToggleVisibility, onDeleteItem, getItemName, fo
       <VisibilityToggle 
         item={item}
         onToggleVisibility={onToggleVisibility}
+        togglingVisibility={togglingVisibility}
       />
     </div>
 
     {/* Actions - w-20 */}
     <div className="w-20 px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-end flex-shrink-0">
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer">
+        {/* <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0 cursor-pointer"
+          onClick={onEditItem}
+          disabled={togglingVisibility}
+        >
           <Edit className="h-3.5 w-3.5" />
-        </Button>
+        </Button> */}
         <Button
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0 text-destructive cursor-pointer hover:text-destructive"
-          onClick={() => onDeleteItem(item._id, getItemName())}
+          onClick={onDeleteItem}
+          disabled={togglingVisibility}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -742,21 +826,22 @@ const CommonColumns = ({ item, onToggleVisibility, onDeleteItem, getItemName, fo
 );
 
 // Mobile Actions Component
-const MobileActions = ({ item, getItemName, onDeleteItem }) => (
+const MobileActions = ({ item, getItemName, onDeleteItem, onEditItem, togglingVisibility }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer">
+      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer" disabled={togglingVisibility}>
         <MoreHorizontal className="h-4 w-4" />
       </Button>
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="end">
-      <DropdownMenuItem>
+    <DropdownMenuContent align="end" className="bg-white">
+      {/* <DropdownMenuItem onClick={onEditItem} disabled={togglingVisibility}>
         <Edit className="h-4 w-4 mr-2" />
         Edit
-      </DropdownMenuItem>
+      </DropdownMenuItem> */}
       <DropdownMenuItem 
-        onClick={() => onDeleteItem(item._id, getItemName())}
+        onClick={onDeleteItem}
         className="text-destructive"
+        disabled={togglingVisibility}
       >
         <Trash2 className="h-4 w-4 mr-2" />
         Delete
@@ -784,14 +869,22 @@ const StatusBadge = ({ showOnHome }) => (
 );
 
 // Common Visibility Toggle Component
-const VisibilityToggle = ({ item, onToggleVisibility, mobile = false }) => (
+const VisibilityToggle = ({ item, onToggleVisibility, togglingVisibility, mobile = false }) => (
   <Button
     variant={mobile ? "outline" : "ghost"}
     size="sm"
-    onClick={() => onToggleVisibility(item._id, item.showOnHome)}
-    className={mobile ? "h-7 text-xs cursor-pointer" : "h-8 cursor-pointer justify-start text-xs"}
+    onClick={onToggleVisibility}
+    disabled={togglingVisibility}
+    className={`${mobile ? "h-7 text-xs cursor-pointer" : "h-8 cursor-pointer justify-start text-xs"} ${
+      togglingVisibility ? "opacity-50 cursor-not-allowed" : ""
+    }`}
   >
-    {item.showOnHome ? (
+    {togglingVisibility ? (
+      <>
+        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+        {mobile ? "Updating..." : "Updating..."}
+      </>
+    ) : item.showOnHome ? (
       <>
         <Eye className="h-3.5 w-3.5 mr-1" />
         {mobile ? "Visible" : "Visible"}

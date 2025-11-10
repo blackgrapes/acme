@@ -1,47 +1,33 @@
-// File: src/components/admin/SettingsManagement.jsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
-import StatsCards from "./StatsCards";
+import StatsCards from "./SettingsComponents/StatsCards";
 import CategoryTabs from "./CategoryTabs";
-import ActionBar from "./ActionBar";
-import ContentTable from "./ContentTable";
-import { WeProvideDialog, GalleryDialog, ClientsDialog, TestimonialsDialog } from "./Dialogs";
-import { Shield, ImageIcon, Users, MessageSquare } from "lucide-react";
+import ActionBar from "./SettingsComponents/ActionBar";
+import ContentTable from "./SettingsComponents/ContentTable";
+import { Mail, Shield } from "lucide-react";
 
-const FRONTEND_CATEGORIES = [
+const EMAIL_CATEGORIES = [
   {
-    id: "weprovide",
-    name: "Our Services",
-    icon: Shield,
+    id: "email-limits",
+    name: "Email Limits",
+    icon: Mail,
     color: "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400",
   },
   {
-    id: "gallery",
-    name: "Gallery",
-    icon: ImageIcon,
+    id: "fallback-requests", 
+    name: "Fallback Requests",
+    icon: Shield,
     color: "bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400",
-  },
-  {
-    id: "clients",
-    name: "Clients",
-    icon: Users,
-    color: "bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400",
-  },
-  {
-    id: "testimonials",
-    name: "Testimonials",
-    icon: MessageSquare,
-    color: "bg-purple-50 text-purple-600 dark:bg-purple-950/20 dark:text-purple-400",
-  },
+  }
 ];
 
-export default function SettingsManagement({ settings }) {
-  const [activeCategory, setActiveCategory] = useState(FRONTEND_CATEGORIES[0]);
-  const [items, setItems] = useState([]);
+export default function EmailManagement() {
+  const [activeCategory, setActiveCategory] = useState(EMAIL_CATEGORIES[0]);
+  const [limitsData, setLimitsData] = useState(null);
+  const [fallbackData, setFallbackData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Refs
@@ -62,52 +48,61 @@ export default function SettingsManagement({ settings }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/frontend/${activeCategory.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setItems(Array.isArray(data) ? data : []);
+      if (activeCategory.id === 'email-limits') {
+        const response = await fetch('/api/admin/email-limits');
+        if (response.ok) {
+          const data = await response.json();
+          setLimitsData(data);
+        } else {
+          setLimitsData(null);
+        }
       } else {
-        setItems([]);
+        const response = await fetch('/api/admin/fallback-requests');
+        if (response.ok) {
+          const data = await response.json();
+          setFallbackData(data.requests || []);
+        } else {
+          setFallbackData([]);
+        }
       }
     } catch (error) {
       showError("Failed to load data");
-      setItems([]);
+      if (activeCategory.id === 'email-limits') {
+        setLimitsData(null);
+      } else {
+        setFallbackData([]);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Enhanced filtering based on schema fields
-  const filteredItems = items.filter((item) => {
+  // Get current items based on active category
+  const getCurrentItems = () => {
+    if (activeCategory.id === 'email-limits') {
+      return limitsData?.userCounts || [];
+    } else {
+      return fallbackData;
+    }
+  };
+
+  // Enhanced filtering based on category
+  const filteredItems = getCurrentItems().filter((item) => {
     if (!searchQuery) return true;
     
     const searchLower = searchQuery.toLowerCase();
     
     switch (activeCategory.id) {
-      case "weprovide":
+      case "email-limits":
         return (
-          item.title?.toLowerCase().includes(searchLower) ||
-          item.summary?.toLowerCase().includes(searchLower) ||
-          item.slug?.toLowerCase().includes(searchLower) ||
-          item.benefits?.some(benefit => benefit.toLowerCase().includes(searchLower))
+          item.email?.toLowerCase().includes(searchLower) ||
+          item.status?.toLowerCase().includes(searchLower)
         );
-      case "gallery":
+      case "fallback-requests":
         return (
-          item.caption?.toLowerCase().includes(searchLower) ||
-          item.tag?.toLowerCase().includes(searchLower) ||
-          item.type?.toLowerCase().includes(searchLower)
-        );
-      case "clients":
-        return (
-          item.name?.toLowerCase().includes(searchLower) ||
-          item.quote?.toLowerCase().includes(searchLower) ||
-          item.description?.toLowerCase().includes(searchLower)
-        );
-      case "testimonials":
-        return (
-          item.quote?.toLowerCase().includes(searchLower) ||
-          item.author?.toLowerCase().includes(searchLower) ||
-          item.position?.toLowerCase().includes(searchLower)
+          item.email?.toLowerCase().includes(searchLower) ||
+          item.status?.toLowerCase().includes(searchLower) ||
+          item.reason?.toLowerCase().includes(searchLower)
         );
       default:
         return true;
@@ -115,86 +110,122 @@ export default function SettingsManagement({ settings }) {
   });
 
   const showError = (message) => {
-    toast({ title: "Error", description: message, variant: "destructive" });
+    toast({ 
+      title: "Error", 
+      description: message, 
+      variant: "destructive" 
+    });
   };
 
   const showSuccess = (message) => {
-    toast({ title: "Success", description: message });
-  };
-
-  const uploadFile = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
+    toast({ 
+      title: "Success", 
+      description: message 
     });
-    if (!response.ok) throw new Error("Upload failed");
-
-    const result = await response.json();
-    return result.fileUrl;
   };
 
-  const toggleVisibility = async (id, currentStatus) => {
+  // Action handlers for Email Limits
+  const resetLimits = async () => {
+    if (!confirm('Are you sure you want to reset today\'s email limits? This cannot be undone.')) {
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/frontend/${activeCategory.id}/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ showOnHome: !currentStatus }),
+      const res = await fetch('/api/admin/email-limits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset' })
       });
 
-      if (response.ok) {
-        showSuccess("Visibility updated");
+      const data = await res.json();
+
+      if (res.ok) {
+        showSuccess(data.message);
         loadData();
+      } else {
+        showError(data.error || "Failed to reset limits");
       }
     } catch (error) {
-      showError("Failed to update visibility");
+      console.error('Error resetting limits:', error);
+      showError("Failed to reset limits");
     }
   };
 
-  const deleteItem = async (id, itemName) => {
-    if (!confirm(`Delete this ${itemName}?`)) return;
-
-    try {
-      const response = await fetch(`/api/frontend/${activeCategory.id}/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        showSuccess(`${itemName} deleted`);
-        loadData();
+  // Action handlers for Fallback Requests
+  const getAdminUserId = () => {
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          return user.id || user._id;
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
       }
-    } catch (error) {
-      showError(`Failed to delete ${itemName}`);
     }
+    return null;
   };
 
-  // Dialog Content Renderer
-  const renderDialogContent = () => {
-    const dialogProps = {
-      onSuccess: () => {
-        showSuccess("Item added successfully");
-        setDialogOpen(false);
-        loadData();
-      },
-      onError: showError,
-      uploadFile,
+
+const handleUpdateStatus = async (requestId, status, notes = '', newPassword = '') => {
+  try {
+    const adminUserId = getAdminUserId();
+    
+    const res = await fetch('/api/admin/fallback-requests', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        requestId, 
+        status, 
+        adminNotes: notes,
+        newPassword,
+        completedBy: adminUserId
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      showSuccess(`Request marked as ${status}`);
+      loadData();
+    } else {
+      throw new Error(data.error || "Failed to update request");
+    }
+  } catch (error) {
+    console.error('Error updating request:', error);
+    showError(error.message || "Failed to update request");
+  }
+};
+
+  // Stats calculation for Email Limits
+  const getEmailLimitsStats = () => {
+    if (!limitsData) return null;
+    
+    return {
+      dailyCount: limitsData.dailyCount,
+      dailyLimit: limitsData.dailyLimit,
+      remainingDaily: limitsData.remainingDaily,
+      perUserLimit: limitsData.perUserLimit,
+      lastReset: limitsData.lastReset,
+      totalUsers: limitsData.userCounts?.length || 0,
+      activeUsers: limitsData.userCounts?.filter(user => user.count < user.limit).length || 0,
+      limitReachedUsers: limitsData.userCounts?.filter(user => user.count >= user.limit).length || 0
     };
-
-    switch (activeCategory.id) {
-      case "weprovide":
-        return <WeProvideDialog {...dialogProps} />;
-      case "gallery":
-        return <GalleryDialog {...dialogProps} />;
-      case "clients":
-        return <ClientsDialog {...dialogProps} />;
-      case "testimonials":
-        return <TestimonialsDialog {...dialogProps} />;
-      default:
-        return <WeProvideDialog {...dialogProps} />;
-    }
   };
+
+  // Stats calculation for Fallback Requests
+  const getFallbackStats = () => {
+    return {
+      totalRequests: fallbackData.length,
+      pendingRequests: fallbackData.filter(req => req.status === 'pending').length,
+      completedRequests: fallbackData.filter(req => req.status === 'completed').length,
+      cancelledRequests: fallbackData.filter(req => req.status === 'cancelled').length
+    };
+  };
+
+  const emailStats = getEmailLimitsStats();
+  const fallbackStats = getFallbackStats();
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
@@ -202,17 +233,17 @@ export default function SettingsManagement({ settings }) {
         {/* Header */}
         <HeaderSection />
 
-        {/* Stats Cards - Only show if we have data */}
-        {(items.length > 0 || loading) && (
-          <StatsCards 
-            items={items} 
-            activeCategory={activeCategory} 
-          />
-        )}
+        {/* Stats Cards - Always show stats for both categories */}
+        <StatsCards 
+          activeCategory={activeCategory}
+          emailStats={emailStats}
+          fallbackStats={fallbackStats}
+          loading={loading}
+        />
 
         {/* Category Tabs */}
         <CategoryTabs
-          categories={FRONTEND_CATEGORIES}
+          categories={EMAIL_CATEGORIES}
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
         />
@@ -220,12 +251,11 @@ export default function SettingsManagement({ settings }) {
         {/* Action Bar */}
         <ActionBar
           searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          searchInputRef={searchInputRef}
+          setSearchQuery={setSearchQuery}
           activeCategory={activeCategory}
-          dialogOpen={dialogOpen}
-          onDialogChange={setDialogOpen}
-          renderDialogContent={renderDialogContent}
+          searchInputRef={searchInputRef}
+          onRefresh={loadData}
+          onResetLimits={activeCategory.id === 'email-limits' ? resetLimits : null}
         />
 
         {/* Content Table */}
@@ -233,8 +263,9 @@ export default function SettingsManagement({ settings }) {
           activeCategory={activeCategory}
           filteredItems={filteredItems}
           loading={loading}
-          onToggleVisibility={toggleVisibility}
-          onDeleteItem={deleteItem}
+          onUpdateStatus={handleUpdateStatus}
+          emailStats={emailStats}
+          fallbackStats={fallbackStats}
         />
       </div>
     </div>
@@ -245,13 +276,13 @@ export default function SettingsManagement({ settings }) {
 const HeaderSection = () => (
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
-      <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Frontend Management</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Email Management</h1>
       <p className="text-sm text-muted-foreground mt-1">
-        Manage your frontend content sections
+        Manage email limits and fallback password reset requests
       </p>
     </div>
     <div className="p-3 bg-primary/10 rounded-lg self-start sm:self-auto">
-      <Shield className="h-6 w-6 text-primary" />
+      <Mail className="h-6 w-6 text-primary" />
     </div>
   </div>
 );
