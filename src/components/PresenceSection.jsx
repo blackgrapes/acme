@@ -9,11 +9,11 @@ export default function PresenceSection() {
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
             Our <span className="text-primary">Presence</span>
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">
+          {/* <p className="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">
             We are proudly operating from the heart of India's financial
             capital —
             <span className="font-semibold text-primary"> Mumbai</span>.
-          </p>
+          </p> */}
         </div>
 
         {/* Two Column Layout */}
@@ -27,7 +27,7 @@ export default function PresenceSection() {
             />
             <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 bg-white/80 backdrop-blur-md px-4 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl shadow-lg">
               <h3 className="text-lg md:text-xl font-bold text-gray-900">
-                Mumbai
+                Bhiwadi, Rajasthan
               </h3>
               <p className="text-gray-600 text-xs md:text-sm">
                 Our Home Base of Operations
@@ -41,11 +41,11 @@ export default function PresenceSection() {
               {/* Years */}
               <div className="flex items-center p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-tr from-primary/10 to-primary/5 shadow-md hover:shadow-lg transition w-full">
                 <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-primary w-20 md:w-32 text-center">
-                  <CountUp end={10} duration={2.5} />+
+                  <CountUp end={37} duration={2.5} />+
                 </div>
                 <div>
                   <h4 className="text-base md:text-lg font-semibold text-gray-900">
-                    Years in Mumbai
+                    Years in Bhiwadi, Rajasthan
                   </h4>
                   <p className="text-gray-600 text-xs md:text-sm mt-1">
                     A decade of trust, delivering reliable and consistent
@@ -57,7 +57,7 @@ export default function PresenceSection() {
               {/* Clients */}
               <div className="flex items-center p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-tr from-primary/10 to-primary/5 shadow-md hover:shadow-lg transition w-full">
                 <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-primary w-20 md:w-32 text-center">
-                  <CountUp end={500} duration={3} />+
+                  <CountUp end={200} duration={3} />+
                 </div>
                 <div>
                   <h4 className="text-base md:text-lg font-semibold text-gray-900">
@@ -81,8 +81,8 @@ export default function PresenceSection() {
                     Support Available
                   </h4>
                   <p className="text-gray-600 text-xs md:text-sm mt-1">
-                    Round-the-clock assistance ensuring your peace of mind
-                    every single day.
+                    Round-the-clock assistance ensuring your peace of mind every
+                    single day.
                   </p>
                 </div>
               </div>

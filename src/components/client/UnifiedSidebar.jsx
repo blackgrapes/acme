@@ -111,7 +111,7 @@ export default function UnifiedSidebar({
           variant={isActive("overview") ? "default" : "ghost"}
           className={`w-full justify-start shadow-sm ${
             isActive("overview")
-              ? "bg-primary text-primary-foreground"
+              ? "bg-primary text-white"
               : "text-primary-foreground"
           }`}
           onClick={() => handleNavigation("overview")}
@@ -126,7 +126,7 @@ export default function UnifiedSidebar({
             variant={activeTab.startsWith("documents") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               activeTab.startsWith("documents")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-primary-foreground"
             }`}
             onClick={() => {
@@ -151,7 +151,7 @@ export default function UnifiedSidebar({
                 variant={activeTab === "documents" ? "default" : "ghost"}
                 className={`w-full justify-start text-sm shadow-sm ${
                   activeTab === "documents"
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-white"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => {
@@ -174,7 +174,7 @@ export default function UnifiedSidebar({
                   }
                   className={`w-full justify-start text-sm shadow-sm ${
                     activeTab === `documents-${category.id}`
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-white"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                   onClick={() => {
@@ -196,7 +196,7 @@ export default function UnifiedSidebar({
             }
             className={`w-full justify-start shadow-sm ${
               activeTab.startsWith("company-documents")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-primary-foreground"
             }`}
             onClick={() => {
@@ -226,7 +226,7 @@ export default function UnifiedSidebar({
                 }
                 className={`w-full justify-start text-sm shadow-sm ${
                   activeTab === "company-documents"
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-white"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => {
@@ -249,7 +249,7 @@ export default function UnifiedSidebar({
                   }
                   className={`w-full justify-start text-sm shadow-sm ${
                     activeTab === `company-documents-${category.id}`
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-white"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                   onClick={() => {
@@ -267,7 +267,7 @@ export default function UnifiedSidebar({
           variant={isActive("management") ? "default" : "ghost"}
           className={`w-full justify-start shadow-sm ${
             isActive("management")
-              ? "bg-primary text-primary-foreground"
+              ? "bg-primary text-white"
               : "text-primary-foreground"
           }`}
           onClick={() => handleNavigation("management")}
@@ -284,7 +284,7 @@ export default function UnifiedSidebar({
       >
         <Button
           variant="ghost"
-          className="w-full justify-start shadow-sm bg-primary text-primary-foreground"
+          className="w-full justify-start shadow-sm bg-primary text-white"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4 mr-2" />

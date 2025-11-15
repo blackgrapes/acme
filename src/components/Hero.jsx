@@ -161,7 +161,7 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
             {[
               {
                 icon: <UserCheck className="h-4 w-4 text-primary" />,
-                text: "200+ Vetted Guards",
+                text: "3000+ Vetted Guards",
               },
               {
                 icon: <FileCheck2 className="h-4 w-4 text-primary" />,
@@ -169,7 +169,7 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
               },
               {
                 icon: <Shield className="h-4 w-4 text-primary" />,
-                text: "120+ Clients",
+                text: "200+ Clients",
               },
             ].map((item, i) => (
               <motion.span

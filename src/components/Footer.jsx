@@ -66,22 +66,22 @@ export function Footer() {
                 <BadgeCheck className="h-4 w-4 text-primary" /> MSME
                 <BadgeCheck className="h-4 w-4 text-primary" /> GST
                 <BadgeCheck className="h-4 w-4 text-primary" /> PASARA
+                <BadgeCheck className="h-4 w-4 text-primary" /> ISO
               </div>
               {/* Live Clock */}
               <div className="text-sm font-medium flex items-center gap-2 text-primary">
                 <Clock className="h-5 w-5" />
                 {time || "Loading..."}
-                 <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSettingsOpen(true)}
-                className="flex items-center cursor-pointer gap-2 text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105"
-              >
-                <Palette className="h-4 w-4" />
-                <span className="text-sm">Theme</span>
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSettingsOpen(true)}
+                  className="flex items-center cursor-pointer gap-2 text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105"
+                >
+                  <Palette className="h-4 w-4" />
+                  <span className="text-sm">Theme</span>
+                </Button>
               </div>
-             
             </div>
 
             {/* Quick Links */}
@@ -114,14 +114,6 @@ export function Footer() {
                     <Users className="h-4 w-4 text-primary" /> Clients
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href="/why-choose-us"
-                    className="flex items-center gap-2 text-secondary hover:text-foreground transition-colors"
-                  >
-                    <FileText className="h-4 w-4 text-primary" /> Why Choose Us
-                  </Link>
-                </li>
               </ul>
             </div>
 
@@ -141,6 +133,14 @@ export function Footer() {
                 </li>
                 <li>
                   <Link
+                    href="/why-choose-us"
+                    className="flex items-center gap-2 text-secondary hover:text-foreground transition-colors"
+                  >
+                    <FileText className="h-4 w-4 text-primary" /> Why Choose Us
+                  </Link>
+                </li>
+                {/* <li>
+                  <Link
                     href="/legal/privacy"
                     className="flex items-center gap-2 text-secondary hover:text-foreground transition-colors"
                   >
@@ -154,7 +154,7 @@ export function Footer() {
                   >
                     <Lock className="h-4 w-4 text-primary" /> Terms & Conditions
                   </Link>
-                </li>
+                </li> */}
                 <li>
                   <Link
                     href="/admin-dashboard"
@@ -181,19 +181,20 @@ export function Footer() {
               </h4>
               <div className="space-y-2">
                 <p className="text-sm flex items-center gap-2 text-secondary">
-                  <MapPin className="h-4 w-4 text-primary" /> Office address
-                  line, City, State, PIN
+                  <MapPin className="h-4 w-4 text-primary" /> 1st Floor,Acme
+                  House,Opposite <br /> Central Market,Bhiwadi,Alwar, <br /> Bhiwadi-301019,
+                  Rajasthan, India
                 </p>
                 <p className="text-sm flex items-center gap-2 text-secondary">
-                  <Phone className="h-4 w-4 text-primary" /> +91-XXXXXXXXXX
+                  <Phone className="h-4 w-4 text-primary" /> +91-9314554244
                 </p>
                 <p className="text-sm flex items-center gap-2 text-secondary">
                   <Mail className="h-4 w-4 text-primary" />{" "}
-                  contact@acme-security.example
+                  protection.acme@gmail.com
                 </p>
               </div>
 
-              <div className="flex gap-4">
+              {/* <div className="flex gap-4">
                 <a
                   href="#"
                   aria-label="Twitter"
@@ -215,12 +216,12 @@ export function Footer() {
                 >
                   <Youtube className="h-5 w-5" />
                 </a>
-              </div>
+              </div> */}
 
-              <div className="text-xs text-secondary flex items-center gap-2">
+              {/* <div className="text-xs text-secondary flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" /> We respect your
                 privacy.
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

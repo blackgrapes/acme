@@ -132,7 +132,7 @@ export default function UnifiedSidebar({
             variant={isActive("dashboard") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("dashboard")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("dashboard")}
@@ -146,7 +146,7 @@ export default function UnifiedSidebar({
             variant={isActive("clients") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("clients")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("clients")}
@@ -163,7 +163,7 @@ export default function UnifiedSidebar({
               variant={activeTab.startsWith("documents") ? "default" : "ghost"}
               className={`w-full justify-start shadow-sm ${
                 activeTab.startsWith("documents")
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-white"
                   : "text-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
               onClick={() => {
@@ -188,7 +188,7 @@ export default function UnifiedSidebar({
                   variant={activeTab === "documents" ? "default" : "ghost"}
                   className={`w-full justify-start text-sm shadow-sm ${
                     activeTab === "documents"
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-white"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                   onClick={() => {
@@ -211,7 +211,7 @@ export default function UnifiedSidebar({
                     }
                     className={`w-full justify-start text-sm shadow-sm ${
                       activeTab === `documents-${category.id}`
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary text-white"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                     onClick={() => {
@@ -235,7 +235,7 @@ export default function UnifiedSidebar({
               }
               className={`w-full justify-start shadow-sm ${
                 activeTab.startsWith("company-documents")
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-white"
                   : "text-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
               onClick={() => {
@@ -265,7 +265,7 @@ export default function UnifiedSidebar({
                   }
                   className={`w-full justify-start text-sm shadow-sm ${
                     activeTab === "company-documents"
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-white"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                   onClick={() => {
@@ -288,7 +288,7 @@ export default function UnifiedSidebar({
                     }
                     className={`w-full justify-start text-sm shadow-sm ${
                       activeTab === `company-documents-${category.id}`
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary text-white"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                     onClick={() => {
@@ -309,7 +309,7 @@ export default function UnifiedSidebar({
             variant={isActive("requests") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("requests")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("requests")}
@@ -323,7 +323,7 @@ export default function UnifiedSidebar({
             variant={isActive("guards") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("guards")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("guards")}
@@ -337,7 +337,7 @@ export default function UnifiedSidebar({
             variant={isActive("roles") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("roles")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("roles")}
@@ -351,7 +351,7 @@ export default function UnifiedSidebar({
             variant={isActive("contact") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("contact")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("contact")}
@@ -360,12 +360,12 @@ export default function UnifiedSidebar({
             Contact
           </Button>
         )}
-         {permissions.canManageSettings && (
+        {permissions.canManageSettings && (
           <Button
             variant={isActive("frontend") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("frontend")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("frontend")}
@@ -379,7 +379,7 @@ export default function UnifiedSidebar({
             variant={isActive("settings") ? "default" : "ghost"}
             className={`w-full justify-start shadow-sm ${
               isActive("settings")
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-white"
                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             onClick={() => handleNavigation("settings")}
@@ -388,7 +388,6 @@ export default function UnifiedSidebar({
             Settings
           </Button>
         )}
-       
       </div>
 
       <div
@@ -398,7 +397,7 @@ export default function UnifiedSidebar({
       >
         <Button
           variant="ghost"
-          className="w-full justify-start shadow-sm bg-primary text-primary-foreground"
+          className="w-full justify-start shadow-sm bg-primary text-white"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4 mr-2" />
@@ -412,7 +411,7 @@ export default function UnifiedSidebar({
     return (
       <SheetContent
         side="left"
-        className="w-64 p-0 bg-card border-r border-border shadow-sm"
+        className="w-64 p-0 bg-white border-r border-border shadow-sm"
       >
         {renderSidebarContent()}
       </SheetContent>

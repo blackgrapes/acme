@@ -20,18 +20,18 @@ export default function IntroSection() {
         <div className="rounded-2xl md:rounded-3xl bg-linear-to-br from-white via-gray-50 to-gray-100 border border-gray-200 overflow-hidden grid md:grid-cols-2 min-h-[400px] md:min-h-[500px] shadow-lg">
           {/* Left Content */}
           <div className="p-6 md:p-10 lg:p-14 flex flex-col justify-center order-2 md:order-1">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight text-gray-900 text-center md:text-left">
+            <h2 className="text-lg sm:text-xl md:text-4xl lg:text-3xl font-extrabold leading-tight text-gray-900 text-center md:text-left">
               Professional{" "}
               <span className="text-primary">Security Solutions</span>
-              <br className="hidden md:block" /> for Workplaces & Events
+              <br className="hidden md:block" /> for companies, apartment,
+              warehouse, corporate etc.
             </h2>
             <p className="mt-4 md:mt-5 text-gray-600 text-base md:text-lg leading-relaxed max-w-xl text-center md:text-left">
               We provide{" "}
               <span className="font-medium text-gray-900">
                 on-site guarding
               </span>
-              ,
-              <span className="font-medium text-gray-900"> night patrols</span>
+              ,<span className="font-medium text-gray-900"> night patrols</span>
               ,
               <span className="font-medium text-gray-900"> event security</span>
               , and customized protection plans backed by
@@ -52,13 +52,17 @@ export default function IntroSection() {
               />
               <IconCard
                 title="Vision"
-                icon={<Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
+                icon={
+                  <Building2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                }
                 text="Safer communities."
                 className="bg-white/70 backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md hover:scale-105 transition-all"
               />
               <IconCard
                 title="Values"
-                icon={<FileCheck2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />}
+                icon={
+                  <FileCheck2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                }
                 text="Trust & transparency."
                 className="bg-white/70 backdrop-blur-md rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md hover:scale-105 transition-all"
               />

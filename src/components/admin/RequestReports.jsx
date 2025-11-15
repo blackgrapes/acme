@@ -1,8 +1,14 @@
-// Updated File: components/admin/RequestReports.jsx
+// File: src/components/admin/RequestReports.jsx
 "use client";
 
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -11,28 +17,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
-  Eye,
-  Trash2,
-  FileText,
-  Users,
   Search,
   Filter,
-  Download,
-  MoreVertical,
-  Calendar,
-  DollarSign,
   User,
-  CheckCircle,
+  Mail,
+  FileText,
+  RefreshCw,
+  Edit,
+  Eye,
+  Building,
   Clock,
-  XCircle,
-  Plus,
-  FileDown,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -40,540 +42,822 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 
-const dummyRequests = [
-  {
-    id: 1,
-    client: "John Smith",
-    clientId: 1,
-    type: "Invoice",
-    status: "Pending",
-    date: "2025-01-15",
-    amount: "$2,500",
-    priority: "High",
-    assignedTo: "Admin User",
-  },
-  {
-    id: 2,
-    client: "Sarah Johnson",
-    clientId: 2,
-    type: "Report",
-    status: "Fulfilled",
-    date: "2025-01-14",
-    amount: "N/A",
-    priority: "Medium",
-    assignedTo: "Support Team",
-  },
-  {
-    id: 3,
-    client: "Mike Davis",
-    clientId: 3,
-    type: "Service Extension",
-    status: "Pending",
-    date: "2025-01-10",
-    amount: "$1,200",
-    priority: "High",
-    assignedTo: "Admin User",
-  },
-  {
-    id: 4,
-    client: "Emily Wilson",
-    clientId: 4,
-    type: "Invoice",
-    status: "Rejected",
-    date: "2025-01-08",
-    amount: "$3,400",
-    priority: "Low",
-    assignedTo: "Finance Team",
-  },
-  {
-    id: 5,
-    client: "Robert Brown",
-    clientId: 5,
-    type: "Custom Report",
-    status: "Fulfilled",
-    date: "2025-01-05",
-    amount: "N/A",
-    priority: "Medium",
-    assignedTo: "Analytics Team",
-  },
-];
-
-export default function RequestReports({ dummyRequests: propRequests }) {
-  const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
+export default function RequestReports() {
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  const requests = propRequests || dummyRequests;
+  // Fetch requests from API
+  useEffect(() => {
+    fetchRequests();
+    const interval = setInterval(fetchRequests, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const filteredRequests = requests.filter((req) => {
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/admin/requests");
+      const data = await response.json();
+      setRequests(data.requests || []);
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load requests",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter requests based on search and filters
+  const filteredRequests = requests.filter((request) => {
     const matchesSearch =
-      req.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.assignedTo.toLowerCase().includes(searchTerm.toLowerCase());
+      request.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.clientEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.documentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.documentType?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || req.status === statusFilter;
-    const matchesType = typeFilter === "all" || req.type === typeFilter;
-    const matchesPriority =
-      priorityFilter === "all" || req.priority === priorityFilter;
+    const matchesStatus =
+      statusFilter === "all" || request.status === statusFilter;
+    const matchesType =
+      typeFilter === "all" || request.documentType === typeFilter;
 
-    return matchesSearch && matchesStatus && matchesType && matchesPriority;
+    return matchesSearch && matchesStatus && matchesType;
   });
 
-  const handleClientClick = (clientId) => {
-    router.push(`/admin-dashboard/client-details/${clientId}`);
+  const getStatusBadge = (status) => {
+    const variants = {
+      pending: {
+        className: "text-amber-800 border-amber-200",
+        icon: Clock,
+      },
+      fulfilled: {
+        className: "text-blue-800 border-blue-200",
+        icon: AlertCircle,
+      },
+      completed: {
+        className: "text-green-800 border-green-200",
+        icon: CheckCircle,
+      },
+    };
+    const config = variants[status] || {
+      className: "text-gray-800 border-gray-200",
+      icon: Clock,
+    };
+    const IconComponent = config.icon;
+
+    return (
+      <Badge
+        variant="outline"
+        className={`rounded-full flex items-center gap-1 text-xs font-semibold border ${config.className}`}
+      >
+        <IconComponent className="h-3 w-3" />
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
-  const statusVariant = (status) => {
-    switch (status) {
-      case "Pending":
-        return "secondary";
-      case "Fulfilled":
-        return "default";
-      case "Rejected":
-        return "destructive";
-      default:
-        return "secondary";
+  const getTypeIcon = (type) => {
+    const icons = {
+      "Service Agreement": FileText,
+      "NDA Document": FileText,
+      "Compliance Form": FileText,
+      "Contract Document": FileText,
+      "Security Protocol": FileText,
+      "General Document": FileText,
+    };
+    return icons[type] || FileText;
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const handleViewRequest = (request) => {
+    setSelectedRequest(request);
+    setViewDialogOpen(true);
+  };
+
+  const handleEditRequest = (request) => {
+    setSelectedRequest(request);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateRequest = async (formData) => {
+    if (!selectedRequest) return;
+
+    try {
+      setUpdating(true);
+      const response = await fetch("/api/admin/requests", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requestId: selectedRequest._id,
+          status: formData.status,
+          adminNotes: formData.adminNotes,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Request updated successfully",
+        });
+        fetchRequests();
+        setEditDialogOpen(false);
+      } else {
+        throw new Error("Failed to update request");
+      }
+    } catch (error) {
+      console.error("Error updating request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update request",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Fulfilled":
-        return <CheckCircle className="h-3 w-3" />;
-      case "Pending":
-        return <Clock className="h-3 w-3" />;
-      case "Rejected":
-        return <XCircle className="h-3 w-3" />;
-      default:
-        return <Clock className="h-3 w-3" />;
-    }
-  };
+  const handleDeleteRequest = async (id) => {
+    if (!confirm("Are you sure you want to delete this request?")) return;
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "High":
-        return "text-red-600 bg-red-50 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800";
-      case "Medium":
-        return "text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:text-yellow-400 dark:border-yellow-800";
-      case "Low":
-        return "text-green-600 bg-green-50 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800";
-      default:
-        return "text-gray-600 bg-gray-50 border-gray-200";
+    try {
+      const response = await fetch("/api/admin/requests", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Request deleted successfully",
+        });
+        fetchRequests();
+      } else {
+        throw new Error("Failed to delete request");
+      }
+    } catch (error) {
+      console.error("Error deleting request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete request",
+        variant: "destructive",
+      });
     }
   };
 
   // Statistics
   const stats = {
     total: requests.length,
-    pending: requests.filter((req) => req.status === "Pending").length,
-    fulfilled: requests.filter((req) => req.status === "Fulfilled").length,
-    rejected: requests.filter((req) => req.status === "Rejected").length,
+    pending: requests.filter((r) => r.status === "pending").length,
+    fulfilled: requests.filter((r) => r.status === "fulfilled").length,
+    completed: requests.filter((r) => r.status === "completed").length,
+    urgent: requests.filter(
+      (r) =>
+        r.documentType === "Urgent Request" ||
+        r.documentType === "Security Protocol"
+    ).length,
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-xl">
-            <FileText className="h-6 w-6 text-primary" />
-          </div>
+    <div className="min-h-screen bg-background p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-              Request Reports
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Manage client requests, reports, and service extensions
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              Document Requests Management
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage client document requests and submissions
             </p>
           </div>
+          <div className="p-3 bg-primary/10 rounded-lg self-start sm:self-auto">
+            <FileText className="h-6 w-6 text-primary" />
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="border-primary/20 hover:bg-primary/5"
-          >
-            <Download className="h-4 w-4 mr-2 text-primary" />
-            Export
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            <Plus className="h-4 w-4 mr-2" />
-            New Request
-          </Button>
-        </div>
-      </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  Total Requests
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+          {/* Total Card */}
+          <div className="group bg-card rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 hover:border-border">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Total
                 </p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.total}
-                </p>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <h3 className="text-3xl font-bold text-foreground">
+                    {stats.total}
+                  </h3>
+                </div>
+                <p className="text-xs text-muted-foreground">All requests</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary" />
+              <div className="p-3 rounded-xl bg-primary/5 text-primary group-hover:bg-primary/10 transition-colors duration-300 flex-shrink-0 ml-4">
+                <FileText className="h-6 w-6" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Pending</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.pending}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Fulfilled</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.fulfilled}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-0 bg-gradient-primary">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Rejected</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.rejected}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <XCircle className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Requests Table */}
-      <Card className="shadow-lg border-0">
-        <CardHeader className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3">
-          <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-            Client Requests
-            <Badge variant="outline" className="text-primary border-primary/20">
-              {filteredRequests.length}
-            </Badge>
-          </CardTitle>
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            <div className="flex items-center space-x-2 w-full sm:w-64">
-              <Search className="h-4 w-4 text-primary flex-shrink-0" />
-              <Input
-                placeholder="Search requests..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-9 flex-1 border-primary/20 focus:border-primary"
-              />
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[130px] border-primary/20 focus:border-primary">
-                  <Filter className="h-4 w-4 mr-2 text-primary" />
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Fulfilled">Fulfilled</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[140px] border-primary/20 focus:border-primary">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Invoice">Invoice</SelectItem>
-                  <SelectItem value="Report">Report</SelectItem>
-                  <SelectItem value="Service Extension">
-                    Service Extension
-                  </SelectItem>
-                  <SelectItem value="Custom Report">Custom Report</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-primary/10">
-                  <TableHead className="text-left font-semibold text-foreground">
-                    Client
-                  </TableHead>
-                  <TableHead className="text-left font-semibold text-foreground hidden sm:table-cell">
-                    Type
-                  </TableHead>
-                  <TableHead className="text-left font-semibold text-foreground">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-left font-semibold text-foreground hidden lg:table-cell">
-                    Date
-                  </TableHead>
-                  <TableHead className="text-left font-semibold text-foreground hidden xl:table-cell">
-                    Amount
-                  </TableHead>
-                  <TableHead className="text-left font-semibold text-foreground hidden 2xl:table-cell">
-                    Priority
-                  </TableHead>
-                  <TableHead className="text-right font-semibold text-foreground">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.map((req) => (
-                  <TableRow
-                    key={req.id}
-                    className="cursor-pointer hover:bg-primary/5 transition-colors border-b border-border/20 group"
-                    onClick={() => handleClientClick(req.clientId)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-foreground">
-                            {req.client}
-                          </div>
-                          <div className="text-xs text-muted-foreground hidden md:block">
-                            {req.assignedTo}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge
-                        variant="outline"
-                        className="text-xs border-primary/20"
-                      >
-                        {req.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={statusVariant(req.status)}
-                        className={`text-xs flex items-center gap-1 ${
-                          req.status === "Fulfilled"
-                            ? "bg-primary text-primary-foreground"
-                            : req.status === "Pending"
-                            ? "bg-primary/20 text-primary"
-                            : ""
-                        }`}
-                      >
-                        {getStatusIcon(req.status)}
-                        <span className="hidden sm:inline">{req.status}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(req.date).toLocaleDateString()}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden xl:table-cell">
-                      <div className="flex items-center gap-1 font-mono text-sm">
-                        {req.amount !== "N/A" && (
-                          <DollarSign className="h-3 w-3 text-primary" />
-                        )}
-                        {req.amount}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden 2xl:table-cell">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs border ${getPriorityColor(
-                          req.priority
-                        )}`}
-                      >
-                        {req.priority}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle view action
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle download action
-                          }}
-                        >
-                          <FileDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle more actions
-                          }}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
 
-            {filteredRequests.length === 0 && (
-              <div className="text-center py-12">
-                <FileText className="h-16 w-16 mx-auto mb-4 text-primary/30" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  No requests found
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm || statusFilter !== "all" || typeFilter !== "all"
-                    ? "Try adjusting your search or filters"
-                    : "No requests have been created yet"}
+          {/* Pending Card */}
+          <div className="group bg-card rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 hover:border-border">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Pending
                 </p>
-                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Request
+                <div className="flex items-baseline gap-3 mb-2">
+                  <h3 className="text-3xl font-bold text-foreground">
+                    {stats.pending}
+                  </h3>
+                  {stats.total > 0 && (
+                    <span className="text-sm font-semibold px-2 py-1 rounded-full bg-amber-500/10 text-amber-600">
+                      {Math.round((stats.pending / stats.total) * 100)}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Awaiting action</p>
+              </div>
+              <div className="p-3 rounded-xl text-primary duration-300 flex-shrink-0 ml-4">
+                <Clock className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Fulfilled Card */}
+          <div className="group bg-card rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 hover:border-border">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Fulfilled
+                </p>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <h3 className="text-3xl font-bold text-foreground">
+                    {stats.fulfilled}
+                  </h3>
+                  {stats.total > 0 && (
+                    <span className="text-sm font-semibold px-2 py-1 rounded-full bg-blue-500/10 text-blue-600">
+                      {Math.round((stats.fulfilled / stats.total) * 100)}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">In progress</p>
+              </div>
+              <div className="p-3 rounded-xl text-primary flex-shrink-0 ml-4">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Completed Card */}
+          <div className="group bg-card rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 hover:border-border">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Completed
+                </p>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <h3 className="text-3xl font-bold text-foreground">
+                    {stats.completed}
+                  </h3>
+                  {stats.total > 0 && (
+                    <span className="text-sm font-semibold px-2 py-1 rounded-full bg-green-500/10 text-green-600">
+                      {Math.round((stats.completed / stats.total) * 100)}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Fully resolved</p>
+              </div>
+              <div className="p-3 rounded-xl text-primary flex-shrink-0 ml-4">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Urgent Card */}
+          <div className="group bg-card rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 hover:border-border">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Urgent
+                </p>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <h3 className="text-3xl font-bold text-foreground">
+                    {stats.urgent}
+                  </h3>
+                  {stats.total > 0 && (
+                    <span className="text-sm font-semibold px-2 py-1 rounded-full bg-red-500/10 text-red-600">
+                      {Math.round((stats.urgent / stats.total) * 100)}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Urgent attention
+                </p>
+              </div>
+              <div className="p-3 rounded-xl text-primary flex-shrink-0 ml-4">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Card className="bg-card border border-border shadow-sm">
+          <CardHeader className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-border">
+            {/* Requests Filters Section */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 w-full">
+              {/* Search Bar */}
+              <div className="flex items-center gap-2 w-full sm:w-72 relative">
+                <Search className="h-4 w-4 text-primary absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  placeholder="Search requests..."
+                  className="h-10 pl-10 border-border focus:border-primary text-foreground placeholder:text-muted-foreground"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {/* Filter Controls */}
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[140px] border-border focus:border-primary text-foreground">
+                    <Filter className="h-4 w-4 mr-2 text-primary" />
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border border-border">
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Type Filter */}
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-[160px] border-border focus:border-primary text-foreground">
+                    <SelectValue placeholder="Document Type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border border-border">
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="Service Agreement">
+                      Service Agreement
+                    </SelectItem>
+                    <SelectItem value="NDA Document">NDA Document</SelectItem>
+                    <SelectItem value="Compliance Form">
+                      Compliance Form
+                    </SelectItem>
+                    <SelectItem value="Contract Document">
+                      Contract Document
+                    </SelectItem>
+                    <SelectItem value="Security Protocol">
+                      Security Protocol
+                    </SelectItem>
+                    <SelectItem value="General Document">
+                      General Document
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Refresh Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchRequests}
+                  className="h-10 cursor-pointer border-border text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4" />
                 </Button>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <RefreshCw className="h-8 w-8 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">Loading requests...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-b border-border">
+                      <TableHead className="text-left font-semibold text-foreground">
+                        Client
+                      </TableHead>
+                      <TableHead className="text-left font-semibold text-foreground hidden lg:table-cell">
+                        Company
+                      </TableHead>
+                      <TableHead className="text-left font-semibold text-foreground">
+                        Document & Type
+                      </TableHead>
+                      <TableHead className="text-center font-semibold text-foreground">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-left font-semibold text-foreground hidden xl:table-cell">
+                        Date
+                      </TableHead>
+                      <TableHead className="text-right font-semibold text-foreground">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.map((request) => {
+                      const TypeIcon = getTypeIcon(request.documentType);
+                      return (
+                        <TableRow
+                          key={request._id}
+                          className="hover:bg-muted/30 transition-colors border-b border-border"
+                        >
+                          <TableCell>
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-foreground text-sm">
+                                  {request.clientName}
+                                </div>
+                                <div className="text-xs text-muted-foreground lg:hidden">
+                                  {request.company || "No company"}
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1 md:hidden">
+                                  <Mail className="h-3 w-3" />
+                                  {request.clientEmail}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <div className="text-sm text-muted-foreground">
+                              {request.company || "No company"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-[200px]">
+                              <div className="font-medium text-foreground text-sm truncate">
+                                {request.documentName}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <TypeIcon className="h-3 w-3" />
+                                {request.documentType}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex justify-center">
+                              {getStatusBadge(request.status)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden xl:table-cell">
+                            <div className="text-sm text-muted-foreground">
+                              {formatDate(request.createdAt)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted"
+                                onClick={() => handleEditRequest(request)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+
+                {filteredRequests.length === 0 && (
+                  <div className="text-center py-12">
+                    <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      No requests found
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {searchQuery ||
+                      statusFilter !== "all" ||
+                      typeFilter !== "all"
+                        ? "Try adjusting your search or filters"
+                        : "No document requests yet"}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Mobile Cards View */}
-      <div className="lg:hidden space-y-4">
-        {filteredRequests.map((req) => (
-          <Card
-            key={req.id}
-            className="shadow-md border-0 cursor-pointer hover:bg-primary/5 transition-colors"
-            onClick={() => handleClientClick(req.clientId)}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
+        {/* View Request Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Document Request Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedRequest && (
+              <div className="space-y-6 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <User className="h-4 w-4 text-primary" />
+                      <div>
+                        <div className="text-sm text-muted-foreground">
+                          Client Name
+                        </div>
+                        <div className="font-medium text-foreground">
+                          {selectedRequest.clientName}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <Mail className="h-4 w-4 text-primary" />
+                      <div>
+                        <div className="text-sm text-muted-foreground">
+                          Email
+                        </div>
+                        <div className="font-medium text-foreground">
+                          {selectedRequest.clientEmail}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <Building className="h-4 w-4 text-primary" />
+                      <div>
+                        <div className="text-sm text-muted-foreground">
+                          Company
+                        </div>
+                        <div className="font-medium text-foreground">
+                          {selectedRequest.company || "Not provided"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <div>
+                        <div className="text-sm text-muted-foreground">
+                          Document Type
+                        </div>
+                        <div className="font-medium text-foreground">
+                          {selectedRequest.documentType}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-foreground">
+                    Document Name
+                  </Label>
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
                     <div className="font-medium text-foreground">
-                      {req.client}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {req.assignedTo}
+                      {selectedRequest.documentName}
                     </div>
                   </div>
                 </div>
-                <Badge
-                  variant={statusVariant(req.status)}
-                  className={`flex items-center gap-1 ${
-                    req.status === "Fulfilled"
-                      ? "bg-primary text-primary-foreground"
-                      : req.status === "Pending"
-                      ? "bg-primary/20 text-primary"
-                      : ""
-                  }`}
-                >
-                  {getStatusIcon(req.status)}
-                  {req.status}
-                </Badge>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                <div>
-                  <div className="text-muted-foreground">Type</div>
-                  <div className="font-medium text-foreground">{req.type}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">Amount</div>
-                  <div className="font-medium text-foreground">
-                    {req.amount}
+                {selectedRequest.additionalInfo && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-foreground">
+                      Additional Information
+                    </Label>
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border max-h-40 overflow-y-auto">
+                      <div className="text-foreground whitespace-pre-wrap">
+                        {selectedRequest.additionalInfo}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-4 pt-4 border-t border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Status:
+                    </span>
+                    {getStatusBadge(selectedRequest.status)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Date:</span>
+                    <span className="text-sm text-foreground">
+                      {formatDate(selectedRequest.createdAt)}
+                    </span>
                   </div>
                 </div>
-                <div>
-                  <div className="text-muted-foreground">Date</div>
-                  <div className="font-medium text-foreground">
-                    {new Date(req.date).toLocaleDateString()}
+
+                {selectedRequest.adminNotes && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-foreground">
+                      Admin Notes
+                    </Label>
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 max-h-40 overflow-y-auto">
+                      <div className="text-foreground whitespace-pre-wrap">
+                        {selectedRequest.adminNotes}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter className="gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setViewDialogOpen(false)}
+                className="border-border hover:bg-muted cursor-pointer"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setViewDialogOpen(false);
+                  setEditDialogOpen(true);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2 cursor-pointer" />
+                Edit Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Request Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex cursor-pointer items-center gap-2">
+                <Edit className="h-5 w-5 text-primary" />
+                Edit Document Request
+              </DialogTitle>
+              <DialogDescription>
+                Update the status and add notes for this document request
+              </DialogDescription>
+            </DialogHeader>
+            {selectedRequest && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target);
+                  const data = {
+                    status: formData.get("status"),
+                    adminNotes: formData.get("adminNotes"),
+                  };
+                  handleUpdateRequest(data);
+                }}
+              >
+                <div className="space-y-6 py-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="status" className="text-foreground">
+                        Status
+                      </Label>
+                      <Select
+                        name="status"
+                        defaultValue={selectedRequest.status}
+                      >
+                        <SelectTrigger className="border-border focus:border-primary">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="adminNotes" className="text-foreground">
+                      Admin Notes
+                    </Label>
+                    <Textarea
+                      id="adminNotes"
+                      name="adminNotes"
+                      placeholder="Add internal notes about this request..."
+                      defaultValue={selectedRequest.adminNotes}
+                      rows={4}
+                      className="border-border focus:border-primary resize-none"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                    <h4 className="font-medium text-foreground mb-2">
+                      Request Details
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Client:</span>
+                        <p className="text-foreground">
+                          {selectedRequest.clientName}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Email:</span>
+                        <p className="text-foreground">
+                          {selectedRequest.clientEmail}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Document:</span>
+                        <p className="text-foreground">
+                          {selectedRequest.documentName}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Type:</span>
+                        <p className="text-foreground">
+                          {selectedRequest.documentType}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Date:</span>
+                        <p className="text-foreground">
+                          {formatDate(selectedRequest.createdAt)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-muted-foreground">Priority</div>
-                  <Badge
+                <DialogFooter className="gap-3">
+                  <Button
+                    type="button"
                     variant="outline"
-                    className={`text-xs border ${getPriorityColor(
-                      req.priority
-                    )}`}
+                    onClick={() => setEditDialogOpen(false)}
+                    className="border-border cursor-pointer hover:bg-muted"
                   >
-                    {req.priority}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-primary/10">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-primary hover:bg-primary/10"
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-primary hover:bg-primary/10"
-                >
-                  <FileDown className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => handleDeleteRequest(selectedRequest._id)}
+                    className="cursor-pointer"
+                  >
+                    Delete Request
+                  </Button>
+                  <Button type="submit" disabled={updating}>
+                    {updating ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin cursor-pointer" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Update Request
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

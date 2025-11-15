@@ -25,9 +25,9 @@ export default function WhyChooseUsSection({ setIsVideoOpen }) {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 lg:gap-10 mb-8 md:mb-10 text-center">
           {[
-            { value: "800+", label: "Trained Professionals" },
+            { value: "3000+", label: "Trained Professionals" },
             { value: "50,000+", label: "Training Hours" },
-            { value: "12+", label: "Countries" },
+            { value: "4+", label: "State" },
             { value: "90%", label: "Client Retention" },
           ].map((stat, idx) => (
             <motion.div
