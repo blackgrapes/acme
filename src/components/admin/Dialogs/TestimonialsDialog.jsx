@@ -258,6 +258,7 @@ const TestimonialsDialog = ({ onSuccess, onError, uploadFile }) => {
           onClick={handleSubmit}
           disabled={!isFormValid}
           className="flex-1 bg-primary hover:bg-primary/90 cursor-pointer"
+          permission="testimonials-create"
         >
           {submitting ? (
             <>

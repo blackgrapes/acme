@@ -2,12 +2,15 @@
 import { NextResponse } from "next/server";
 import dotenv from "dotenv";
 import path from "path";
+import { requirePermission } from "@/lib/auth";
 
 // ✅ Load from .env.local in project root
 dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 
 export async function POST(request) {
   try {
+    const denied = requirePermission(request, "documents-create");
+    if (denied) return denied;
     const formData = await request.formData();
     const file = formData.get("file");
 

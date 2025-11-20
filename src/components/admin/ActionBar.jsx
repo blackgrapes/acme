@@ -1,4 +1,5 @@
 // File: src/components/admin/components/ActionBar.jsx
+"use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -38,6 +39,7 @@ const ActionBar = ({
             <Button
               size="sm"
               className="bg-primary cursor-pointer text-primary-foreground flex-1 lg:flex-none"
+              permission={`${activeCategory?.id || "unknown"}-create`}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add {activeCategory.name}

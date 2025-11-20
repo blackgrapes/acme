@@ -109,7 +109,7 @@ export default function AdminProfileDialog({ open, onOpenChange, user }) {
             <Input id="adminImage" type="file" accept="image/*" />
           </div>
           <DialogFooter className="mt-6">
-            <Button type="submit" className="w-full shadow-lg">
+            <Button type="submit" className="w-full shadow-lg" permission="roles-update">
               Save Changes
             </Button>
           </DialogFooter>

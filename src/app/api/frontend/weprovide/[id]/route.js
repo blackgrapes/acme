@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import WeProvide from "@/lib/models/WeProvide";
+import connectDB from "@/lib/db";
+import { WeProvide } from "@/lib/db";
+import { requirePermission } from "@/lib/auth";
 
 export async function GET(request, { params }) {
   try {
-    await dbConnect();
+    await connectDB();
     const service = await WeProvide.findById(params.id);
 
     if (!service) {
@@ -19,7 +20,10 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    await dbConnect();
+    const denied = requirePermission(request, "weprovide-update");
+    if (denied) return denied;
+
+    await connectDB();
     const data = await request.json();
 
     const service = await WeProvide.findByIdAndUpdate(params.id, data, {
@@ -39,7 +43,10 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    await dbConnect();
+    const denied = requirePermission(request, "weprovide-delete");
+    if (denied) return denied;
+
+    await connectDB();
     const service = await WeProvide.findByIdAndDelete(params.id);
 
     if (!service) {

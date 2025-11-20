@@ -266,7 +266,7 @@ export function AssignGuardDialog({ open, onOpenChange, clientId, onAssign }) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleAssign} disabled={selectedGuards.length === 0}>
+          <Button onClick={handleAssign} disabled={selectedGuards.length === 0} permission="guards-update">
             Assign {selectedGuards.length} Guard(s)
           </Button>
         </DialogFooter>

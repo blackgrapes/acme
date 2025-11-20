@@ -89,6 +89,7 @@ export default function DashboardContent({ dummyDocuments }) {
             variant="outline"
             size="sm"
             className="border-primary/20 hover:bg-primary/5"
+            permission="dashboard-read"
           >
             <Clock className="h-4 w-4 mr-2 text-primary" />
             Last 7 days
@@ -96,6 +97,7 @@ export default function DashboardContent({ dummyDocuments }) {
           <Button
             size="sm"
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            permission="dashboard-read"
           >
             <Download className="h-4 w-4 mr-2" />
             Generate Report
@@ -157,6 +159,7 @@ export default function DashboardContent({ dummyDocuments }) {
               <Button
                 variant="link"
                 className="p-0 h-auto text-xs text-primary mt-2 font-medium"
+                permission="clients-update"
               >
                 Review now →
               </Button>
@@ -287,6 +290,7 @@ export default function DashboardContent({ dummyDocuments }) {
                 variant="ghost"
                 className="w-full text-sm text-primary hover:bg-primary/5"
                 size="sm"
+                permission="clients-read"
               >
                 <Eye className="h-4 w-4 mr-2" />
                 View all clients
@@ -369,6 +373,7 @@ export default function DashboardContent({ dummyDocuments }) {
                 variant="ghost"
                 className="w-full text-sm text-primary hover:bg-primary/5"
                 size="sm"
+                permission="documents-read"
               >
                 <Eye className="h-4 w-4 mr-2" />
                 View all documents
@@ -408,6 +413,7 @@ export default function DashboardContent({ dummyDocuments }) {
                   <Button
                     variant="link"
                     className="p-0 h-auto text-xs text-primary mt-2 font-medium"
+                    permission="clients-update"
                   >
                     Take action →
                   </Button>
@@ -444,6 +450,7 @@ export default function DashboardContent({ dummyDocuments }) {
                 variant="ghost"
                 className="w-full text-sm text-primary hover:bg-primary/5"
                 size="sm"
+                permission="dashboard-read"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 View all alerts

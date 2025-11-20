@@ -2,9 +2,13 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { User } from "@/lib/db";
+import { requirePermission } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request) {
   try {
+    // require permission to list users
+    const denied = requirePermission(request, "roles-read");
+    if (denied) return denied;
     await connectDB();
 
     const users = await User.find({}).populate("role");

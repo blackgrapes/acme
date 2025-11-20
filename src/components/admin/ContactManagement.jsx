@@ -564,6 +564,7 @@ export default function ContactManagement({ contactTab, setContactTab }) {
                       size="sm"
                       onClick={fetchSubmissions}
                       className="h-10 cursor-pointer border-border text-primary hover:bg-primary/10 transition-colors"
+                      permission="contact-read"
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
@@ -695,6 +696,7 @@ export default function ContactManagement({ contactTab, setContactTab }) {
                                     onClick={() =>
                                       handleViewSubmission(submission)
                                     }
+                                    permission="contact-read"
                                   >
                                     <Eye className="h-4 w-4" />
                                   </Button>
@@ -705,6 +707,7 @@ export default function ContactManagement({ contactTab, setContactTab }) {
                                     onClick={() =>
                                       handleEditSubmission(submission)
                                     }
+                                    permission="contact-update"
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
@@ -885,6 +888,7 @@ export default function ContactManagement({ contactTab, setContactTab }) {
                   setViewDialogOpen(false);
                   setEditDialogOpen(true);
                 }}
+                permission="contact-update"
               >
                 <Edit className="h-4 w-4 mr-2 cursor-pointer" />
                 Edit Submission
@@ -1063,7 +1067,7 @@ export default function ContactManagement({ contactTab, setContactTab }) {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={updating}>
+                  <Button type="submit" disabled={updating} permission="contact-update">
                     {updating ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin cursor-pointer" />

@@ -70,16 +70,56 @@ export default function LoginPage() {
         title: "Login Successful",
         description: `Welcome ${data.user.name || data.user.email}!`,
       });
+      // If server didn't return permissions (or empty), call verify endpoint to get authoritative permissions
+      let permissions = data.permissions || [];
+      if (!permissions || permissions.length === 0) {
+        try {
+          const verifyRes = await fetch("/api/auth/verify", {
+            method: "GET",
+            credentials: "include",
+          });
+          if (verifyRes.ok) {
+            const verified = await verifyRes.json();
+            permissions = verified.permissions || permissions;
+            // update localStorage userData with verified permissions
+            localStorage.setItem(
+              "userData",
+              JSON.stringify({ ...(verified || {}), role: verified.role })
+            );
+          }
+        } catch (err) {
+          console.warn("Verify call failed:", err);
+        }
+      }
 
       let redirectPath = "/";
       const redirectTo = searchParams.get("redirect");
 
+      const chooseRedirectFromPermissions = (perms = []) => {
+        if (!perms || perms.length === 0) return "/";
+        if (perms.includes("dashboard-read")) return "/admin-dashboard";
+        if (perms.includes("client-dashboard-read")) return "/client-dashboard";
+
+        const mapping = {
+          "clients-read": "/admin-dashboard/clients",
+          "documents-read": "/admin-dashboard/documents",
+          "requests-read": "/admin-dashboard/requests",
+          "guards-read": "/admin-dashboard/guards",
+          "roles-read": "/admin-dashboard/roles",
+          "contact-read": "/admin-dashboard/contact",
+          "settings-read": "/admin-dashboard/settings",
+        };
+
+        for (const p of perms) {
+          if (p.endsWith("-read") && mapping[p]) return mapping[p];
+        }
+        return "/";
+      };
+
       if (redirectTo) {
         redirectPath = redirectTo;
-      } else if (data.permissions?.includes("dashboard-read")) {
-        redirectPath = "/admin-dashboard";
-      } else if (data.permissions?.includes("client-dashboard-read")) {
-        redirectPath = "/client-dashboard";
+      } else {
+        redirectPath = chooseRedirectFromPermissions(permissions || []);
       }
 
       console.log("Redirecting to:", redirectPath);

@@ -459,6 +459,7 @@ export default function RequestReports() {
                   variant="outline"
                   size="sm"
                   onClick={fetchRequests}
+                  permission="requests-read"
                   className="h-10 cursor-pointer border-border text-primary hover:bg-primary/10 transition-colors"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -558,6 +559,7 @@ export default function RequestReports() {
                                 size="sm"
                                 className="h-8 w-8 p-0 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted"
                                 onClick={() => handleEditRequest(request)}
+                                permission="requests-update"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -717,6 +719,7 @@ export default function RequestReports() {
                   setViewDialogOpen(false);
                   setEditDialogOpen(true);
                 }}
+                permission="requests-update"
               >
                 <Edit className="h-4 w-4 mr-2 cursor-pointer" />
                 Edit Request
@@ -837,10 +840,11 @@ export default function RequestReports() {
                     variant="destructive"
                     onClick={() => handleDeleteRequest(selectedRequest._id)}
                     className="cursor-pointer"
+                    permission="requests-delete"
                   >
                     Delete Request
                   </Button>
-                  <Button type="submit" disabled={updating}>
+                  <Button type="submit" disabled={updating} permission="requests-update">
                     {updating ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin cursor-pointer" />

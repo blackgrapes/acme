@@ -271,13 +271,14 @@ export default function ClientManagement({
           <Button
             variant="outline"
             className="border-primary/20 hover:bg-primary/5"
+            permission="clients-read"
           >
             <Download className="h-4 w-4 mr-2 text-primary" />
             Export
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" permission="clients-create">
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Client
               </Button>
@@ -525,6 +526,7 @@ export default function ClientManagement({
                   <Button
                     type="submit"
                     className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    permission="clients-create"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Create Client Account
@@ -739,6 +741,7 @@ export default function ClientManagement({
                             e.stopPropagation();
                             handleClientRowClick(client._id);
                           }}
+                          permission="clients-read"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -746,6 +749,7 @@ export default function ClientManagement({
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0 text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          permission="clients-update"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>

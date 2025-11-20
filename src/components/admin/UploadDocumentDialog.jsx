@@ -392,6 +392,7 @@ export function UploadDocumentDialog({
             onClick={handleUpload}
             disabled={uploading || files.length === 0 || !formData.type}
             className="flex-1"
+            permission="documents-create"
           >
             {uploading ? (
               <>

@@ -44,35 +44,19 @@ import {
   Key,
   Users,
   Shield,
-  Mail,
-  Clock,
-  AlertCircle,
   UserPlus,
-  Minus,
   RefreshCw,
   Search,
-  Filter,
-  MoreVertical,
   Eye,
-  Copy,
   Check,
   Download,
-  Upload,
   BarChart3,
-  FileText,
-  UserCheck,
-  Settings,
-  Palette,
-  Phone,
-  Building,
   X,
   ArrowLeft,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 
-// RoleManagement.jsx में tabPermissions array को update करें:
 const tabPermissions = [
   {
     id: "dashboard",
@@ -142,6 +126,40 @@ const tabPermissions = [
         icon: Trash2,
         description: "Delete documents",
       },
+    ],
+  },
+  // Frontend content permissions added for newly introduced modules
+  {
+    id: "gallery",
+    name: "Gallery",
+    description: "Manage gallery media and captions",
+    actions: [
+      { id: "create", name: "Create", icon: Plus, description: "Add gallery items" },
+      { id: "read", name: "Read", icon: Eye, description: "View gallery items" },
+      { id: "update", name: "Update", icon: Edit2, description: "Edit gallery items" },
+      { id: "delete", name: "Delete", icon: Trash2, description: "Delete gallery items" },
+    ],
+  },
+  {
+    id: "weprovide",
+    name: "Services (WeProvide)",
+    description: "Manage services shown on the frontend",
+    actions: [
+      { id: "create", name: "Create", icon: Plus, description: "Add services" },
+      { id: "read", name: "Read", icon: Eye, description: "View services" },
+      { id: "update", name: "Update", icon: Edit2, description: "Edit services" },
+      { id: "delete", name: "Delete", icon: Trash2, description: "Delete services" },
+    ],
+  },
+  {
+    id: "testimonials",
+    name: "Testimonials",
+    description: "Manage client testimonials",
+    actions: [
+      { id: "create", name: "Create", icon: Plus, description: "Add testimonials" },
+      { id: "read", name: "Read", icon: Eye, description: "View testimonials" },
+      { id: "update", name: "Update", icon: Edit2, description: "Edit testimonials" },
+      { id: "delete", name: "Delete", icon: Trash2, description: "Delete testimonials" },
     ],
   },
   {
@@ -274,10 +292,7 @@ export default function RoleManagement() {
   const [activeTab, setActiveTab] = useState("roles");
   const [roles, setRoles] = useState([]);
   const [users, setUsers] = useState([]);
-  const [passwordRequests, setPasswordRequests] = useState([]); // Keep dummy for now
   const [selectedPermissions, setSelectedPermissions] = useState([]);
-  const [resetDialogOpen, setResetDialogOpen] = useState(false);
-  const [selectedUserEmail, setSelectedUserEmail] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedPassword, setCopiedPassword] = useState("");
@@ -405,10 +420,6 @@ export default function RoleManagement() {
    }
  };
 
-  const handlePasswordReset = (email) => {
-    setSelectedUserEmail(email);
-    setResetDialogOpen(true);
-  };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -462,16 +473,6 @@ export default function RoleManagement() {
     return matchesSearch && matchesRole;
   });
 
-  // Statistics
-  const stats = {
-    totalUsers: users.length,
-    activeUsers: users.filter((u) => u.status === "Active").length,
-    totalRoles: roles.length,
-    pendingRequests: passwordRequests.filter(
-      (r) => r.status === "Pending Verification"
-    ).length,
-  };
-
   // Count permissions per role for display
   const getPermissionCount = (permissions) => {
     const uniqueTabs = [...new Set(permissions.map((p) => p.split("-")[0]))]
@@ -496,6 +497,7 @@ export default function RoleManagement() {
           <Button
             variant="outline"
             className="border-primary/20 hover:bg-primary/5"
+            permission="roles-read"
           >
             <Download className="h-4 w-4 mr-2 text-primary" />
             Export
@@ -503,6 +505,7 @@ export default function RoleManagement() {
           <Button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center gap-2"
+            permission="roles-create"
           >
             <UserPlus className="h-4 w-4" />
             Create Role & User
@@ -771,6 +774,7 @@ export default function RoleManagement() {
                   type="submit"
                   disabled={loading}
                   className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex-1 flex items-center justify-center gap-2"
+                  permission="roles-create"
                 >
                   {loading ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -825,6 +829,7 @@ export default function RoleManagement() {
                     size="sm"
                     className="rounded-xl"
                     onClick={fetchRoles}
+                    permission="roles-read"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
@@ -893,6 +898,7 @@ export default function RoleManagement() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
+                            permission="roles-read"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -900,6 +906,7 @@ export default function RoleManagement() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
+                            permission="roles-update"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -907,6 +914,7 @@ export default function RoleManagement() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
+                            permission="roles-delete"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1048,6 +1056,7 @@ export default function RoleManagement() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                            permission="roles-read"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -1055,6 +1064,7 @@ export default function RoleManagement() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                            permission="roles-update"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -1063,6 +1073,7 @@ export default function RoleManagement() {
                             size="sm"
                             className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
                             onClick={() => handlePasswordReset(user.email)}
+                            permission="roles-update"
                           >
                             <Key className="h-4 w-4" />
                           </Button>
@@ -1088,117 +1099,6 @@ export default function RoleManagement() {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* Password Reset Requests Section */}
-      <Card className="shadow-md border-0 rounded-2xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-warning/10 to-warning/5 border-b border-warning/20">
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Key className="h-5 w-5 text-warning" />
-            Password Reset Requests
-          </CardTitle>
-          <CardDescription>
-            Handle password reset requests securely with verification and
-            temporary passwords
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {passwordRequests.map((req) => (
-              <div
-                key={req.id}
-                className="flex items-start gap-4 p-4 rounded-2xl bg-muted/30 border border-border/20 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex-shrink-0 rounded-full p-3 bg-warning/20">
-                  <Key className="h-5 w-5 text-warning" />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-foreground">
-                        {req.userName}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {req.userEmail}
-                      </p>
-                    </div>
-                    {getStatusBadge(req.status)}
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(req.requestedAt)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Expires: {req.expiresIn}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl gap-2 px-3 border-primary/20 hover:bg-primary/5"
-                    onClick={() => handlePasswordReset(req.userEmail)}
-                    disabled={req.status !== "Pending Verification"}
-                  >
-                    <Mail className="h-4 w-4" />
-                    Approve
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Reset Password Dialog */}
-      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-        <DialogContent className="rounded-3xl p-8 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-3 justify-center text-warning">
-              <Key className="h-6 w-6" />
-              Reset for {selectedUserEmail}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-4 rounded-2xl bg-warning/10 text-center border border-warning/30">
-              <p className="font-mono font-semibold text-lg bg-secondary/30 p-3 rounded-xl mb-2">
-                TempPass2025!x7kP9#mQvL
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Generated • Expires 24h • Copy & Email
-              </p>
-              <Progress value={100} className="h-1 mt-2 rounded-full" />
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-success/10 border border-success/20">
-              <Mail className="h-4 w-4 text-success" />
-              <span className="text-sm text-success">
-                Send via encrypted email
-              </span>
-            </div>
-          </div>
-          <DialogFooter className="gap-3">
-            <Button
-              variant="outline"
-              className="rounded-2xl flex-1"
-              onClick={() => setResetDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="rounded-2xl bg-gradient-to-r from-warning to-warning/80 shadow-lg flex-1 gap-2"
-              onClick={() => {
-                console.log(`Temp password sent to ${selectedUserEmail}`);
-                setResetDialogOpen(false);
-              }}
-            >
-              <Mail className="h-4 w-4" />
-              Send Securely
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -86,7 +86,38 @@ export default function AdminDashboardLayout({ children }) {
       return;
     }
 
-    if (!hasPermission("dashboard-read")) {
+    // Determine required permission based on current active tab/path
+    const requiredPermissionForTab = (() => {
+      try {
+        const pathSegments = pathname.split("/").filter(Boolean);
+        // pathSegments like ["admin-dashboard", "settings"]
+        const last = pathSegments[pathSegments.length - 1] || "dashboard";
+
+        if (last === "admin-dashboard" || last === "dashboard") return "dashboard-read";
+
+        // Map common tabs to their read permission
+        const mapping = {
+          clients: "clients-read",
+          documents: "documents-read",
+          "company-documents": "documents-read",
+          requests: "requests-read",
+          guards: "guards-read",
+          roles: "roles-read",
+          contact: "contact-read",
+          settings: "settings-read",
+          frontend: "frontend-read",
+        };
+
+        // normalize if tab has subcategory like documents-xxx
+        const main = last.split("-")[0];
+        return mapping[main] || "dashboard-read";
+      } catch (e) {
+        return "dashboard-read";
+      }
+    })();
+
+    if (!hasPermission(requiredPermissionForTab)) {
+      // If user lacks permission for the target tab, clear auth and redirect to login
       localStorage.removeItem("authToken");
       router.push("/login");
     }
@@ -103,7 +134,34 @@ export default function AdminDashboardLayout({ children }) {
     );
   }
 
-  if (!user || !hasPermission("dashboard-read")) {
+  // Compute required permission for current path so render guard matches effect logic
+  const requiredPermissionForTab = (() => {
+    try {
+      const pathSegments = pathname.split("/").filter(Boolean);
+      const last = pathSegments[pathSegments.length - 1] || "dashboard";
+
+      if (last === "admin-dashboard" || last === "dashboard") return "dashboard-read";
+
+      const mapping = {
+        clients: "clients-read",
+        documents: "documents-read",
+        "company-documents": "documents-read",
+        requests: "requests-read",
+        guards: "guards-read",
+        roles: "roles-read",
+        contact: "contact-read",
+        settings: "settings-read",
+        frontend: "frontend-read",
+      };
+
+      const main = last.split("-")[0];
+      return mapping[main] || "dashboard-read";
+    } catch (e) {
+      return "dashboard-read";
+    }
+  })();
+
+  if (!user || !hasPermission(requiredPermissionForTab)) {
     return null;
   }
 

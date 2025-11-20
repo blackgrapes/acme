@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Document from "@/lib/models/Document";
 import { User } from "@/lib/db"; // Assuming User model is exported from db.js or similar
+import { requirePermission } from "@/lib/auth";
 
 export async function GET(request) {
   try {
@@ -23,6 +24,9 @@ export async function GET(request) {
     );
 
     if (admin) {
+      // Require admin to have documents-read permission
+      const denied = requirePermission(request, "documents-read");
+      if (denied) return denied;
       // Admin: Fetch all, with optional filters
       let query = {};
       if (isCompany !== undefined) query.isCompanyDocument = isCompany;
@@ -90,8 +94,11 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     await connectDB();
-    const documentData = await request.json();
+    // Require create permission
+    const denied = requirePermission(request, "documents-create");
+    if (denied) return denied;
 
+    const documentData = await request.json();
     console.log("📥 Creating document:", documentData);
 
     const newDocument = new Document(documentData);

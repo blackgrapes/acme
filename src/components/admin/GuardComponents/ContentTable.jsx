@@ -187,6 +187,7 @@ const GuardsTable = ({
                   e.stopPropagation();
                   onGuardClick(guard._id);
                 }}
+                permission="guards-read"
               >
                 <Eye className="h-4 w-4" />
               </Button>
@@ -196,8 +197,9 @@ const GuardsTable = ({
                 className="h-8 w-8 p-0 cursor-pointer text-primary hover:bg-primary/10"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEditGuard(guard); // ✅ YEH LINE CHANGE KI HAI - onEditGuard call karo
+                  onEditGuard(guard); //YEH LINE CHANGE KI HAI - onEditGuard call karo
                 }}
+                permission="guards-update"
               >
                 <Edit2 className="h-4 w-4" />
               </Button>

@@ -350,6 +350,7 @@ const WeProvideDialog = ({ onSuccess, onError, uploadFile }) => {
           onClick={handleSubmit}
           disabled={submitting || !newService.title || !newService.summary || !newService.slug}
           className="flex-1 bg-primary hover:bg-primary/90 cursor-pointer"
+          permission="weprovide-create"
         >
           {submitting ? (
             <>

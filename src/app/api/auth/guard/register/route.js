@@ -2,9 +2,12 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Guard } from "@/lib/db";
+import { requirePermission } from "@/lib/auth";
 
 export async function POST(request) {
   try {
+    const denied = requirePermission(request, "guards-create");
+    if (denied) return denied;
     await connectDB();
     console.log("🔧 Guard Registration API called");
 

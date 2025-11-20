@@ -607,6 +607,7 @@ export default function GuardManagement({ handleGuardRowClick }) {
                   type="submit"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   disabled={submitting}
+                  permission={dialogMode === 'add' ? 'guards-create' : 'guards-update'}
                 >
                   {submitting ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

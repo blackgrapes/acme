@@ -2,9 +2,12 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Guard } from "@/lib/db";
+import { requirePermission } from "@/lib/auth";
 
 export async function GET(request) {
   try {
+    const denied = requirePermission(request, "guards-read");
+    if (denied) return denied;
     await connectDB();
 
     const { searchParams } = new URL(request.url);

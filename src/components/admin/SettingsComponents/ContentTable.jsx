@@ -455,6 +455,7 @@ const FallbackRequestsTable = ({
                     disabled={actionLoading === request._id}
                     variant="default"
                     className="w-full cursor-pointer flex items-center justify-center gap-2"
+                    permission="requests-update"
                   >
                     {actionLoading === request._id ? (
                       <>
@@ -489,6 +490,7 @@ const FallbackRequestsTable = ({
                     disabled={actionLoading === request._id}
                     variant="destructive"
                     className="w-full flex cursor-pointer items-center justify-center gap-2"
+                    permission="requests-delete"
                   >
                     <svg
                       className="w-4 h-4"
@@ -514,6 +516,7 @@ const FallbackRequestsTable = ({
                     disabled={actionLoading === request._id}
                     variant="outline"
                     className="w-full cursor-pointer"
+                    permission="requests-update"
                   >
                     Reopen Request
                   </Button>
@@ -632,7 +635,7 @@ const FallbackRequestsTable = ({
             </div>
           </div>
 
-          <DialogFooter>
+            <DialogFooter>
             <Button 
               type="button"
               onClick={closeModal} 
@@ -641,16 +644,17 @@ const FallbackRequestsTable = ({
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              onClick={handleModalAction}
-              disabled={
-                !modalState.password ||
-                modalState.password.length < 6 ||
-                actionLoading === modalState.currentRequest?._id
-              }
-              className="cursor-pointer"
-            >
+              <Button
+                type="button"
+                onClick={handleModalAction}
+                disabled={
+                  !modalState.password ||
+                  modalState.password.length < 6 ||
+                  actionLoading === modalState.currentRequest?._id
+                }
+                className="cursor-pointer"
+                permission="requests-update"
+              >
               {actionLoading === modalState.currentRequest?._id ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -728,6 +732,7 @@ const FallbackRequestsTable = ({
               disabled={actionLoading === modalState.currentRequest?._id}
               variant="destructive"
               className="cursor-pointer"
+              permission="requests-delete"
             >
               {actionLoading === modalState.currentRequest?._id ? (
                 <>

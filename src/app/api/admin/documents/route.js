@@ -2,11 +2,15 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Document from "@/lib/models/Document";
+import { requirePermission } from "@/lib/auth";
 
 // ✅ GET - Fetch all documents for admin (no access control)
 export async function GET(request) {
   try {
     await connectDB();
+    // enforce admin documents read permission
+    const denied = requirePermission(request, "documents-read");
+    if (denied) return denied;
     const { searchParams } = new URL(request.url);
     const isCompany = searchParams.get("isCompany") === "true";
 

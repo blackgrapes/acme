@@ -2,9 +2,12 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Guard } from "@/lib/db";
+import { requirePermission } from "@/lib/auth";
 
 export async function GET(request, { params }) {
   try {
+    const denied = requirePermission(request, "guards-read");
+    if (denied) return denied;
     await connectDB();
 
     const { id } = params;
@@ -37,6 +40,8 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
+    const denied = requirePermission(request, "guards-update");
+    if (denied) return denied;
     await connectDB();
 
     const { id } = params;
@@ -94,6 +99,8 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    const denied = requirePermission(request, "guards-delete");
+    if (denied) return denied;
     await connectDB();
 
     const { id } = params;

@@ -2,10 +2,14 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Request from "@/lib/models/Request";
+import { requirePermission } from "@/lib/auth";
 
 // ✅ Get all requests (for admin)
-export async function GET() {
+export async function GET(request) {
   try {
+    // require read permission for requests
+    const denied = requirePermission(request, "requests-read");
+    if (denied) return denied;
     await connectDB();
     const requests = await Request.find().sort({ createdAt: -1 });
     return NextResponse.json({ requests });
@@ -21,6 +25,9 @@ export async function GET() {
 // ✅ Create new request (for client)
 export async function POST(req) {
   try {
+    // Require create permission for creating requests (clients may use public API instead)
+    const denied = requirePermission(req, "requests-create");
+    if (denied) return denied;
     const body = await req.json();
     const { clientName, clientEmail, documentName, documentType, description } =
       body;
@@ -57,6 +64,8 @@ export async function POST(req) {
 // ✅ Update request status
 export async function PUT(req) {
   try {
+    const denied = requirePermission(req, "requests-update");
+    if (denied) return denied;
     const { requestId, status } = await req.json();
     if (!requestId || !status)
       return NextResponse.json(
@@ -81,6 +90,8 @@ export async function PUT(req) {
 // ✅ Delete a request
 export async function DELETE(req) {
   try {
+    const denied = requirePermission(req, "requests-delete");
+    if (denied) return denied;
     const { id } = await req.json();
     if (!id)
       return NextResponse.json({ error: "ID is required" }, { status: 400 });

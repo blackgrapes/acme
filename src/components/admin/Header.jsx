@@ -70,6 +70,7 @@ export default function Header({
               variant="ghost"
               size="icon"
               onClick={() => setSettingsOpen(true)}
+              permission="settings-read"
               className="h-9 w-9 rounded-full hover:bg-muted/50"
             >
               <Settings className="h-5 w-5" />

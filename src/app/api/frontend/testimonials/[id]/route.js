@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Testimonial } from "@/lib/db";
+import { requirePermission } from "@/lib/auth";
 
 export async function GET(request, { params }) {
   try {
@@ -24,6 +25,9 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
+    const denied = await requirePermission(request, "testimonials-update");
+    if (denied) return denied;
+
     await connectDB();
     const data = await request.json();
 
@@ -47,6 +51,9 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    const denied = await requirePermission(request, "testimonials-delete");
+    if (denied) return denied;
+
     await connectDB();
     const testimonial = await Testimonial.findByIdAndDelete(params.id);
 

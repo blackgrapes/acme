@@ -240,7 +240,7 @@ export default function DocumentManagement({
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-2xl px-6 bg-primary shadow-lg">
+            <Button className="rounded-2xl px-6 bg-primary shadow-lg" permission="documents-create">
               <Plus className="h-4 w-4 mr-2" />
               Upload Document
             </Button>
@@ -411,6 +411,7 @@ export default function DocumentManagement({
               <Button
                 onClick={handleDocumentUpload}
                 disabled={!docName || !selectedType || !selectedFile}
+                permission="documents-create"
               >
                 {uploadProgress > 0
                   ? `Uploading... ${uploadProgress}%`
@@ -498,6 +499,7 @@ export default function DocumentManagement({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleView(doc)}
+                            permission="documents-read"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -505,6 +507,7 @@ export default function DocumentManagement({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDownload(doc)}
+                            permission="documents-read"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -512,6 +515,7 @@ export default function DocumentManagement({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(doc)}
+                            permission="documents-delete"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

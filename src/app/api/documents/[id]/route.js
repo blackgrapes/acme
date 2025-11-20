@@ -2,9 +2,12 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Document from "@/lib/models/Document";
+import { requirePermission } from "@/lib/auth";
 
 export async function DELETE(request, { params }) {
   try {
+    const denied = requirePermission(request, "documents-delete");
+    if (denied) return denied;
     await connectDB();
     const { id } = params;
 

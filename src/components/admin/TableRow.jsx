@@ -1,5 +1,7 @@
 // File: src/components/admin/components/TableRow.jsx
+"use client";
 import { Button } from "@/components/ui/button";
+import RequirePermission from "@/components/RequirePermission";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, EyeOff, Video, ImageIcon, MoreHorizontal, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
@@ -167,12 +169,14 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="flex items-center gap-2">
               <StatusBadge showOnHome={item.showOnHome} />
-              <VisibilityToggle 
-                item={item}
-                onToggleVisibility={handleToggleVisibility}
-                togglingVisibility={togglingVisibility}
-                mobile={true}
-              />
+              <RequirePermission permission={`${activeCategory?.id || "unknown"}-update`}>
+                <VisibilityToggle 
+                  item={item}
+                  onToggleVisibility={handleToggleVisibility}
+                  togglingVisibility={togglingVisibility}
+                  mobile={true}
+                />
+              </RequirePermission>
             </div>
             
             <div className="flex items-center gap-1">
@@ -181,6 +185,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
               </p>
               <MobileActions 
                 item={item}
+                activeCategory={activeCategory}
                 getItemName={getItemName}
                 onDeleteItem={handleDeleteClick}
                 onEditItem={handleEditClick}
@@ -305,6 +310,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
               onClick={handleConfirmDelete}
               disabled={deletingItem}
               className="flex-1"
+              permission={`${activeCategory?.id || "unknown"}-delete`}
             >
               {deletingItem ? (
                 <>
@@ -776,7 +782,10 @@ const TestimonialsMobileRow = ({ item, onImageClick, getImagesForItem }) => {
 };
 
 // Common Columns Component - Status, Last Updated, Visibility, Actions
-const CommonColumns = ({ item, onToggleVisibility, onDeleteItem, onEditItem, getItemName, formatDate, togglingVisibility }) => (
+const CommonColumns = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEditItem, getItemName, formatDate, togglingVisibility }) => {
+  const deletePermission = `${activeCategory?.id || "unknown"}-delete`;
+  const updatePermission = `${activeCategory?.id || "unknown"}-update`;
+  return (
   <>
     {/* Status - w-24 */}
     <div className="w-24 px-3 sm:px-4 py-3 sm:py-4 hidden sm:flex items-center flex-shrink-0">
@@ -796,6 +805,7 @@ const CommonColumns = ({ item, onToggleVisibility, onDeleteItem, onEditItem, get
         item={item}
         onToggleVisibility={onToggleVisibility}
         togglingVisibility={togglingVisibility}
+        permission={updatePermission}
       />
     </div>
 
@@ -817,16 +827,18 @@ const CommonColumns = ({ item, onToggleVisibility, onDeleteItem, onEditItem, get
           className="h-8 w-8 p-0 text-destructive cursor-pointer hover:text-destructive"
           onClick={onDeleteItem}
           disabled={togglingVisibility}
+          permission={deletePermission}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>
   </>
-);
+  );
+};
 
 // Mobile Actions Component
-const MobileActions = ({ item, getItemName, onDeleteItem, onEditItem, togglingVisibility }) => (
+const MobileActions = ({ item, activeCategory, getItemName, onDeleteItem, onEditItem, togglingVisibility }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer" disabled={togglingVisibility}>
@@ -838,14 +850,23 @@ const MobileActions = ({ item, getItemName, onDeleteItem, onEditItem, togglingVi
         <Edit className="h-4 w-4 mr-2" />
         Edit
       </DropdownMenuItem> */}
-      <DropdownMenuItem 
-        onClick={onDeleteItem}
-        className="text-destructive"
-        disabled={togglingVisibility}
-      >
-        <Trash2 className="h-4 w-4 mr-2" />
-        Delete
-      </DropdownMenuItem>
+      {
+        (() => {
+          const deletePermission = `${activeCategory?.id || "unknown"}-delete`;
+          return (
+            <RequirePermission permission={deletePermission}>
+              <DropdownMenuItem 
+                onClick={onDeleteItem}
+                className="text-destructive"
+                disabled={togglingVisibility}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </RequirePermission>
+          );
+        })()
+      }
     </DropdownMenuContent>
   </DropdownMenu>
 );
