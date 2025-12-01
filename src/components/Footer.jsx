@@ -63,10 +63,10 @@ export function Footer() {
                 service across India.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-secondary">
-                <BadgeCheck className="h-4 w-4 text-primary" /> MSME
-                <BadgeCheck className="h-4 w-4 text-primary" /> GST
-                <BadgeCheck className="h-4 w-4 text-primary" /> PASARA
-                <BadgeCheck className="h-4 w-4 text-primary" /> ISO
+                <BadgeCheck className="h-4 w-4 text-primary"/>MSME
+                <BadgeCheck className="h-4 w-4 text-primary"/>GST
+                <BadgeCheck className="h-4 w-4 text-primary"/>PASARA
+                <BadgeCheck className="h-4 w-4 text-primary"/>ISO
               </div>
               {/* Live Clock */}
               <div className="text-sm font-medium flex items-center gap-2 text-primary">
@@ -181,17 +181,23 @@ export function Footer() {
               </h4>
               <div className="space-y-2">
                 <p className="text-sm flex items-center gap-2 text-secondary">
-                  <MapPin className="h-4 w-4 text-primary" /> 1st Floor,Acme
-                  House,Opposite <br /> Central Market,Bhiwadi,Alwar, <br /> Bhiwadi-301019,
-                  Rajasthan, India
+                  <MapPin className="h-4 w-4 text-primary" /> 1st Floor, Acme
+                  House, Opposite <br /> Central Market, Bhiwadi, Alwar, <br />{" "}
+                  Bhiwadi-301019, Rajasthan, India
                 </p>
-                <p className="text-sm flex items-center gap-2 text-secondary">
+                <a
+                  href="tel:+919314554244"
+                  className="text-sm flex items-center gap-2 text-secondary hover:text-primary transition-colors cursor-pointer"
+                >
                   <Phone className="h-4 w-4 text-primary" /> +91-9314554244
-                </p>
-                <p className="text-sm flex items-center gap-2 text-secondary">
+                </a>
+                <a
+                  href="mailto:protection.acme@gmail.com"
+                  className="text-sm flex items-center gap-2 text-secondary hover:text-primary transition-colors cursor-pointer"
+                >
                   <Mail className="h-4 w-4 text-primary" />{" "}
                   protection.acme@gmail.com
-                </p>
+                </a>
               </div>
 
               {/* <div className="flex gap-4">
@@ -229,16 +235,29 @@ export function Footer() {
 
       {/* Bottom Bar */}
       <div className="border-t border-border">
-        <div className="container mx-auto px-4 py-4 sm:py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-secondary">
-            <p>
-              © {new Date().getFullYear()} ACME Protection Services Pvt. Ltd.
-              All rights reserved.
-            </p>
-            <p>Empowering businesses with trusted security solutions.</p>
-          </div>
-        </div>
+  <div className="container mx-auto px-4 py-4 sm:py-6">
+    <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-secondary">
+      <p>
+        © {new Date().getFullYear()} ACME Protection Services Pvt. Ltd.
+        All rights reserved.
+      </p>
+      <div className="flex flex-col items-center md:items-end gap-1">
+        <p>Empowering businesses with trusted security solutions.</p>
+        <p>
+          Developed by{" "}
+          <a 
+            href="https://blackgrapessoftech.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:underline transition-colors"
+          >
+            Black Grapes Softech
+          </a>
+        </p>
       </div>
+    </div>
+  </div>
+</div>
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </footer>

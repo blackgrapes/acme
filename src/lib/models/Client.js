@@ -16,6 +16,10 @@ const ClientSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isCurrent: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

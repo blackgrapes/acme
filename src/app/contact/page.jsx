@@ -206,12 +206,9 @@ export default function Contact() {
                   <div className="min-w-0">
                     <p className="font-semibold text-foreground">Address</p>
                     <p className="text-sm text-secondary line-clamp-3">
-                      ACME Protection Services Pvt. Ltd.
-                      <br />
-                      Dattani Tower, Mid Wing, Kore Kendra, Borivali (West),
-                      Mumbai,
-                      <br />
-                      Maharashtra 400092
+                      1st Floor Acme House Opposite
+Central Market Bhiwadi Alwar
+Bhiwadi-301019 Rajasthan India
                     </p>
                   </div>
                 </div>
@@ -220,7 +217,7 @@ export default function Contact() {
                   <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-primary mt-1 flex-shrink-0" />
                   <div>
                     <p className="font-semibold text-foreground">Phone</p>
-                    <p className="text-sm text-secondary">+91 123 456 7890</p>
+                    <p className="text-sm text-secondary">+91-9314554244</p>
                   </div>
                 </div>
 
@@ -229,7 +226,7 @@ export default function Contact() {
                   <div>
                     <p className="font-semibold text-foreground">Email</p>
                     <p className="text-sm text-secondary">
-                      contact@acmeprotection.com
+                      protection.acme@gmail.com
                     </p>
                   </div>
                 </div>

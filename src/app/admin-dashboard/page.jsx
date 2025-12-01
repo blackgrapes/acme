@@ -20,7 +20,6 @@ const dummyDocuments = [
 export default function AdminDashboard() {
   return (
     <DashboardContent
-      // dummyClients={dummyClients}
       dummyDocuments={dummyDocuments}
     />
   );

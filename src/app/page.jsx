@@ -14,9 +14,10 @@ import VideoModal from "./../components/VideoModal";
 
 const headings = [
   "ACME Protection Services Pvt. Ltd.",
-  "Your Trusted Security Partner",
-  "Safeguarding What Matters Most",
+  "Your Trusted Security Partner Since 1988",
+  "Safeguarding People, Property & Peace of Mind",
 ];
+
 
 const paragraphs = [
   "Safeguarding businesses, people, and events with unmatched vigilance and professionalism.",

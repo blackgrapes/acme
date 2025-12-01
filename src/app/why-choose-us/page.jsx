@@ -9,10 +9,17 @@ import {
   Building2,
   Target,
   Handshake,
+  Star,
+  CheckCircle,
+  Settings,
+  Monitor,
+  MapPin,
+  IndianRupee,
 } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import TestimonialCard from "@/components/TestimonialCard";
 
 export default function WhyChooseUs() {
   const [testimonials, setTestimonials] = useState([]);
@@ -35,12 +42,12 @@ export default function WhyChooseUs() {
     }
   };
 
-  // These could also be moved to the database if you want them to be dynamic
   const reasons = [
     {
       icon: ShieldCheck,
       title: "Trusted Security Expertise",
-      desc: "Over 10+ years of delivering reliable and compliant protection services.",
+      desc: "Over 37+ years of delivering reliable and compliant protection services.",
+      badge: "Premium",
     },
     {
       icon: Users,
@@ -51,16 +58,45 @@ export default function WhyChooseUs() {
       icon: Award,
       title: "Certified & Compliant",
       desc: "Fully licensed under PASARA, GST registered, and MSME certified.",
-    },
-    {
-      icon: Headphones,
-      title: "24/7 Support",
-      desc: "Round-the-clock customer support ensuring peace of mind.",
+      badge: "Certified",
     },
     {
       icon: Clock,
       title: "On-Time Response",
       desc: "Quick deployment and proactive monitoring at all times.",
+    },
+    {
+      icon: Target,
+      title: "Customized Solutions",
+      desc: "Tailored security plans designed specifically for your business needs and risks.",
+      badge: "Flexible",
+    },
+
+    {
+      icon: Settings,
+      title: "Customized Solutions",
+      desc: "Tailored security plans designed specifically for your business needs.",
+      badge: "Flexible",
+    },
+
+    {
+      icon: Monitor,
+      title: "Advanced Technology",
+      desc: "Latest surveillance and monitoring equipment for comprehensive security.",
+      badge: "Tech",
+    },
+    {
+      icon: MapPin,
+      title: "Pan-India Coverage",
+      desc: "Security services available across multiple cities and states in India.",
+      badge: "Nationwide",
+    },
+
+    {
+      icon: IndianRupee,
+      title: "Cost-Effective Plans",
+      desc: "Competitive pricing without compromising on quality and reliability.",
+      badge: "Affordable",
     },
   ];
 
@@ -69,77 +105,139 @@ export default function WhyChooseUs() {
       icon: Building2,
       title: "Understanding Needs",
       desc: "We carefully assess your security requirements and risks.",
+      step: "01",
     },
     {
       icon: Target,
       title: "Custom Strategy",
       desc: "We design tailored security solutions that fit your business.",
+      step: "02",
     },
     {
       icon: ShieldCheck,
       title: "Implementation",
       desc: "Deployment of trained staff and advanced monitoring tools.",
+      step: "03",
     },
     {
       icon: Handshake,
       title: "Ongoing Partnership",
       desc: "Continuous improvement, training, and dedicated support.",
+      step: "04",
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="font-sans">
-        <SEOHead
-          title="Why Choose Us — ACME"
-          description="Why choose our services."
-        />
-        <div className="container mx-auto px-4 py-20 text-center">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+  // Skeleton Loading Components
+  const ReasonSkeleton = () => (
+    <div className="rounded-2xl border border-border bg-card p-6 animate-pulse">
+      <div className="h-10 w-10 bg-border rounded-full mb-4"></div>
+      <div className="h-4 bg-border rounded w-3/4 mb-2"></div>
+      <div className="h-3 bg-border rounded w-full mb-1"></div>
+      <div className="h-3 bg-border rounded w-2/3"></div>
+    </div>
+  );
+
+  const TestimonialSkeleton = () => (
+    <div className="rounded-xl border border-border bg-card p-6 animate-pulse h-full flex flex-col">
+      {/* Stars Skeleton */}
+      <div className="flex gap-1 mb-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-4 w-4 bg-border rounded-full"></div>
+        ))}
       </div>
-    );
-  }
+
+      {/* Content Skeleton - Random height for video/text variation */}
+      <div className="flex-1 space-y-3">
+        <div className={`h-4 bg-border rounded w-full`}></div>
+        <div className={`h-4 bg-border rounded w-4/5`}></div>
+        <div className={`h-4 bg-border rounded w-3/4`}></div>
+      </div>
+
+      {/* Author Skeleton */}
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+        <div className="space-y-2">
+          <div className="h-3 bg-border rounded w-20"></div>
+          <div className="h-2 bg-border rounded w-16"></div>
+        </div>
+        <div className="h-6 bg-border rounded w-16"></div>
+      </div>
+    </div>
+  );
+
+  const StatSkeleton = () => (
+    <div className="text-center animate-pulse">
+      <div className="h-8 bg-border rounded w-16 mx-auto mb-2"></div>
+      <div className="h-4 bg-border rounded w-24 mx-auto"></div>
+    </div>
+  );
 
   return (
     <div className="font-sans">
       <SEOHead
-        title="Why Choose Us — ACME"
-        description="Discover why leading organizations trust ACME Protection Services for security solutions."
+        title="Why Choose Us — ACME Protection Services"
+        description="Discover why leading organizations trust ACME Protection Services for premium security solutions. 37+ years experience, certified professionals, 24/7 support."
       />
 
-      {/* Heading */}
-      <section className="py-8 sm:py-12 lg:py-16">
-        <div className="container mx-auto px-4 text-center max-w-2xl">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground">
-            Why <span className="text-primary">Choose Us</span>
+      {/* Hero Header */}
+      <section className="py-6 sm:py-11 lg:py-15 bg-gradient-to-b from-background to-muted/30">
+        <div className="container mx-auto px-4 text-center max-w-3xl">
+          {/* <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
+            <Star className="h-4 w-4" />
+            Trusted by 500+ Corporate Clients
+          </div> */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground leading-tight">
+            Why <span className="text-primary">Choose ACME</span> Protection?
           </h1>
-          <p className="mt-4 text-secondary text-base sm:text-lg">
-            Trusted by corporates, institutions, and enterprises across India
-            for reliable protection and compliance.
+          <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Experience security excellence with 37+ years of trusted service,
+            certified professionals, and round-the-clock protection for your
+            business.
           </p>
-          <div className="w-16 sm:w-20 h-1 bg-primary mx-auto rounded-full mt-4 sm:mt-6"></div>
+          <div className="w-20 h-1.5 bg-primary mx-auto rounded-full mt-8"></div>
         </div>
       </section>
 
-      {/* Reasons Grid */}
-      <section className="py-8 sm:py-12 lg:py-16 mb-12 sm:mb-16">
+      {/* Key Benefits Grid */}
+      <section className="py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {reasons.map((r, i) => {
-              const Icon = r.icon;
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+              Our Key <span className="text-primary">Advantages</span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive security solutions designed to meet your unique
+              business needs
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {reasons.map((reason, index) => {
+              const Icon = reason.icon;
               return (
                 <div
-                  key={i}
-                  className="rounded-2xl border-border bg-card shadow-sm p-4 sm:p-6 hover:shadow-md transition-all w-full flex flex-col items-center"
+                  key={index}
+                  className="group relative rounded-xl border border-border bg-card p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                 >
-                  <Icon className="h-8 sm:h-10 w-8 sm:w-10 text-primary mb-3 sm:mb-4" />
-                  <h3 className="font-semibold text-base sm:text-lg text-foreground text-center">
-                    {r.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-secondary text-center">
-                    {r.desc}
-                  </p>
+                  {reason.badge && (
+                    <span className="absolute -top-2 -right-2 bg-primary text-white text-xs font-medium px-3 py-1 rounded-full">
+                      {reason.badge}
+                    </span>
+                  )}
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                        <Icon className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground mb-2">
+                        {reason.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {reason.desc}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -147,62 +245,100 @@ export default function WhyChooseUs() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-8 sm:py-12 lg:py-16 mb-12 sm:mb-16">
+      {/* Stats Section with Skeleton */}
+      <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-primary">
-                10+
-              </h2>
-              <p className="text-sm text-secondary mt-2">Years of Experience</p>
-            </div>
-            <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-primary">
-                500+
-              </h2>
-              <p className="text-sm text-secondary mt-2">Corporate Clients</p>
-            </div>
-            <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-primary">
-                2000+
-              </h2>
-              <p className="text-sm text-secondary mt-2">
-                Trained Professionals
-              </p>
-            </div>
-            <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-primary">
-                24/7
-              </h2>
-              <p className="text-sm text-secondary mt-2">
-                Support Availability
-              </p>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+              Our <span className="text-primary">Impact</span> in Numbers
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {loading ? (
+              <>
+                <StatSkeleton />
+                <StatSkeleton />
+                <StatSkeleton />
+                <StatSkeleton />
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <h2 className="text-3xl font-bold text-foreground">37+</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Years of Experience
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <h2 className="text-3xl font-bold text-foreground">200+</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Clients
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <h2 className="text-3xl font-bold text-foreground">
+                      3000+
+                    </h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Trained Professionals
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <h2 className="text-3xl font-bold text-foreground">24/7</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Support Availability
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
 
       {/* Process Section */}
-      <section className="py-8 sm:py-12 lg:py-16 mb-12 sm:mb-16">
+      <section className="py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 lg:mb-10 text-foreground">
-            Our Approach
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {steps.map((s, i) => {
-              const Icon = s.icon;
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+              Our <span className="text-primary">4-Step</span> Process
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              A systematic approach to delivering customized security solutions
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
               return (
                 <div
-                  key={i}
-                  className="text-center p-4 sm:p-6 rounded-xl border-border bg-card shadow-md hover:shadow-lg transition-all w-full flex flex-col items-center"
+                  key={index}
+                  className="group relative text-center p-6 rounded-xl border border-border bg-card hover:shadow-lg transition-all duration-300"
                 >
-                  <Icon className="h-8 sm:h-10 w-8 sm:w-10 text-primary mb-3 sm:mb-4" />
-                  <h3 className="font-semibold text-foreground text-sm sm:text-base">
-                    {s.title}
+                  <div className="absolute -top-3 -left-3 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    {step.step}
+                  </div>
+                  <div className="p-4 bg-primary/10 rounded-full inline-flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Icon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-lg mb-3">
+                    {step.title}
                   </h3>
-                  <p className="mt-2 text-sm text-secondary text-center">
-                    {s.desc}
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {step.desc}
                   </p>
                 </div>
               );
@@ -211,49 +347,77 @@ export default function WhyChooseUs() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-8 sm:py-12 lg:py-16 mb-12 sm:mb-16">
+      {/* Testimonials with Skeleton */}
+      <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 lg:mb-10 text-foreground">
-            What Our Clients Say
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {testimonials.map((t, i) => (
-              <div
-                key={t._id}
-                className="rounded-2xl border-border bg-card shadow-sm p-4 sm:p-6 hover:shadow-md transition-all w-full"
-              >
-                <p className="text-sm text-secondary italic">"{t.quote}"</p>
-                <div className="mt-4 text-xs font-medium text-foreground">
-                  — {t.author}
-                </div>
-              </div>
-            ))}
-          </div>
-          {testimonials.length === 0 && (
-            <p className="text-center text-secondary py-8">
-              No testimonials to display.
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+              What Our <span className="text-primary">Clients</span> Say
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Don't just take our word for it - hear from businesses we protect
             </p>
-          )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading ? (
+              <>
+                <TestimonialSkeleton />
+                <TestimonialSkeleton />
+                <TestimonialSkeleton />
+              </>
+            ) : testimonials.length > 0 ? (
+              testimonials.map((testimonial) => (
+                <TestimonialCard
+                  key={testimonial._id}
+                  testimonial={testimonial}
+                />
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-8">
+                <div className="text-muted-foreground mb-4">
+                  No testimonials available at the moment.
+                </div>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                >
+                  Be the first to share your experience
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-8 sm:py-12 lg:py-16 bg-primary/5 rounded-2xl">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-            Ready to Secure Your Business?
-          </h2>
-          <p className="text-secondary mb-4 sm:mb-6 text-sm sm:text-base">
-            Partner with ACME Protection Services and experience peace of mind
-            with trusted security solutions.
-          </p>
-          <Link
-            href="/contact"
-            className="inline-block px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-primary text-white font-medium hover:opacity-90 transition"
-          >
-            Contact Us Today
-          </Link>
+      {/* Enhanced CTA Section */}
+      <section className="py-12 sm:py-16 lg:py-20">
+        <div className="container mx-auto px-4">
+          <div className="rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 p-8 sm:p-12 text-center">
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+                Ready to Secure Your Business?
+              </h2>
+              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                Join 200+ satisfied clients who trust ACME for their security
+                needs. Get a customized security assessment and quote today.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center justify-center px-8 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl"
+                >
+                  Get Free Consultation
+                </Link>
+                <Link
+                  href="/services"
+                  className="inline-flex items-center justify-center px-8 py-3 border border-primary text-primary font-medium rounded-lg hover:bg-primary/5 transition-colors"
+                >
+                  View Our Services
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>

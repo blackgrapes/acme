@@ -12,44 +12,74 @@ import {
   Users,
   FileCheck2,
   CheckCircle2,
+  ShieldCheckIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const timelineData = [
   {
-    year: "2016",
-    title: "Founded ACME Protection",
+    year: "1988",
+    title: "Company Founded",
     description:
-      "Started with a vision to provide reliable and modern security solutions for businesses and communities.",
+      "Mr. V.P. Lohiya commenced operations under the name ACME Protection Services Pvt. Ltd., laying the foundation for modern security services.",
     icon: <RocketIcon className="h-5 w-5 text-white" />,
   },
   {
-    year: "2018",
+    year: "2002",
+    title: "Incorporation & Business Start",
+    description:
+      "Officially incorporated and commenced full-scale operations in security services for corporate and residential clients.",
+    icon: <BuildingIcon className="h-5 w-5 text-white" />,
+  },
+  {
+    year: "2010",
+    title: "Expanded Operations",
+    description:
+      "Started structured business operations with multiple security service offerings for corporates and residential complexes.",
+    icon: <MedalIcon className="h-5 w-5 text-white" />,
+  },
+  {
+    year: "2016",
     title: "Corporate Expansion",
     description:
-      "Secured large-scale contracts with corporates and residential complexes across the city.",
+      "Secured large-scale contracts and expanded the client base across industrial, residential, and corporate sectors.",
     icon: <BuildingIcon className="h-5 w-5 text-white" />,
   },
   {
     year: "2020",
-    title: "Recognized for Excellence",
+    title: "Business Recognition",
     description:
-      "Achieved national compliance certifications and industry recognition for best practices.",
+      "Recognized for excellence in service standards and compliance with national quality and safety norms.",
+    icon: <ShieldCheckIcon className="h-5 w-5 text-white" />,
+  },
+  {
+    year: "2021",
+    title: "ISO 9001:2015 Certification",
+    description:
+      "Achieved ISO 9001:2015 certification for Quality Management Systems covering housekeeping, labor, and security services.",
     icon: <MedalIcon className="h-5 w-5 text-white" />,
   },
   {
     year: "2022",
-    title: "Employee Well-being",
+    title: "Employee Well-being & Digital Processes",
     description:
-      "Introduced specialized training and wellness programs for our workforce.",
+      "Introduced specialized training, wellness programs, and advanced digital monitoring for clients and operations.",
     icon: <HeartIcon className="h-5 w-5 text-white" />,
   },
   {
-    year: "2024",
-    title: "Digital Transformation",
+    year: "2023",
+    title: "Modernization & Digital Growth",
     description:
-      "Launched advanced digital monitoring and client portals for seamless reporting.",
+      "Enhanced digital solutions and modern management systems to improve client experience and operational efficiency.",
     icon: <LaptopIcon className="h-5 w-5 text-white" />,
+  },
+  {
+    year: "2025",
+    title: "Present-Day Leadership",
+    description:
+      "ACME continues to serve hundreds of clients across multiple sectors with highly trained personnel and innovative security solutions.",
+    icon: <ShieldCheckIcon className="h-5 w-5 text-white" />,
   },
 ];
 
@@ -67,9 +97,13 @@ export default function AboutPage() {
           <h1 className="text-3xl md:text-5xl font-extrabold text-foreground">
             About <span className="text-primary">ACME Protection</span>
           </h1>
-          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg">
-            Safeguarding businesses, communities, and people with trusted
-            security solutions since 2016.
+          <p className="mt-4 text-muted-foreground max-w-7xl mx-auto text-lg">
+            Mr.V.P. Lohiya commenced operations of the company under the name of
+            ACME Protection Services Pvt. Ltd. during the year 1988. Since then
+            the company has come a long way in enhancing its competence and
+            skills, with the support of our dedicated, devoted and disciplined
+            security professionals, who have implemented and executed the
+            polices and directives of the company in letter and spirit.
           </p>
           <div className="w-20 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
         </div>
@@ -101,12 +135,12 @@ export default function AboutPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
               Meet Our Leadership
             </h2>
-            <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+            {/* <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
               ACME has been established to serve the ever-increasing commercial,
               industrial, and housing security requirements. Our leadership
               ensures high quality, prompt investigative action, and a
               client-first approach.
-            </p>
+            </p> */}
             <div className="w-20 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
           </div>
 
@@ -125,15 +159,19 @@ export default function AboutPage() {
               </h3>
               <p className="text-primary font-medium">Founder & Chairman</p>
               <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
-                ACME was founded with a mission to provide complete, timely, and
-                objective security services. We treat clients as business
-                associates and work tirelessly for their well-being.
+                ACME has been established to serve the ever increasing
+                commercial industrial and housing security requirements. The
+                company ensures high quality, appropriate and prompt
+                investigative action, while dealing in cases concerning clients.
+                We treat clients as our business associates and work towards
+                their well being.
               </p>
               <p className="mt-3 text-muted-foreground text-sm leading-relaxed">
-                By employing a unique mix of investigative skills, business
-                research, and management techniques, we ensure uncompromised
-                protection. All security personnel are trained at ACME Training
-                School to guarantee the right person for every job.
+                To provide clients complete, timely and objective security, ACME
+                employs unique mix of investigative, business research
+                techniques and management skills. In addition, we train all
+                security personnel at ACME training School, and ensure
+                deployment of appropriate person for the job.
               </p>
             </div>
           </div>
@@ -141,7 +179,7 @@ export default function AboutPage() {
           {/* Other Leaders */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <LeaderCard
-              img="/john.jpg"
+              img="/operationHead.jpg"
               name="John Doe"
               role="Chief Operating Officer"
             />
@@ -253,9 +291,9 @@ export default function AboutPage() {
       {/* Stats */}
       <section className="bg-primary/10 border-t border-border">
         <div className="container mx-auto px-4 py-20 grid sm:grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <StatCard number="10+" label="Years of Experience" />
-          <StatCard number="500+" label="Corporate Clients" />
-          <StatCard number="2000+" label="Trained Professionals" />
+          <StatCard number="37+" label="Years of Experience" />
+          <StatCard number="200+" label="Corporate Clients" />
+          <StatCard number="3000+" label="Trained Professionals" />
           <StatCard number="24/7" label="Support Availability" />
         </div>
       </section>
@@ -265,13 +303,13 @@ export default function AboutPage() {
         <h2 className="text-3xl font-bold text-foreground">
           Partner with ACME Protection
         </h2>
-        <p className="text-muted-foreground max-w-xl mx-auto mt-3">
+        <p className="text-muted-foreground max-w-xl mx-auto mt-3 mb-10">
           From enterprises to residential communities, we provide peace of mind
           through uncompromised security solutions.
         </p>
-        <Button className="mt-8 rounded-full px-6 py-3 bg-primary hover:bg-primary/90 text-white">
+        <Link href="/contact" className="rounded-full px-6 py-3 bg-primary hover:bg-primary/90 text-white">
           Request a Consultation
-        </Button>
+        </Link> 
       </section>
     </main>
   );

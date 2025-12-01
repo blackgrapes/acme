@@ -72,7 +72,7 @@ export default function IntroSection() {
           {/* Right Image */}
           <div className="relative h-[250px] sm:h-[300px] md:h-full order-1 md:order-2">
             <img
-              src="https://images.pexels.com/photos/433502/pexels-photo-433502.jpeg?auto=compress&cs=tinysrgb&w=1600"
+              src="/whychooseus.jpg"
               alt="Corporate security team"
               className="w-full h-full object-cover md:rounded-tl-[4rem]"
               loading="lazy"

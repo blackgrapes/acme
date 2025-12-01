@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, Settings, LogIn, Plus, X, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 const navItems = [
   { to: "/", label: "Home" },
@@ -100,10 +101,16 @@ export function Header() {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link
             href="/"
-            className="flex items-center gap-2 font-extrabold text-xl tracking-tight text-primary transition-colors"
+            className="flex items-center font-extrabold text-xl tracking-tight text-primary transition-colors"
           >
-            <Shield className="h-6 w-6 text-primary transition-colors" />
-            ACME
+            {/* <Shield className="h-6 w-6 text-primary transition-colors" /> */}
+            <Image
+              src="/acme_logo.png"
+              alt="ACME Logo"
+              width={60}
+              height={60}
+              className="object-contain" 
+            />ACME
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">

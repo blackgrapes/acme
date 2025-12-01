@@ -2,13 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Shield, UserCheck, FileCheck2,LayoutDashboard, LogIn } from "lucide-react";
+import {
+  Shield,
+  UserCheck,
+  FileCheck2,
+  LayoutDashboard,
+  LogIn,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
-   const router = useRouter();
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,22 +22,22 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
   // Check login status on component mount
   useEffect(() => {
     checkAuthStatus();
-    
+
     // Listen for storage changes
-    window.addEventListener('storage', checkAuthStatus);
-    window.addEventListener('authChange', checkAuthStatus);
-    
+    window.addEventListener("storage", checkAuthStatus);
+    window.addEventListener("authChange", checkAuthStatus);
+
     return () => {
-      window.removeEventListener('storage', checkAuthStatus);
-      window.removeEventListener('authChange', checkAuthStatus);
+      window.removeEventListener("storage", checkAuthStatus);
+      window.removeEventListener("authChange", checkAuthStatus);
     };
   }, []);
 
   const checkAuthStatus = () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('userData');
-      
+      const token = localStorage.getItem("authToken");
+      const userData = localStorage.getItem("userData");
+
       if (token && userData) {
         setIsLoggedIn(true);
         const user = JSON.parse(userData);
@@ -41,7 +47,7 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
         setUserRole(null);
       }
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.error("Error checking auth status:", error);
       setIsLoggedIn(false);
       setUserRole(null);
     } finally {
@@ -51,17 +57,17 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
 
   const handleDashboardClick = () => {
     if (!isLoggedIn) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     // Redirect based on user role
-    if (userRole === 'Super Admin' || userRole === 'Admin') {
-      router.push('/admin-dashboard');
-    } else if (userRole === 'Client') {
-      router.push('/client-dashboard');
+    if (userRole === "Super Admin" || userRole === "Admin") {
+      router.push("/admin-dashboard");
+    } else if (userRole === "Client") {
+      router.push("/client-dashboard");
     } else {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   };
 
@@ -72,7 +78,17 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
 
   const getDashboardButtonIcon = () => {
     if (isLoading) return <LogIn className="h-4 w-4 mr-2" />;
-    return isLoggedIn ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <LogIn className="h-4 w-4 mr-2" />;
+    return isLoggedIn ? (
+      <LayoutDashboard className="h-4 w-4 mr-2" />
+    ) : (
+      <LogIn className="h-4 w-4 mr-2" />
+    );
+  };
+
+  const [active, setActive] = useState(""); // store which image is front
+
+  const handleClick = (id) => {
+    setActive(id);
   };
 
   return (
@@ -85,26 +101,16 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          {/* Badge */}
-          <motion.span
-            className="inline-flex items-center rounded-full bg-primary/10 text-primary px-4 py-2 text-sm font-medium tracking-wide mb-4 md:mb-6 shadow-sm mx-auto md:mx-0"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            Trusted Security Partner
-          </motion.span>
-
-          {/* Typing Heading */}
           <motion.h1
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight bg-clip-text text-transparent min-h-20 md:min-h-[90px]"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight bg-clip-text text-transparent w-auto md:w-[130%] max-w-none"
             style={{
               backgroundImage: `linear-gradient(to right, #000000, hsl(var(--primary)))`,
-              whiteSpace: "pre-wrap",
+              height: window.innerWidth >= 768 ? "200px" : "120px", // md se upar 200px, mobile 120px
+              overflow: "hidden",
             }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
+            transition={{ duration: 1.0, delay: 0.3 }}
           >
             {typedTitle}
           </motion.h1>
@@ -131,7 +137,7 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
               whileHover={{ scale: 1.05 }}
               className="w-full sm:w-auto"
             >
-              <Button 
+              <Button
                 onClick={handleDashboardClick}
                 className="rounded-full cursor-pointer bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 px-6 py-3 w-full sm:w-auto"
                 disabled={isLoading}
@@ -144,15 +150,13 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
               className="w-full sm:w-auto"
             >
               <Link href={"/services"}>
-             
-              <Button
-                variant="outline"
-                className="rounded-full cursor-pointer border-gray-400 text-gray-800 hover:bg-gray-100 px-6 py-3 w-full sm:w-auto"
-              >
-                Learn More
-              </Button>
-
-               </Link>
+                <Button
+                  variant="outline"
+                  className="rounded-full cursor-pointer border-gray-400 text-gray-800 hover:bg-gray-100 px-6 py-3 w-full sm:w-auto"
+                >
+                  Learn More
+                </Button>
+              </Link>
             </motion.div>
           </motion.div>
 
@@ -185,21 +189,54 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
           </div>
         </motion.div>
 
-        {/* Right Side */}
+        {/* Right Side - Non-Overlapping Layout */}
         <motion.div
-          className="flex justify-center relative order-first md:order-last mt-8 md:mt-0"
+          className="relative flex justify-center items-start md:items-center order-first md:order-last mt-10 md:mt-0"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.9 }}
+          transition={{ duration: 0.8 }}
         >
-          <div className="absolute -inset-8 md:-inset-12 bg-primary/10 blur-3xl rounded-full animate-pulse -z-10" />
-          <motion.img
-            src="/gaurd_image1-Photoroom.png"
-            alt="Guard Illustration"
-            className="max-h-[300px] sm:max-h-[400px] md:max-h-[520px] w-auto drop-shadow-2xl relative z-10"
-            animate={{ y: [0, -15, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
+          {/* BACKGROUND IMAGE 2 - LEFT SIDE */}
+          <div
+            className={`absolute w-[260px] h-[300px] -left-12 top-32 rounded-[40px] overflow-hidden border-4 border-primary transition-all duration-300 ${
+              active === "bg2" ? "z-50 scale-105" : "z-0 scale-100"
+            }`}
+            onClick={() => handleClick("bg2")}
+          >
+            <img
+              src="/h2.jpg"
+              alt="Background 2"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* HERO IMAGE - CENTER BOTTOM */}
+          <div
+            className={`relative w-[330px] h-[420px] rounded-[60px] overflow-hidden border-4 border-black transition-all duration-300 ${
+              active === "hero" ? "z-50 scale-105" : "z-10 scale-100"
+            }`}
+            onClick={() => handleClick("hero")}
+          >
+            <img
+              src="/hero.jpg"
+              alt="Hero"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* BACKGROUND IMAGE 1 - RIGHT SIDE */}
+          <div
+            className={`absolute w-[280px] h-[350px] -right-6 top-0 rounded-[40px] overflow-hidden border-4 border-primary transition-all duration-300 ${
+              active === "bg1" ? "z-50 scale-105" : "z-0 scale-100"
+            }`}
+            onClick={() => handleClick("bg1")}
+          >
+            <img
+              src="/h1.jpg"
+              alt="Background 1"
+              className="w-full h-full object-cover"
+            />
+          </div>
         </motion.div>
       </div>
 

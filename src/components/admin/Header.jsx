@@ -1,15 +1,16 @@
 //File: src/components/admin/Header.jsx
-// Updated Admin Header using Unified Sidebar
+// Professional Navbar with Perfect Left-Right Alignment
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
-import { Settings, Shield, Menu } from "lucide-react";
+import { Palette, Download, Menu, Shield } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import UnifiedSidebar from "./UnifiedSidebar";
 import AdminProfileDialog from "./AdminProfileDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import Image from "next/image";
 
 export default function Header({
   activeTab,
@@ -20,6 +21,7 @@ export default function Header({
   setOpenAdminDialog,
   documentCategories = [],
   companyDocumentCategories = [],
+  onDownloadManual,
 }) {
   const { user } = useAuth();
 
@@ -34,14 +36,20 @@ export default function Header({
   };
 
   return (
-    <header className="border-b border-border/20 bg-card/80 backdrop-blur-sm sticky top-0 z-40">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left Side - Logo & Mobile Menu */}
-          <div className="flex items-center gap-4">
+    <header className="border-b border-border/20 bg-card/95 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 w-full">
+          
+          {/* Left Section - Extreme Left */}
+          <div className="flex items-center gap-6 flex-1 justify-start">
+            {/* Mobile Menu */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="md:hidden cursor-pointer h-10 w-10"
+                >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -53,28 +61,52 @@ export default function Header({
                 isMobile={true}
               />
             </Sheet>
+
+            {/* Logo & Brand */}
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <Shield className="h-6 w-6 text-primary" />
+              <Image
+                src="/acme_logo.png"
+                alt="ACME Logo"
+                width={42}
+                height={42}
+                className="object-contain"
+                priority
+              />
+              <div className="hidden sm:flex flex-col">
+                <h1 className="text-lg font-bold text-foreground leading-tight">
+                  Acme Admin
+                </h1>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Management Portal
+                </p>
               </div>
-              <h1 className="text-xl font-bold text-foreground hidden sm:block">
-                Elite Security Admin
-              </h1>
             </div>
           </div>
 
-          {/* Right Side - Actions */}
-          <div className="flex items-center gap-2">
-            {/* Settings */}
+          {/* Right Section - Extreme Right */}
+          <div className="flex items-center gap-3 flex-1 justify-end">
+            {/* PDF Download Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDownloadManual}
+              className="hidden lg:flex cursor-pointer items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              <span className="text-sm font-medium">User Manual</span>
+            </Button>
+
+            {/* Theme Icon */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSettingsOpen(true)}
               permission="settings-read"
-              className="h-9 w-9 rounded-full hover:bg-muted/50"
+              className="h-10 w-10 cursor-pointer rounded-full hover:bg-muted/50"
             >
-              <Settings className="h-5 w-5" />
+              <Palette className="h-5 w-5" />
             </Button>
+            
             <SettingsDialog
               open={settingsOpen}
               onOpenChange={setSettingsOpen}
@@ -82,24 +114,28 @@ export default function Header({
 
             {/* Profile */}
             <div
-              className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors"
+              className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors border border-transparent hover:border-border/20"
               onClick={() => setOpenAdminDialog(true)}
             >
-              <Avatar className="h-9 w-9">
+              <Avatar className="h-8 w-8 border-2 border-background">
                 <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs font-bold">
                   {getUserInitials(user?.name || "Admin User")}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden md:flex flex-col items-start text-left">
-                <p className="text-sm font-medium text-foreground truncate max-w-32">
+              <div className="hidden xl:flex flex-col items-start text-left">
+                <p className="text-sm font-semibold text-foreground">
                   {user?.name || "Admin User"}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {user?.role || "Administrator"}
-                </p>
+                <div className="flex items-center gap-1">
+                  <Shield className="h-3 w-3 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {user?.role || "Administrator"}
+                  </p>
+                </div>
               </div>
             </div>
+            
             <AdminProfileDialog
               open={openAdminDialog}
               onOpenChange={setOpenAdminDialog}

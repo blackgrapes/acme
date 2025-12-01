@@ -20,19 +20,24 @@ export default function PresenceSection() {
         <div className="grid md:grid-cols-2 gap-6 md:gap-8 lg:gap-12 items-stretch">
           {/* Left: Image */}
           <div className="relative w-full">
-            <img
-              src="/mumbai-skyline.jpg"
-              alt="Mumbai Skyline"
-              className="rounded-xl md:rounded-2xl shadow-2xl object-cover w-full h-[300px] sm:h-[400px] md:h-[500px]"
-            />
-            <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 bg-white/80 backdrop-blur-md px-4 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl shadow-lg">
-              <h3 className="text-lg md:text-xl font-bold text-gray-900">
-                Bhiwadi, Rajasthan
-              </h3>
-              <p className="text-gray-600 text-xs md:text-sm">
-                Our Home Base of Operations
-              </p>
-            </div>
+            <iframe
+              title="Acme Protection Services - Bhiwadi, Rajasthan"
+              src="https://www.google.com/maps?q=28.2098,76.8709&hl=en&z=16&output=embed&t=k"
+              className="w-full h-full border-0 rounded-2xl"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
+
+            {/* Overlay Info */}
+            {/* <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur-md px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-lg">
+    <h3 className="text-lg md:text-xl font-bold text-gray-900">
+      Bhiwadi, Rajasthan
+    </h3>
+    <p className="text-gray-600 text-xs md:text-sm">
+      Our Home Base of Operations
+    </p>
+  </div> */}
           </div>
 
           {/* Right: Stats (Equal Height) */}
