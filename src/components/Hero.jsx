@@ -18,33 +18,54 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [windowWidth, setWindowWidth] = useState(0); // ✅ window width को state में store करें
+
+  // Window width track करें
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWindowWidth(window.innerWidth);
+      
+      const handleResize = () => {
+        setWindowWidth(window.innerWidth);
+      };
+      
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
 
   // Check login status on component mount
   useEffect(() => {
     checkAuthStatus();
 
     // Listen for storage changes
-    window.addEventListener("storage", checkAuthStatus);
-    window.addEventListener("authChange", checkAuthStatus);
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", checkAuthStatus);
+      window.addEventListener("authChange", checkAuthStatus);
+    }
 
     return () => {
-      window.removeEventListener("storage", checkAuthStatus);
-      window.removeEventListener("authChange", checkAuthStatus);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", checkAuthStatus);
+        window.removeEventListener("authChange", checkAuthStatus);
+      }
     };
   }, []);
 
   const checkAuthStatus = () => {
     try {
-      const token = localStorage.getItem("authToken");
-      const userData = localStorage.getItem("userData");
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("authToken");
+        const userData = localStorage.getItem("userData");
 
-      if (token && userData) {
-        setIsLoggedIn(true);
-        const user = JSON.parse(userData);
-        setUserRole(user.role || user.roleName);
-      } else {
-        setIsLoggedIn(false);
-        setUserRole(null);
+        if (token && userData) {
+          setIsLoggedIn(true);
+          const user = JSON.parse(userData);
+          setUserRole(user.role || user.roleName);
+        } else {
+          setIsLoggedIn(false);
+          setUserRole(null);
+        }
       }
     } catch (error) {
       console.error("Error checking auth status:", error);
@@ -105,7 +126,8 @@ export default function HeroSection({ typedTitle, paragraphs, paraIndex }) {
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight bg-clip-text text-transparent w-auto md:w-[130%] max-w-none"
             style={{
               backgroundImage: `linear-gradient(to right, #000000, hsl(var(--primary)))`,
-              height: window.innerWidth >= 768 ? "200px" : "120px", // md se upar 200px, mobile 120px
+              // ✅ windowWidth का use करें (client-side पर ही)
+              height: windowWidth === 0 ? "auto" : (windowWidth >= 768 ? "200px" : "120px"),
               overflow: "hidden",
             }}
             initial={{ opacity: 0, y: 20 }}

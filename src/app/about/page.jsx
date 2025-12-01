@@ -1,7 +1,4 @@
-"use client";
-
 import React from "react";
-import SEOHead from "@/components/SEOHead";
 import {
   RocketIcon,
   BuildingIcon,
@@ -14,7 +11,6 @@ import {
   CheckCircle2,
   ShieldCheckIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 const timelineData = [
@@ -86,10 +82,6 @@ const timelineData = [
 export default function AboutPage() {
   return (
     <main className="w-full bg-background text-foreground">
-      <SEOHead
-        title="About ACME Protection"
-        description="Learn about ACME Protection Services Pvt. Ltd.—our mission, values, and journey."
-      />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-primary/10 via-white to-slate-50 border-b border-border">
@@ -119,7 +111,7 @@ export default function AboutPage() {
         <OverviewCard
           icon={<RocketIcon className="h-6 w-6" />}
           title="Our Vision"
-          text="To be India’s most trusted security partner with innovation and compliance."
+          text="To be India's most trusted security partner with innovation and compliance."
         />
         <OverviewCard
           icon={<BuildingIcon className="h-6 w-6" />}
@@ -135,12 +127,6 @@ export default function AboutPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
               Meet Our Leadership
             </h2>
-            {/* <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-              ACME has been established to serve the ever-increasing commercial,
-              industrial, and housing security requirements. Our leadership
-              ensures high quality, prompt investigative action, and a
-              client-first approach.
-            </p> */}
             <div className="w-20 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
           </div>
 
@@ -380,3 +366,9 @@ function LeaderCard({ img, name, role }) {
     </div>
   );
 }
+
+// viewport export यदि customize करना है तो
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};

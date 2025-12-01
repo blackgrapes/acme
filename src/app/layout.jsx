@@ -10,16 +10,11 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+// Metadata को अलग रखें (viewport निकाल दें)
 export const metadata = {
   title: "Accent Art Security Services",
   description: "Professional security service provider in India",
   manifest: "/manifest.json",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -29,6 +24,14 @@ export const metadata = {
     icon: "/favicon.ico",
     apple: "/icon-192.png",
   },
+};
+
+// viewport को अलग export करें
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default function RootLayout({ children }) {
