@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
+import { User } from "@/lib/db"; // Import User model
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "your-jwt-secret";
 
 export function verifyTokenFromRequest(request) {
   try {
@@ -46,4 +47,66 @@ export function requirePermission(request, permission) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return null; // allowed
+}
+
+// Get current user from request
+export async function getCurrentUser(request) {
+  try {
+    const result = verifyTokenFromRequest(request);
+    if (!result.ok) {
+      return null;
+    }
+
+    const { payload } = result;
+    
+    // Extract user ID from payload
+    const userId = payload.userId || payload.id;
+    if (!userId) {
+      return null;
+    }
+
+    // Get user from database
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate("role", "name permissions");
+    
+    return user;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
+}
+
+// Helper function to get user ID from token (for quick access)
+export function getUserIdFromRequest(request) {
+  try {
+    const result = verifyTokenFromRequest(request);
+    if (!result.ok) {
+      return null;
+    }
+    
+    const { payload } = result;
+    return payload.userId || payload.id;
+  } catch (error) {
+    console.error("Error getting user ID:", error);
+    return null;
+  }
+}
+
+// Check if user has specific role
+export function hasRole(user, roleName) {
+  if (!user || !user.role) return false;
+  return user.role.name === roleName;
+}
+
+// Check if user has any of the given roles
+export function hasAnyRole(user, roleNames) {
+  if (!user || !user.role) return false;
+  return roleNames.includes(user.role.name);
+}
+
+// Get user permissions
+export function getUserPermissions(user) {
+  if (!user || !user.role) return [];
+  return user.role.permissions || [];
 }

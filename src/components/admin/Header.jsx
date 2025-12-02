@@ -97,20 +97,31 @@ export default function Header({
             </Button>
 
             {/* Theme Icon */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSettingsOpen(true)}
-              permission="settings-read"
-              className="h-10 w-10 cursor-pointer rounded-full hover:bg-muted/50"
-            >
-              <Palette className="h-5 w-5" />
-            </Button>
-            
-            <SettingsDialog
-              open={settingsOpen}
-              onOpenChange={setSettingsOpen}
-            />
+<Button
+  variant="ghost"
+  size="icon"
+  onClick={() => setSettingsOpen(true)}
+  permission="settings-read"
+  className="h-10 w-10 cursor-pointer rounded-full hover:bg-muted/50"
+>
+  <Palette className="h-5 w-5" />
+</Button>
+
+<SettingsDialog
+  open={settingsOpen}
+  onOpenChange={setSettingsOpen}
+/>
+
+{/* Logout Button */}
+<Button
+  variant="destructive"
+  size="sm"
+  onClick={() => console.log("Logout clicked")} // logout function yahan
+  className="hidden md:flex items-center gap-2 rounded-lg px-3 py-2"
+>
+  <span className="text-sm font-medium">Logout</span>
+</Button>
+
 
             {/* Profile */}
             <div

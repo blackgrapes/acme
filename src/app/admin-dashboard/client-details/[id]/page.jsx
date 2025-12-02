@@ -1,3 +1,4 @@
+// src/app/admin-dashboard/clients/[id]/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -82,6 +83,12 @@ import {
   AlertTriangle,
   Users as UsersIcon,
   TrendingUp as TrendingUpIcon,
+  Briefcase,
+  Home,
+  Globe,
+  FileSignature,
+  Target,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -94,295 +101,378 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AssignGuardDialog } from "@/components/admin/AssignGuardDialog";
 import { UploadDocumentDialog } from "@/components/admin/UploadDocumentDialog";
-import { toast } from "@/hooks/use-toast";
-
-// Dummy data for categories
-const dummyDocumentCategories = [
-  { id: "1", name: "Agreements", children: ["Service Agreement", "NDA"] },
-  { id: "2", name: "Attendance", children: [] },
-  { id: "3", name: "Bills", children: [] },
-  { id: "4", name: "Salary Slips", children: [] },
-  { id: "5", name: "Compliance", children: ["PF", "ESI"] },
-  { id: "6", name: "GST", children: [] },
-  { id: "7", name: "Guard Documents", children: ["KYC", "Aadhar", "PAN"] },
-];
-
-const dummyFrontendCategories = [
-  { id: "weprovide", name: "We Provide Services" },
-  { id: "gallery", name: "Gallery" },
-  { id: "clients", name: "Clients" },
-  { id: "testimonials", name: "Testimonials" },
-];
-
-const dummyGuards = [
-  {
-    id: 1,
-    name: "Rajesh Kumar",
-    email: "rajesh@securitypro.com",
-    status: "Active",
-    phone: "+91 98765 43210",
-    joinDate: "2024-01-15",
-    experience: "3 years",
-    rating: 4.8,
-    location: "Mumbai",
-    skills: ["Crowd Control", "Surveillance", "First Aid"],
-  },
-  {
-    id: 2,
-    name: "Priya Singh",
-    email: "priya@securitypro.com",
-    status: "Active",
-    phone: "+91 87654 32109",
-    joinDate: "2024-02-20",
-    experience: "2 years",
-    rating: 4.6,
-    location: "Delhi",
-    skills: ["Access Control", "Emergency Response"],
-  },
-  {
-    id: 3,
-    name: "Arun Patel",
-    email: "arun@securitypro.com",
-    status: "Inactive",
-    phone: "+91 76543 21098",
-    joinDate: "2023-11-10",
-    experience: "4 years",
-    rating: 4.7,
-    location: "Bangalore",
-    skills: ["VIP Protection", "Combat Training"],
-  },
-];
+import { toast } from "sonner";
 
 export default function ClientDetails() {
   const params = useParams();
   const clientId = params.id;
   const [client, setClient] = useState(null);
   const [clientDocuments, setClientDocuments] = useState([]);
-  const [clientRequests, setClientRequests] = useState([]);
-  const [clientActivity, setClientActivity] = useState([]);
-  const [showSpecificAccess, setShowSpecificAccess] = useState(false);
-  const [openAdminDialog, setOpenAdminDialog] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [assignGuardOpen, setAssignGuardOpen] = useState(false);
-  const [uploadDocumentOpen, setUploadDocumentOpen] = useState(false);
+  const [assignedGuards, setAssignedGuards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
-  const [guards, setGuards] = useState([]);
-
-  useEffect(() => {
-    if (clientId) {
-      fetchClientDetails();
-    }
-  }, [clientId]);
-
-  const fetchClientDocuments = async () => {
-    try {
-      console.log("🔄 Fetching documents for client:", clientId);
-
-      const response = await fetch(`/api/documents?clientId=${clientId}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log("✅ Documents fetched:", data.documents?.length || 0);
-        setClientDocuments(data.documents || []);
-      } else {
-        console.error("❌ Documents fetch failed:", data.error);
-        setClientDocuments([]);
-      }
-    } catch (error) {
-      console.error("❌ Error fetching documents:", error);
-      setClientDocuments([]);
-    }
-  };
-
-  useEffect(() => {
-    if (clientId) {
-      fetchClientDocuments();
-    }
-  }, [clientId]);
-
-  const handleGuardRowClick = (guardId) => {
+  const [assignGuardOpen, setAssignGuardOpen] = useState(false);
+  const [uploadDocumentOpen, setUploadDocumentOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [refreshing, setRefreshing] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const [documentToDelete, setDocumentToDelete] = useState(null);
+  const handleViewGuardDetails = (guardId) => {
     router.push(`/admin-dashboard/guard-details/${guardId}`);
   };
-
-  const fetchClientDetails = async () => {
+  // Fetch all client data
+  const fetchClientData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const clientResponse = await fetch(`/api/auth/client/${clientId}`);
+      console.log("🔍 Fetching client data for:", clientId);
 
+      // Fetch client details
+      const clientResponse = await fetch(`/api/auth/client/${clientId}`);
       if (!clientResponse.ok) {
-        throw new Error(`Failed to fetch client: ${clientResponse.status}`);
+        const errorData = await clientResponse.json();
+        throw new Error(errorData.error || "Failed to fetch client");
       }
 
       const clientData = await clientResponse.json();
-
-      if (!clientData.client) {
-        throw new Error("Client not found");
-      }
-
+      console.log("✅ Client data:", clientData);
       setClient(clientData.client);
 
-      await fetchRelatedData(clientData.client._id);
+      // Fetch client documents
+      const docsResponse = await fetch(
+        `/api/auth/client/${clientId}/documents`
+      );
+      if (docsResponse.ok) {
+        const docsData = await docsResponse.json();
+        setClientDocuments(docsData.documents || []);
+      } else {
+        setClientDocuments([]);
+      }
+
+      // Fetch assigned guards
+      const guardsResponse = await fetch(`/api/auth/client/${clientId}/guards`);
+      if (guardsResponse.ok) {
+        const guardsData = await guardsResponse.json();
+        setAssignedGuards(guardsData.guards || []);
+      } else {
+        setAssignedGuards([]);
+      }
     } catch (error) {
-      console.error("Error fetching client details:", error);
+      console.error("❌ Error fetching client data:", error);
       setError(error.message);
-      setClient({
-        _id: "default-client-id",
-        name: "Default Client",
-        email: "client@company.com",
-        phone: "+91 98765 43210",
-        address: "Mumbai, India",
-        company: "Sample Company",
-        status: "Active",
-        joined: "31 Oct 2025",
-        activeGuards: 0,
-        satisfaction: 93,
-        monthlyRevenue: "85,000",
-        performance: {
-          fulfilledRequests: 45,
-          satisfactionRate: 93,
-          totalAssignments: 12,
-        },
-        activeSince: "12 months",
-      });
-      setClientDocuments([
-        {
-          id: 1,
-          name: "Service Agreement.pdf",
-          type: "agreement",
-          uploaded: "2025-10-15",
-          size: "1.2 MB",
-          uploader: "Admin User",
-          access: "general",
-          description: "Standard service agreement for security services.",
-        },
-        {
-          id: 2,
-          name: "Attendance Report Oct 2025.xlsx",
-          type: "attendance",
-          uploaded: "2025-10-31",
-          size: "245 KB",
-          uploader: "Admin User",
-          access: "specific",
-          description: "Monthly attendance records for assigned guards.",
-        },
-      ]);
-      setClientRequests([
-        {
-          id: 1,
-          type: "Document Request",
-          date: "2025-10-28",
-          status: "Pending",
-          description: "Request for salary slips of guards.",
-        },
-        {
-          id: 2,
-          type: "Guard Assignment",
-          date: "2025-10-25",
-          status: "Completed",
-          description: "Assigned 2 guards for night shift.",
-        },
-      ]);
-      setClientActivity([
-        {
-          id: 1,
-          type: "Guard Assigned",
-          date: "2025-10-30",
-          description: "Rajesh Kumar assigned to night duty.",
-          icon: "Shield",
-        },
-        {
-          id: 2,
-          type: "Document Uploaded",
-          date: "2025-10-29",
-          description: "Attendance report uploaded.",
-          icon: "FileText",
-        },
-      ]);
+      toast.error("Failed to load client details");
+    } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const fetchRelatedData = async (clientId) => {
-    try {
-      const guardsResponse = await fetch(`/api/guards?clientId=${clientId}`);
-      if (guardsResponse.ok) {
-        const guardsData = await guardsResponse.json();
-        setGuards(guardsData.guards || []);
-      }
-    } catch (error) {
-      console.error("Error fetching guards:", error);
-      setGuards(dummyGuards);
+  useEffect(() => {
+    if (clientId) {
+      fetchClientData();
+    }
+  }, [clientId]);
+
+  const handleRemoveGuard = async (guardId, guardName) => {
+    if (
+      !confirm(`Are you sure you want to remove ${guardName} from this client?`)
+    ) {
+      return;
     }
 
     try {
-      const requestsResponse = await fetch(
-        `/api/requests?clientId=${clientId}`
+      setRefreshing(true);
+
+      // Use DELETE method with query parameter
+      const response = await fetch(
+        `/api/auth/client/${clientId}/guards?guardId=${guardId}`,
+        {
+          method: "DELETE",
+        }
       );
-      if (requestsResponse.ok) {
-        const requestsData = await requestsResponse.json();
-        setClientRequests(requestsData.requests || []);
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`${guardName} removed successfully!`);
+        // Refresh data
+        await fetchClientData();
+      } else {
+        toast.error(data.error || "Failed to remove guard");
       }
     } catch (error) {
-      console.error("Error fetching requests:", error);
-      setClientRequests([
-        {
-          id: 1,
-          type: "Document Request",
-          date: "2025-10-28",
-          status: "Pending",
-          description: "Request for salary slips of guards.",
-        },
-        {
-          id: 2,
-          type: "Guard Assignment",
-          date: "2025-10-25",
-          status: "Completed",
-          description: "Assigned 2 guards for night shift.",
-        },
-      ]);
+      console.error("Error removing guard:", error);
+      toast.error("Error removing guard");
+    } finally {
+      setRefreshing(false);
     }
+  };
+
+  // Handle guard assignment
+  const handleGuardAssign = async (guardId) => {
+    try {
+      setRefreshing(true);
+
+      const response = await fetch(`/api/auth/client/${clientId}/guards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guardId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Guard assigned successfully!");
+        // Refresh data
+        await fetchClientData();
+      } else {
+        toast.error(data.error || "Failed to assign guard");
+      }
+    } catch (error) {
+      console.error("Error assigning guard:", error);
+      toast.error("Error assigning guard");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleDocumentUpload = async () => {
+    try {
+      setRefreshing(true);
+
+      // Just refresh the documents list
+      const docsResponse = await fetch(
+        `/api/auth/client/${clientId}/documents`
+      );
+      if (docsResponse.ok) {
+        const docsData = await docsResponse.json();
+        setClientDocuments(docsData.documents || []);
+        toast.success("Documents refreshed successfully!");
+      } else {
+        toast.error("Failed to refresh documents");
+      }
+    } catch (error) {
+      console.error("Error refreshing documents:", error);
+      toast.error("Error refreshing documents");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Format address
+  const formatAddress = (address) => {
+    if (!address) return "Address not provided";
+
+    if (typeof address === "string") return address;
+
+    const parts = [];
+    if (address.street) parts.push(address.street);
+    if (address.city) parts.push(address.city);
+    if (address.state) parts.push(address.state);
+    if (address.postalCode) parts.push(address.postalCode);
+    if (address.country && address.country !== "India")
+      parts.push(address.country);
+
+    return parts.join(", ") || "Address not provided";
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "Not set";
 
     try {
-      const activityResponse = await fetch(
-        `/api/activity?clientId=${clientId}`
-      );
-      if (activityResponse.ok) {
-        const activityData = await activityResponse.json();
-        setClientActivity(activityData.activity || []);
-      }
-    } catch (error) {
-      console.error("Error fetching activity:", error);
-      setClientActivity([
-        {
-          id: 1,
-          type: "Guard Assigned",
-          date: "2025-10-30",
-          description: "Rajesh Kumar assigned to night duty.",
-          icon: "Shield",
-        },
-        {
-          id: 2,
-          type: "Document Uploaded",
-          date: "2025-10-29",
-          description: "Attendance report uploaded.",
-          icon: "FileText",
-        },
-      ]);
-    }
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Not set";
 
-    setLoading(false);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return "Not set";
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return "0 Bytes";
+
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const getDocumentTypeName = (typeId) => {
+    const documentCategories = [
+      { id: "agreement", name: "Agreement" },
+      { id: "attendance", name: "Attendance" },
+      { id: "bills", name: "Bills" },
+      { id: "salary-sheet", name: "Salary Sheet" },
+      { id: "pay-slip", name: "Pay Slip" },
+      { id: "esi", name: "ESI" },
+      { id: "pf", name: "PF" },
+      { id: "employee-details", name: "Employee Details" },
+      { id: "training", name: "Training" },
+      { id: "night-checking", name: "Night Checking" },
+      { id: "paid-gst", name: "Paid GST" },
+    ];
+
+    const category = documentCategories.find((cat) => cat.id === typeId);
+    return category ? category.name : typeId;
+  };
+
+  // Download document with custom filename
+  const handleDownloadDocument = (doc) => {
+    try {
+      // Extract file extension
+      const fileExtension =
+        doc.originalName?.split(".").pop() ||
+        doc.fileName?.split(".").pop() ||
+        "";
+
+      // Get document type name
+      const docTypeName = getDocumentTypeName(doc.type);
+
+      // Format date for filename (use custom date if available, otherwise use upload date)
+      let dateForFilename = "";
+
+      if (doc.documentStartDate) {
+        const date = new Date(doc.documentStartDate);
+        dateForFilename = date
+          .toLocaleDateString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+          })
+          .replace(/ /g, "-")
+          .replace(/,/g, "");
+      } else if (doc.uploaded) {
+        const date = new Date(doc.uploaded);
+        dateForFilename = date
+          .toLocaleDateString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+          })
+          .replace(/ /g, "-")
+          .replace(/,/g, "");
+      }
+
+      // Clean document name for filename
+      const cleanDocName = (doc.name || "Document")
+        .replace(/[^a-zA-Z0-9-_]/g, "_")
+        .replace(/_+/g, "_")
+        .substring(0, 50);
+
+      // Construct filename
+      let fileName = `${cleanDocName}`;
+
+      if (docTypeName) {
+        fileName += `_${docTypeName.replace(/ /g, "_")}`;
+      }
+
+      if (dateForFilename) {
+        fileName += `_${dateForFilename}`;
+      }
+
+      // Add extension
+      fileName += `.${fileExtension}`;
+
+      // Create download link
+      const link = document.createElement("a");
+      link.href = doc.fileUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success(`Downloading: ${fileName}`);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast.error("Error downloading document");
+
+      // Fallback to original download
+      const link = document.createElement("a");
+      link.href = doc.fileUrl;
+      link.download = doc.originalName || doc.name || "document";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+ 
+
+const handleDeleteDocument = async (documentId, documentName) => {
+  if (!confirm(`Are you sure you want to delete "${documentName}"? This action cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    setRefreshing(true);
+    
+    // Fetch API with credentials (cookies will be sent automatically)
+    const response = await fetch(`/api/auth/client/${clientId}/documents?documentId=${documentId}`, {
+      method: "DELETE",
+      credentials: 'include', // This sends cookies
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log("Delete response status:", response.status);
+    
+    const data = await response.json();
+    console.log("Delete response data:", data);
+
+    if (response.ok) {
+      toast.success("Document deleted successfully!");
+      // Update the documents list by filtering out the deleted document
+      setClientDocuments(prevDocs => prevDocs.filter(doc => doc.id !== documentId));
+    } else {
+      toast.error(data.error || "Failed to delete document");
+    }
+  } catch (error) {
+    console.error("Error deleting document:", error);
+    toast.error("Error deleting document");
+  } finally {
+    setRefreshing(false);
+  }
+};
+
+  // Calculate contract status
+  const getContractStatus = () => {
+    if (!client?.contractEndDate) return "No Contract";
+
+    const today = new Date();
+    const endDate = new Date(client.contractEndDate);
+    const diffTime = endDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "Expired";
+    if (diffDays <= 30) return "Expiring Soon";
+    return "Active";
+  };
+
+  // Calculate remaining days
+  const getRemainingDays = () => {
+    if (!client?.contractEndDate) return null;
+
+    const today = new Date();
+    const endDate = new Date(client.contractEndDate);
+    const diffTime = endDate - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading client details...</p>
         </div>
       </div>
@@ -400,290 +490,530 @@ export default function ClientDetails() {
           <p className="text-muted-foreground mb-4">
             {error || "Client details could not be loaded."}
           </p>
-          <Button onClick={() => router.push("/admin-dashboard")}>
+          <Button className="cursor-pointer" onClick={() => router.push("/admin-dashboard/clients")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            Back to Clients
           </Button>
         </div>
       </div>
     );
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
     <div className="space-y-6">
-      {/* Enhanced Profile Header with Avatar */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src="/placeholder.svg" alt={client.name} />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-background text-xl">
+          <Button
+          className="cursor-pointer"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/admin-dashboard/clients")}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Client Details</h1>
+            <p className="text-muted-foreground">
+              Manage {client.name}'s information
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+          className="cursor-pointer"
+            variant="outline"
+            size="sm"
+            onClick={fetchClientData}
+            disabled={refreshing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+
+          <Button className="cursor-pointer" variant="outline" onClick={() => setActiveTab("documents")}>
+            <FileText className="h-4 w-4 mr-2" />
+            Documents ({clientDocuments.length})
+          </Button>
+
+          <Button className="cursor-pointer" onClick={() => setAssignGuardOpen(true)}>
+            <Users className="h-4 w-4 mr-2" />
+            Assign Guard
+          </Button>
+        </div>
+      </div>
+
+      {/* Client Profile Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl border">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-20 w-20">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-2xl">
               {client.name?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {client.name}
-            </h1>
-            <p className="text-muted-foreground">Client ID: {clientId}</p>
+            <h1 className="text-3xl font-bold">{client.name}</h1>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <Badge
+                variant={client.status === "Active" ? "default" : "secondary"}
+              >
+                {client.status || "Active"}
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Briefcase className="h-3 w-3" />
+                {client.clientType || "Corporate"}
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Joined {formatDate(client.joinDate)}
+              </Badge>
+            </div>
           </div>
         </div>
-        <Badge variant="default" className="text-lg px-4 py-2">
-          {client.status || "Active"}
-        </Badge>
+
+        <div className="text-right">
+          <p className="text-sm text-muted-foreground">Contract Number</p>
+          <p className="text-lg font-semibold">
+            {client.contractNumber || "No contract"}
+          </p>
+          <Badge
+            variant={
+              getContractStatus() === "Active"
+                ? "default"
+                : getContractStatus() === "Expiring Soon"
+                ? "secondary"
+                : "destructive"
+            }
+            className="mt-2"
+          >
+            {getContractStatus()}
+            {getRemainingDays() && getContractStatus() !== "Expired" && (
+              <span className="ml-1">({getRemainingDays()} days)</span>
+            )}
+          </Badge>
+        </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      {/* Tabs */}
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="guards">Guards</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="guards">
+            Guards ({assignedGuards.length})
+          </TabsTrigger>
+          <TabsTrigger value="documents">
+            Documents ({clientDocuments.length})
+          </TabsTrigger>
         </TabsList>
 
-        {/* Enhanced Overview Tab */}
+        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <Card className="rounded-3xl border-border/70 shadow-xl">
-            <CardHeader className="p-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Stats Cards */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Assigned Guards
+                    </p>
+                    <p className="text-3xl font-bold mt-2">
+                      {assignedGuards.length}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Required: {client.requiredGuards?.total || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Shield className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+                <Progress
+                  value={
+                    client.requiredGuards?.total
+                      ? (assignedGuards.length / client.requiredGuards.total) *
+                        100
+                      : 0
+                  }
+                  className="mt-4 h-2"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Contract Value
+                    </p>
+                    <p className="text-3xl font-bold mt-2">
+                      ₹{(client.contractValue || 0).toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Monthly: ₹
+                      {Math.round(
+                        (client.contractValue || 0) / 12
+                      ).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <CreditCard className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Service Sites
+                    </p>
+                    <p className="text-3xl font-bold mt-2">
+                      {client.sites?.length || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {client.sites?.[0]?.siteName || "No sites"}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <Home className="h-6 w-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Service Types
+                    </p>
+                    <p className="text-3xl font-bold mt-2">
+                      {client.serviceType?.length || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {client.securityPlan || "Standard"} Plan
+                    </p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <Shield className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Contact Information */}
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Building className="h-6 w-6" />
-                Client Overview
+                <User className="h-5 w-5" />
+                Contact Information
               </CardTitle>
-              <CardDescription>
-                Comprehensive insights into {client.name}'s engagement and
-                performance.
-              </CardDescription>
             </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {/* Enhanced Profile Summary Cards with Icons */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="rounded-2xl border-primary/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <Shield className="h-6 w-6 text-primary mr-2" />
-                      <div className="text-3xl font-bold text-primary">
-                        {client.activeGuards}
-                      </div>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">
+                      Email Address
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Mail className="h-4 w-4" />
+                      <span className="font-medium">{client.email}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Active Guards
-                    </p>
-                    <Progress
-                      value={client.activeGuards * 10}
-                      className="mt-2 h-1"
-                    />
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl border-success/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <Star className="h-6 w-6 text-success mr-2" />
-                      <div className="text-3xl font-bold text-success">
-                        {client.satisfaction}%
-                      </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm text-muted-foreground">
+                      Phone Number
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Phone className="h-4 w-4" />
+                      <span className="font-medium">
+                        {client.phone || "Not provided"}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Satisfaction Rate
-                    </p>
-                    <Progress
-                      value={client.satisfaction}
-                      className="mt-2 h-1"
-                    />
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl border-secondary/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <TrendingUp className="h-6 w-6 text-secondary mr-2" />
-                      <div className="text-3xl font-bold text-secondary">
-                        ₹{client.monthlyRevenue}
-                      </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm text-muted-foreground">
+                      Alternate Phone
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Phone className="h-4 w-4" />
+                      <span className="font-medium">
+                        {client.alternatePhone || "Not provided"}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Monthly Revenue
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl border-destructive/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <UsersIcon className="h-6 w-6 text-destructive mr-2" />
-                      <div className="text-3xl font-bold text-destructive">
-                        {client.performance?.totalAssignments || 0}
-                      </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">
+                      Company
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Building className="h-4 w-4" />
+                      <span className="font-medium">
+                        {client.companyName || "No company"}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Total Assignments
-                    </p>
-                  </CardContent>
-                </Card>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm text-muted-foreground">
+                      Designation
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <IdCard className="h-4 w-4" />
+                      <span className="font-medium">
+                        {client.designation || "Not specified"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm text-muted-foreground">
+                      Address
+                    </Label>
+                    <div className="flex items-start gap-2 mt-1">
+                      <MapPin className="h-4 w-4 mt-1" />
+                      <span className="font-medium">
+                        {formatAddress(client.address)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contract Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSignature className="h-5 w-5" />
+                Contract Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div>
+                  <Label className="text-sm text-muted-foreground">
+                    Start Date
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Calendar className="h-4 w-4" />
+                    <span className="font-medium">
+                      {formatDate(client.contractStartDate)}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm text-muted-foreground">
+                    End Date
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Calendar className="h-4 w-4" />
+                    <span className="font-medium">
+                      {formatDate(client.contractEndDate)}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm text-muted-foreground">
+                    Contract Value
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="font-medium">
+                      ₹{(client.contractValue || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Enhanced Contact Info with Better Layout */}
-              <Card className="rounded-2xl border-border/50 hover:shadow-md transition-all">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Contact Details
-                  </h3>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3 text-sm">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-foreground font-medium">
-                          {client.email}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3 text-sm">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-foreground font-medium">
-                          {client.phone}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3 text-sm">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-foreground font-medium">
-                          {client.address}
-                        </span>
-                      </div>
-                    </div>
+              {/* Service Details */}
+              {client.serviceType && client.serviceType.length > 0 && (
+                <div className="mt-6">
+                  <Label className="text-sm text-muted-foreground">
+                    Service Types
+                  </Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {client.serviceType.map((service, index) => (
+                      <Badge key={index} variant="outline">
+                        {service}
+                      </Badge>
+                    ))}
                   </div>
-                  <div className="mt-4 pt-4 border-t border-border/50">
-                    <p className="text-sm text-muted-foreground">
-                      Joined: {formatDate(client.joined)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              )}
 
-              {/* Enhanced Recent Assignments with More Details */}
-              <Card className="rounded-2xl border-border/50 hover:shadow-md transition-all">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Recent Assignments
-                  </h3>
+              {/* Equipment Required */}
+              {client.equipmentRequired &&
+                client.equipmentRequired.length > 0 && (
+                  <div className="mt-6">
+                    <Label className="text-sm text-muted-foreground">
+                      Equipment Required
+                    </Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {client.equipmentRequired.map((equipment, index) => (
+                        <Badge key={index} variant="secondary">
+                          {equipment}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Details Tab */}
+        <TabsContent value="details" className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Sites Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  Service Sites
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {client.sites && client.sites.length > 0 ? (
                   <div className="space-y-4">
-                    {[1, 2, 3].map((index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted/50 to-background/30 border border-border/30 hover:shadow-sm transition-all"
-                      >
-                        <div className="flex-1 mb-3 sm:mb-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="font-semibold text-foreground">
-                              Night Shift Security
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className="rounded-full text-xs"
-                            >
-                              2 Guards
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{formatDate(new Date())} - Dec 31, 2025</span>
-                            <span>•</span>
-                            <span>3 months</span>
-                          </div>
+                    {client.sites.map((site, index) => (
+                      <div key={index} className="p-4 border rounded-lg">
+                        <div className="font-medium mb-2">
+                          {site.siteName || "Unnamed Site"}
                         </div>
-
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 fill-current text-yellow-500" />
-                              <span className="font-medium">4.8</span>
-                            </div>
-                            <div className="w-20">
-                              <Progress
-                                value={96}
-                                className="h-2 rounded-full bg-muted"
-                              />
-                            </div>
-                          </div>
-
-                          <Badge variant="default" className="rounded-full">
-                            Active
-                          </Badge>
+                        <div className="text-sm text-muted-foreground mb-1">
+                          <MapPin className="h-3 w-3 inline mr-1" />
+                          {site.address || "No address"}
                         </div>
+                        <div className="text-sm text-muted-foreground">
+                          <User className="h-3 w-3 inline mr-1" />
+                          {site.contactPerson || "No contact"}
+                        </div>
+                        {site.contactNumber && (
+                          <div className="text-sm text-muted-foreground">
+                            <Phone className="h-3 w-3 inline mr-1" />
+                            {site.contactNumber}
+                          </div>
+                        )}
+                        <Badge
+                          variant={site.isActive ? "default" : "secondary"}
+                          className="mt-2"
+                        >
+                          {site.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                ) : (
+                  <div className="text-center py-8">
+                    <Home className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      No service sites configured
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-              {/* Enhanced Performance Metrics */}
-              <div className="grid md:grid-cols-3 gap-6">
-                <Card className="rounded-2xl border-success/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <CheckCircle2 className="h-6 w-6 text-green-600 mr-2" />
-                      <div className="text-2xl font-bold text-green-600">
-                        {client.performance?.fulfilledRequests || 0}
+            {/* Emergency Contacts */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Emergency Contacts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {client.emergencyContacts &&
+                client.emergencyContacts.length > 0 ? (
+                  <div className="space-y-4">
+                    {client.emergencyContacts.map((contact, index) => (
+                      <div key={index} className="p-4 border rounded-lg">
+                        <div className="font-medium mb-2">
+                          {contact.name || "Unnamed Contact"}
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-1">
+                          <span className="font-medium">Relationship:</span>{" "}
+                          {contact.relationship || "Not specified"}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <Phone className="h-3 w-3 inline mr-1" />
+                          {contact.phone || "No phone number"}
+                        </div>
+                        <Badge variant="outline" className="mt-2">
+                          Priority: {contact.priority || 1}
+                        </Badge>
                       </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Requests Fulfilled
-                    </div>
-                    <Progress value={80} className="mt-2 h-1" />
-                  </CardContent>
-                </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      No emergency contacts added
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                <Card className="rounded-2xl border-primary/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <Award className="h-6 w-6 text-blue-600 mr-2" />
-                      <div className="text-2xl font-bold text-blue-600">
-                        {client.performance?.satisfactionRate || 0}%
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Satisfaction Rate
-                    </div>
-                    <Progress
-                      value={client.performance?.satisfactionRate || 0}
-                      className="mt-2 h-1"
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-secondary/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <Clock className="h-6 w-6 text-purple-600 mr-2" />
-                      <div className="text-2xl font-bold text-purple-600">
-                        {client.activeSince || "12 months"}
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Active Duration
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+          {/* Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Additional Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {client.notes ? (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="whitespace-pre-wrap">{client.notes}</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">No additional notes</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Guards Tab */}
         <TabsContent value="guards" className="space-y-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Assigned Guards</h2>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold">Assigned Guards</h2>
+              <p className="text-muted-foreground">
+                {assignedGuards.length} guard(s) assigned • Required:{" "}
+                {client.requiredGuards?.total || 0}
+              </p>
+            </div>
             <Dialog open={assignGuardOpen} onOpenChange={setAssignGuardOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="cursor-pointer" disabled={refreshing}>
                   <Plus className="h-4 w-4 mr-2" />
                   Assign Guard
                 </Button>
@@ -692,41 +1022,51 @@ export default function ClientDetails() {
                 open={assignGuardOpen}
                 onOpenChange={setAssignGuardOpen}
                 clientId={clientId}
-                onAssign={(guard) => {
-                  fetchClientDetails();
-                }}
+                onAssign={handleGuardAssign}
               />
             </Dialog>
           </div>
 
-          {guards.length > 0 ? (
-            <Card className="rounded-2xl">
+          {assignedGuards.length > 0 ? (
+            <Card>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Guard Name</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead>Guard</TableHead>
+                      <TableHead>Contact</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Phone</TableHead>
                       <TableHead>Join Date</TableHead>
-                      <TableHead>Experience</TableHead>
                       <TableHead>Rating</TableHead>
-                      <TableHead>Location</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {guards.map((guard) => (
-                      <TableRow
-                        key={guard.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleGuardRowClick(guard.id)}
-                      >
-                        <TableCell className="font-medium">
-                          {guard.name}
+                    {assignedGuards.map((guard) => (
+                      <TableRow key={guard.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>
+                                {guard.name?.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{guard.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {guard.designation}
+                              </div>
+                            </div>
+                          </div>
                         </TableCell>
-                        <TableCell>{guard.email}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm">{guard.email}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {guard.phone}
+                            </div>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant={
@@ -738,34 +1078,37 @@ export default function ClientDetails() {
                             {guard.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{guard.phone}</TableCell>
                         <TableCell>{guard.joinDate}</TableCell>
-                        <TableCell>{guard.experience}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-current text-yellow-500" />
                             <span>{guard.rating}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{guard.location}</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
+                              <Button variant="ghost" className="h-8 cursor-pointer w-8 p-0">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/admin-dashboard/guard-details/${guard.id}`
+                                  )
+                                }
+                              >
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit2 className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() =>
+                                  handleRemoveGuard(guard.id, guard.name)
+                                }
+                              >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Remove
                               </DropdownMenuItem>
@@ -780,14 +1123,15 @@ export default function ClientDetails() {
             </Card>
           ) : (
             <Card className="text-center py-12">
-              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">No Guards Assigned</h3>
               <p className="text-muted-foreground mb-4">
-                This client has no assigned guards yet.
+                This client has no assigned guards yet. Assign guards to start
+                security services.
               </p>
               <Dialog open={assignGuardOpen} onOpenChange={setAssignGuardOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button className="cursor-pointer">
                     <Plus className="h-4 w-4 mr-2" />
                     Assign First Guard
                   </Button>
@@ -796,9 +1140,7 @@ export default function ClientDetails() {
                   open={assignGuardOpen}
                   onOpenChange={setAssignGuardOpen}
                   clientId={clientId}
-                  onAssign={(guard) => {
-                    fetchClientDetails();
-                  }}
+                  onAssign={handleGuardAssign}
                 />
               </Dialog>
             </Card>
@@ -807,38 +1149,23 @@ export default function ClientDetails() {
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Client Documents</h2>
-            <Dialog
-              open={uploadDocumentOpen}
-              onOpenChange={setUploadDocumentOpen}
-            >
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Upload Document
-                </Button>
-              </DialogTrigger>
-              <UploadDocumentDialog
-                open={uploadDocumentOpen}
-                onOpenChange={setUploadDocumentOpen}
-                clientId={clientId}
-                onUpload={async (documents) => {
-                  console.log(
-                    "🔄 onUpload callback triggered with:",
-                    documents
-                  );
-                  await fetchClientDocuments();
-                  if (documents && documents.length > 0) {
-                    setClientDocuments((prev) => [...prev, ...documents]);
-                  }
-                }}
-              />
-            </Dialog>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold">Client Documents</h2>
+              <p className="text-muted-foreground">
+                {clientDocuments.length} document(s) uploaded
+              </p>
+            </div>
+
+            {/* SIMPLE BUTTON - Dialog wrapper REMOVE karo */}
+            <Button className="cursor-pointer" onClick={() => setUploadDocumentOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Upload Document
+            </Button>
           </div>
 
           {clientDocuments.length > 0 ? (
-            <Card className="rounded-2xl">
+            <Card>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
@@ -847,8 +1174,7 @@ export default function ClientDetails() {
                       <TableHead>Type</TableHead>
                       <TableHead>Uploaded</TableHead>
                       <TableHead>Size</TableHead>
-                      <TableHead>Uploader</TableHead>
-                      <TableHead>Access</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -856,31 +1182,88 @@ export default function ClientDetails() {
                     {clientDocuments.map((doc) => (
                       <TableRow key={doc.id}>
                         <TableCell className="font-medium">
-                          {doc.name}
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <div>{doc.name || "Unnamed Document"}</div>
+                              {doc.uploadedBy && (
+                                <div className="text-xs text-muted-foreground">
+                                  Uploaded by: {doc.uploadedBy.name} (
+                                  {doc.uploadedBy.role || "User"})
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {doc.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {doc.description}
+                            </p>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{doc.type}</Badge>
+                          <Badge variant="outline">
+                            {getDocumentTypeName(doc.type)}
+                          </Badge>
                         </TableCell>
-                        <TableCell>{formatDate(doc.uploaded)}</TableCell>
-                        <TableCell>{doc.size}</TableCell>
-                        <TableCell>{doc.uploader}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div>{formatDate(doc.uploaded)}</div>
+                            {doc.uploadedBy && (
+                              <div className="text-xs text-muted-foreground">
+                                {doc.uploadedBy.name}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatFileSize(doc.size)}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              doc.access === "general" ? "default" : "secondary"
+                              doc.status === "approved"
+                                ? "default"
+                                : doc.status === "pending"
+                                ? "secondary"
+                                : doc.status === "rejected"
+                                ? "destructive"
+                                : "outline"
                             }
                           >
-                            {doc.access}
+                            {doc.status
+                              ? doc.status.charAt(0).toUpperCase() +
+                                doc.status.slice(1)
+                              : "Pending"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button
+                            className="cursor-pointer"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(doc.fileUrl, "_blank")}
+                              title="View Document"
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                            className="cursor-pointer"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadDocument(doc)}
+                              title="Download Document"
+                            >
                               <Download className="h-4 w-4" />
                             </Button>
+                            <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => handleDeleteDocument(doc.id, doc.name || "Unnamed Document")}
+      title="Delete Document"
+      className="text-destructive cursor-pointer hover:text-destructive hover:bg-destructive/10"
+      disabled={refreshing}
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -894,96 +1277,27 @@ export default function ClientDetails() {
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">No Documents</h3>
               <p className="text-muted-foreground mb-4">
-                No documents uploaded for this client yet.
+                No documents uploaded for this client yet. Upload documents for
+                contracts, reports, and other important files.
               </p>
-              <Dialog
-                open={uploadDocumentOpen}
-                onOpenChange={setUploadDocumentOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Upload First Document
-                  </Button>
-                </DialogTrigger>
-                <UploadDocumentDialog
-                  open={uploadDocumentOpen}
-                  onOpenChange={setUploadDocumentOpen}
-                  clientId={clientId}
-                  onUpload={async (documents) => {
-                    await fetchClientDocuments();
-                    if (documents && documents.length > 0) {
-                      setClientDocuments((prev) => [...prev, ...documents]);
-                    }
-                  }}
-                />
-              </Dialog>
+              {/* SIMPLE BUTTON yahan bhi */}
+              <Button className="cursor-pointer" onClick={() => setUploadDocumentOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Upload First Document
+              </Button>
             </Card>
           )}
-        </TabsContent>
 
-        {/* Activity Tab */}
-        <TabsContent value="activity" className="space-y-6">
-          <Card className="rounded-2xl">
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Recent Activity
-              </h3>
-              {clientActivity.length > 0 ? (
-                <div className="space-y-4">
-                  {clientActivity.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 hover:shadow-md transition-all"
-                    >
-                      <div className="p-2 bg-primary/10 rounded-full">
-                        <Shield className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{item.type}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDate(item.date)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Activity className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-                  <p className="text-muted-foreground">No recent activity</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* UploadDialog ko SIRF yahan render karo (NO WRAPPER) */}
+          <UploadDocumentDialog
+            open={uploadDocumentOpen}
+            onOpenChange={setUploadDocumentOpen}
+            clientId={clientId}
+            onUpload={handleDocumentUpload}
+            isAdmin={false}
+          />
         </TabsContent>
       </Tabs>
-
-      <AssignGuardDialog
-        open={assignGuardOpen}
-        onOpenChange={setAssignGuardOpen}
-        clientId={clientId}
-        onAssign={(guard) => {
-          fetchClientDetails();
-        }}
-      />
-
-      <UploadDocumentDialog
-        open={uploadDocumentOpen}
-        onOpenChange={setUploadDocumentOpen}
-        clientId={clientId}
-        onUpload={async (documents) => {
-          console.log("🔄 onUpload callback triggered with:", documents);
-          await fetchClientDocuments();
-          if (documents && documents.length > 0) {
-            setClientDocuments((prev) => [...prev, ...documents]);
-          }
-        }}
-      />
     </div>
   );
 }

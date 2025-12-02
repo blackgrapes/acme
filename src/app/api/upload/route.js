@@ -1,115 +1,157 @@
 import { NextResponse } from "next/server";
-import dotenv from "dotenv";
-import path from "path";
+import { v4 as uuidv4 } from "uuid";
 import fs from "fs/promises";
+import path from "path";
+import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { requirePermission } from "@/lib/auth";
-import { v4 as uuidv4 } from "uuid";
 
-// ✅ Load from .env.local in project root
-dotenv.config({ path: path.join(process.cwd(), ".env.local") });
+// Development vs Production paths
+const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
+const UPLOAD_BASE_PATH = IS_DEVELOPMENT 
+  ? path.join(process.cwd(), "public", "uploads")
+  : "/var/www/acme/uploads";
 
-// ✅ Upload directory configuration
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "/uploads";
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB max
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "video/mp4",
-  "video/mpeg",
-];
+// Ensure upload directory exists
+async function ensureUploadDir() {
+  try {
+    if (!existsSync(UPLOAD_BASE_PATH)) {
+      await mkdir(UPLOAD_BASE_PATH, { recursive: true });
+      console.log(`✅ Created upload directory: ${UPLOAD_BASE_PATH}`);
+    }
+  } catch (error) {
+    console.error("❌ Error creating upload directory:", error);
+    throw error;
+  }
+}
+
+// Allowed file types and sizes
+const ALLOWED_MIME_TYPES = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/zip': '.zip',
+  'text/plain': '.txt',
+  'text/csv': '.csv',
+};
+
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export async function POST(request) {
   try {
-    const denied = requirePermission(request, "documents-create");
-    if (denied) return denied;
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
+    await ensureUploadDir();
+    
     const formData = await request.formData();
     const file = formData.get("file");
-
+    const clientId = formData.get("clientId") || null;
+    
     if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
-
-    // ✅ File type validation
-    if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        {
-          error: `File type not allowed. Allowed types: ${ALLOWED_TYPES.join(
-            ", "
-          )}`,
-        },
+        { error: "No file uploaded" },
         { status: 400 }
       );
     }
 
-    // ✅ Size check
+    // Validate file type
+    if (!ALLOWED_MIME_TYPES[file.type]) {
+      return NextResponse.json(
+        { error: `File type not allowed: ${file.type}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      const sizeMB = (file.size / 1024 / 1024).toFixed(2);
       return NextResponse.json(
-        {
-          error: `File too large. Max size: 50MB. Got: ${sizeMB}MB`,
-        },
+        { error: `File too large. Max size: ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
         { status: 400 }
       );
     }
 
-    const uploadResult = await saveFileToVPS(file);
+    // Generate unique file ID
+    const fileId = uuidv4();
+    const fileExtension = ALLOWED_MIME_TYPES[file.type];
+    const fileName = `${fileId}${fileExtension}`;
+    const filePath = path.join(UPLOAD_BASE_PATH, fileName);
+
+    // Save file to disk
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await fs.writeFile(filePath, buffer);
+
+    // Generate file URL
+    const fileUrl = IS_DEVELOPMENT
+      ? `/uploads/${fileName}`
+      : `${process.env.NEXT_PUBLIC_APP_URL}/uploads/${fileName}`;
+
+    console.log("✅ File uploaded successfully:", {
+      fileId,
+      originalName: file.name,
+      size: file.size,
+      path: filePath,
+      url: fileUrl
+    });
 
     return NextResponse.json({
       success: true,
-      fileUrl: uploadResult.fileUrl,
-      fileName: uploadResult.fileName,
-      fileId: uploadResult.fileId,
-      size: uploadResult.size,
-      uploadedAt: uploadResult.uploadedAt,
+      fileId,
+      fileName: file.name,
+      fileUrl,
+      size: file.size,
+      mimeType: file.type,
+      clientId
     });
+
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("❌ File upload error:", error);
     return NextResponse.json(
-      { error: "Upload failed: " + error.message },
+      { error: "Failed to upload file", details: error.message },
       { status: 500 }
     );
   }
 }
 
-async function saveFileToVPS(file) {
+// Optional: GET endpoint to list files (for admin)
+export async function GET() {
   try {
-    // ✅ Create upload directory if it doesn't exist
-    if (!existsSync(UPLOAD_DIR)) {
-      await fs.mkdir(UPLOAD_DIR, { recursive: true });
-    }
+    await ensureUploadDir();
+    
+    const files = await fs.readdir(UPLOAD_BASE_PATH);
+    const fileStats = await Promise.all(
+      files.map(async (file) => {
+        const stat = await fs.stat(path.join(UPLOAD_BASE_PATH, file));
+        return {
+          name: file,
+          size: stat.size,
+          modified: stat.mtime
+        };
+      })
+    );
 
-    // ✅ Generate unique filename
-    const fileId = uuidv4();
-    const ext = path.extname(file.name);
-    const fileName = `${fileId}${ext}`;
-    const filePath = path.join(UPLOAD_DIR, fileName);
-
-    // ✅ Convert file to buffer and save
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
-
-    // ✅ Generate file URL based on environment
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const fileUrl = `${baseUrl}/api/files/${fileId}`;
-
-    return {
-      fileUrl,
-      fileName: file.name,
-      fileId,
-      size: file.size,
-      uploadedAt: new Date().toISOString(),
-    };
+    return NextResponse.json({
+      success: true,
+      uploadDir: UPLOAD_BASE_PATH,
+      totalFiles: files.length,
+      files: fileStats
+    });
   } catch (error) {
-    console.error("Error saving file to VPS:", error);
-    throw error;
+    console.error("❌ Error reading upload directory:", error);
+    return NextResponse.json(
+      { error: "Failed to read upload directory" },
+      { status: 500 }
+    );
   }
 }

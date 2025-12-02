@@ -1,634 +1,672 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+
 import {
   Shield,
-  RefreshCw,
-  FileText,
   Users,
-  TrendingUp,
-  MoreHorizontal,
-  Eye,
-  Download,
-  UserPlus,
-  Building,
-  Mail,
-  Inbox,
-  AlertCircle,
+  FileText,
   CheckCircle2,
   Clock,
+  AlertCircle,
+  TrendingUp,
+  Download,
+  Upload,
+  Eye,
+  BarChart3,
+  UserCheck,
+  Building,
+  Calendar,
+  Filter,
+  MoreHorizontal,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { useState, useEffect, useMemo } from "react";
 
-export default function DashboardContent() {
-  const [clients, setClients] = useState([]);
-  const [documents, setDocuments] = useState([]);
-  const [guards, setGuards] = useState([]);
-  const [emailData, setEmailData] = useState({ usage: 0, requests: 0 });
+// Main Dashboard Component
+export default function SecurityDashboard() {
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [dashboardData, setDashboardData] = useState({
+    clients: [],
+    documents: [],
+    guards: [],
+    recentActivity: [],
+  });
 
-  // Fetch all real data
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch clients
-      const clientsResponse = await fetch("/api/auth/client");
-      if (clientsResponse.ok) {
-        const clientsData = await clientsResponse.json();
-        const clientUsers = clientsData.clients?.filter(
-          (user) => user.role && (user.role.name === "Client" || user.role === "Client")
-        ) || [];
-        setClients(clientUsers);
-      }
-
-      // Fetch documents
-      const docsResponse = await fetch("/api/documents");
-      if (docsResponse.ok) {
-        const docsData = await docsResponse.json();
-        setDocuments(docsData.documents || []);
-      }
-
-      // Fetch guards
-      const guardsResponse = await fetch("/api/guards");
-      if (guardsResponse.ok) {
-        const guardsData = await guardsResponse.json();
-        setGuards(guardsData.guards || []);
-      }
-
-      // Fetch email data
-      const emailResponse = await fetch("/api/email-usage");
-      if (emailResponse.ok) {
-        const emailData = await emailResponse.json();
-        setEmailData(emailData);
-      }
-
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Initial load
+  // Fetch dashboard data
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch clients
+        const clientsResponse = await fetch("/api/auth/client");
+        if (clientsResponse.ok) {
+          const clientsData = await clientsResponse.json();
+          const clientUsers = clientsData.clients?.filter(
+            (user) => user.role && (user.role.name === "Client" || user.role === "Client")
+          ) || [];
+          setDashboardData(prev => ({ ...prev, clients: clientUsers }));
+        }
+
+        // Fetch documents
+        const docsResponse = await fetch("/api/documents");
+        if (docsResponse.ok) {
+          const docsData = await docsResponse.json();
+          setDashboardData(prev => ({ ...prev, documents: docsData.documents || [] }));
+        }
+
+        // Fetch guards
+        const guardsResponse = await fetch("/api/guards");
+        if (guardsResponse.ok) {
+          const guardsData = await guardsResponse.json();
+          setDashboardData(prev => ({ ...prev, guards: guardsData.guards || [] }));
+        }
+
+        // Fetch recent activity
+        const activityResponse = await fetch("/api/activity");
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json();
+          setDashboardData(prev => ({ ...prev, recentActivity: activityData.activities || [] }));
+        }
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDashboardData();
   }, []);
 
-  // Handle refresh
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDashboardData();
-  };
-
-  // Handle export report
-  const handleExportReport = async () => {
-    try {
-      setExporting(true);
-      
-      // Create report data
-      const reportData = {
-        timestamp: new Date().toISOString(),
-        clients: clients.length,
-        activeClients: clients.filter(client => client.status === "Active").length,
-        guards: guards.length,
-        activeGuards: guards.filter(guard => guard.status === "Active").length,
-        documents: documents.length,
-        emailUsage: emailData.usage,
-        emailRequests: emailData.requests,
-        clientList: clients.map(client => ({
-          name: client.name || client.email,
-          email: client.email,
-          status: client.status,
-          lastActive: client.lastActive
-        }))
-      };
-
-      // Convert to CSV
-      const csvContent = convertToCSV(reportData);
-      
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `acme-dashboard-report-${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-    } catch (error) {
-      console.error("Error exporting report:", error);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  // Convert data to CSV
-  const convertToCSV = (data) => {
-    const headers = ['Metric', 'Value', 'Details'];
-    const rows = [
-      ['Report Generated', new Date().toLocaleString(), 'ACME Security Dashboard'],
-      ['', '', ''],
-      ['Total Clients', data.clients, 'All registered clients'],
-      ['Active Clients', data.activeClients, 'Currently active clients'],
-      ['Security Guards', data.guards, 'Total security personnel'],
-      ['Active Guards', data.activeGuards, 'Currently active guards'],
-      ['Total Documents', data.documents, 'Documents in system'],
-      ['Email Usage', data.emailUsage, 'Emails sent today'],
-      ['Email Requests', data.emailRequests, 'Pending email requests'],
-      ['', '', ''],
-      ['Client Details', '', '']
-    ];
-
-    // Add client details
-    data.clientList.forEach(client => {
-      rows.push([client.name, client.email, client.status]);
-    });
-
-    return rows.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
-  };
-
-  // Memoized calculations for better performance
+  // Memoized calculations
   const dashboardStats = useMemo(() => {
-    const totalClients = clients.length;
-    const activeClients = clients.filter(client => client.status === "Active").length;
-    const pendingClients = clients.filter(client => client.status === "Pending").length;
-    const totalDocuments = documents.length;
-    const totalGuards = guards.length;
-    const activeGuards = guards.filter(guard => guard.status === "Active").length;
+    const totalClients = dashboardData.clients.length;
+    const activeClients = dashboardData.clients.filter(c => c.status === "active").length;
+    const totalDocuments = dashboardData.documents.length;
+    const pendingDocuments = dashboardData.documents.filter(d => d.status === "pending").length;
+    const approvedDocuments = dashboardData.documents.filter(d => d.status === "approved").length;
+    const totalGuards = dashboardData.guards.length;
+    const activeGuards = dashboardData.guards.filter(g => g.status === "active").length;
 
     return {
       totalClients,
       activeClients,
-      pendingClients,
       totalDocuments,
+      pendingDocuments,
+      approvedDocuments,
       totalGuards,
       activeGuards,
-      emailUsage: emailData.usage || 0,
-      emailRequests: emailData.requests || 0
+      recentDocuments: dashboardData.documents.slice(0, 5),
+      recentActivity: dashboardData.recentActivity.slice(0, 5),
     };
-  }, [clients, documents, guards, emailData]);
+  }, [dashboardData]);
+
+  // Stats cards data
+  const statsCards = [
+    {
+      title: "Total Clients",
+      value: dashboardStats.totalClients.toString(),
+      changeLabel: "Active clients",
+      changeValue: dashboardStats.activeClients.toString(),
+      trend: "up",
+      icon: Building,
+      color: "bg-blue-500",
+    },
+    {
+      title: "Security Guards",
+      value: dashboardStats.totalGuards.toString(),
+      changeLabel: "On duty",
+      changeValue: dashboardStats.activeGuards.toString(),
+      trend: "up",
+      icon: Shield,
+      color: "bg-green-500",
+    },
+    {
+      title: "Total Documents",
+      value: dashboardStats.totalDocuments.toString(),
+      changeLabel: "Approved",
+      changeValue: dashboardStats.approvedDocuments.toString(),
+      trend: "up",
+      icon: FileText,
+      color: "bg-purple-500",
+    },
+    {
+      title: "Total Email Requests",
+      value: dashboardStats.pendingDocuments.toString(),
+      changeLabel: "Requires attention",
+      changeValue: dashboardStats.pendingDocuments.toString(),
+      trend: "warning",
+      icon: AlertCircle,
+      color: "bg-amber-500",
+    },
+  ];
 
   // Loading skeleton
   if (loading) {
     return (
-      <div className="space-y-6 p-6">
-        {/* Header Skeleton */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-48 mb-2"></div>
-            <div className="h-4 bg-muted rounded w-64"></div>
-          </div>
-          <div className="flex gap-2">
-            <div className="h-9 bg-muted rounded w-24"></div>
-            <div className="h-9 bg-muted rounded w-32"></div>
-          </div>
-        </div>
-
+      <div className="space-y-7 animate-pulse">
         {/* Stats Grid Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="animate-pulse border-border">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <div className="h-4 bg-muted rounded w-20"></div>
-                  <div className="w-8 h-8 bg-muted rounded-lg"></div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-6 bg-muted rounded w-16 mb-2"></div>
-                <div className="h-2 bg-muted rounded w-full mb-1"></div>
-                <div className="h-2 bg-muted rounded w-3/4"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Content Grid Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2].map(i => (
-            <Card key={i} className="animate-pulse border-border">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="h-5 bg-muted rounded w-32 mb-1"></div>
-                    <div className="h-3 bg-muted rounded w-48"></div>
+            <div key={i} className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-5">
+              <div className="space-y-4">
+                <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                <div className="flex justify-between">
+                  <div className="space-y-2">
+                    <div className="h-8 w-16 bg-gray-200 rounded"></div>
+                    <div className="h-3 w-20 bg-gray-200 rounded"></div>
                   </div>
-                  <div className="w-8 h-8 bg-muted rounded-full"></div>
+                  <div className="h-10 w-10 bg-gray-200 rounded-lg"></div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[1, 2, 3, 4, 5].map(j => (
-                  <div key={j} className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-muted rounded-full"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-muted rounded w-3/4"></div>
-                      <div className="h-3 bg-muted rounded w-1/2"></div>
-                    </div>
-                    <div className="w-16 h-6 bg-muted rounded-full"></div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Quick Actions Skeleton */}
-        <Card className="animate-pulse border-border">
-          <CardHeader>
-            <div className="h-5 bg-muted rounded w-32 mb-1"></div>
-            <div className="h-3 bg-muted rounded w-48"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-24 bg-muted rounded-lg"></div>
-              ))}
+                <div className="h-2 w-full bg-gray-200 rounded-full"></div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </section>
+
+        {/* Main Content Skeleton */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Documents Table Skeleton */}
+            <div className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-6">
+              <div className="space-y-4">
+                <div className="h-6 w-48 bg-gray-200 rounded"></div>
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-gray-200 rounded-lg"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                          <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="h-8 w-20 bg-gray-200 rounded-lg"></div>
+                        <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Skeleton */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-5">
+                <div className="space-y-4">
+                  <div className="h-6 w-40 bg-gray-200 rounded"></div>
+                  <div className="h-40 bg-gray-200 rounded-2xl"></div>
+                </div>
+              </div>
+              <div className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-5">
+                <div className="space-y-4">
+                  <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i}>
+                        <div className="h-3 w-full bg-gray-200 rounded mb-2"></div>
+                        <div className="h-2 w-full bg-gray-200 rounded-full"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column Skeleton */}
+          <div className="space-y-6">
+            {/* Activity Feed Skeleton */}
+            <div className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-5">
+              <div className="space-y-4">
+                <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="space-y-2 p-3 border rounded-lg">
+                      <div className="h-4 w-full bg-gray-200 rounded"></div>
+                      <div className="h-3 w-3/4 bg-gray-200 rounded"></div>
+                      <div className="h-2 w-20 bg-gray-200 rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions Skeleton */}
+            <div className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-5">
+              <div className="space-y-4">
+                <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                <div className="grid gap-2">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="h-10 w-full bg-gray-200 rounded-lg"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Admin Dashboard
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Real-time overview of ACME Security Management System
-          </p>
+    <div className="space-y-7">
+      {/* ======== Key Metrics Grid ======== */}
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {statsCards.map((stat) => {
+          const Icon = stat.icon;
+          const TrendIcon = stat.trend === "up" ? ArrowUpRight : 
+                          stat.trend === "down" ? ArrowDownRight : AlertCircle;
+          
+          return (
+            <Card key={stat.title} className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <div className={`p-2 rounded-lg ${stat.color}/10`}>
+                    <Icon className={`h-5 w-5 ${stat.color}`} />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">
+                      {stat.value}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{stat.changeLabel}</p>
+                  </div>
+                  <span className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                    stat.trend === "up" ? "bg-success/15 text-success" :
+                    stat.trend === "down" ? "bg-destructive/15 text-destructive" :
+                    "bg-warning/15 text-warning"
+                  }`}>
+                    <TrendIcon className="h-3.5 w-3.5" />
+                    {stat.changeValue}
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <Progress 
+                    value={parseInt(stat.value) * 10} 
+                    className="h-2 bg-gray-200" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </section>
+
+      {/* ======== Main Content Grid ======== */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Recent Documents Table */}
+          <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                  <FileText className="h-5 w-5 text-primary" /> Recent Documents
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Latest documents shared with clients
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="gap-2 rounded-lg">
+                  <Filter className="h-4 w-4" /> Filter
+                </Button>
+                <Button size="sm" className="gap-2 rounded-lg bg-primary">
+                  <Upload className="h-4 w-4" /> Upload New
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {dashboardStats.recentDocuments.length > 0 ? (
+                  dashboardStats.recentDocuments.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-xl ${
+                          doc.status === 'approved' ? 'bg-green-100' : 
+                          doc.status === 'pending' ? 'bg-amber-100' : 
+                          'bg-gray-100'
+                        }`}>
+                          <FileText className={`h-5 w-5 ${
+                            doc.status === 'approved' ? 'text-green-600' : 
+                            doc.status === 'pending' ? 'text-amber-600' : 
+                            'text-gray-600'
+                          }`} />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-foreground">{doc.name || doc.filename}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Shared with: {doc.clientName || "Client"} • {new Date(doc.uploadDate || doc.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={`rounded-full ${
+                          doc.status === 'approved' ? 'bg-green-100 text-green-600' : 
+                          doc.status === 'pending' ? 'bg-amber-100 text-amber-600' : 
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {doc.status?.charAt(0).toUpperCase() + doc.status?.slice(1)}
+                        </Badge>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No documents found</p>
+                    <p className="text-sm text-gray-400 mt-1">Upload your first document to get started</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Performance + Client Distribution */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Document Status Distribution */}
+            <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                    <BarChart3 className="h-4 w-4" /> Document Status
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Approval and pending distribution
+                  </p>
+                </div>
+                <Badge className="rounded-full bg-primary/15 text-primary">
+                  {dashboardStats.approvedDocuments} Approved
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="relative h-40 rounded-2xl bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
+                  <div className="flex h-full w-full items-end gap-3">
+                    {[
+                      { label: 'Approved', value: dashboardStats.approvedDocuments, color: 'bg-green-500' },
+                      { label: 'Pending', value: dashboardStats.pendingDocuments, color: 'bg-amber-500' },
+                      { label: 'Draft', value: Math.max(0, dashboardStats.totalDocuments - dashboardStats.approvedDocuments - dashboardStats.pendingDocuments), color: 'bg-gray-400' },
+                    ].map((item, index) => (
+                      <div key={index} className="flex-1 flex flex-col items-center">
+                        <div
+                          className={`w-full rounded-t-2xl transition-all hover:opacity-80 ${item.color}`}
+                          style={{ 
+                            height: `${(item.value / Math.max(1, dashboardStats.totalDocuments)) * 100}%` 
+                          }}
+                        />
+                        <span className="mt-2 text-xs text-muted-foreground">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-green-500" /> Approved
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-amber-500" /> Pending Review
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-gray-400" /> Draft
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Client Distribution */}
+            <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                    <Users className="h-4 w-4" /> Client Distribution
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Active vs inactive clients
+                  </p>
+                </div>
+                <Badge className="rounded-full bg-primary/15 px-3 py-1 text-primary">
+                  {dashboardStats.activeClients} Active
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {[
+                  {
+                    label: "Active Clients",
+                    value: dashboardStats.activeClients,
+                    total: dashboardStats.totalClients,
+                    trend: "+12%",
+                    color: "bg-primary",
+                  },
+                  {
+                    label: "Document Access",
+                    value: Math.round((dashboardStats.activeClients / Math.max(1, dashboardStats.totalClients)) * 100),
+                    total: 100,
+                    trend: "+8.2%",
+                    color: "bg-success",
+                  },
+                  {
+                    label: "Pending Invites",
+                    value: Math.max(0, dashboardStats.totalClients - dashboardStats.activeClients),
+                    total: dashboardStats.totalClients,
+                    trend: "-3.1%",
+                    color: "bg-warning",
+                  },
+                ].map((item, index) => (
+                  <div key={index}>
+                    <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{item.label}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">
+                          {item.value}/{item.total}
+                        </span>
+                        <span className={item.trend.startsWith("+") ? "text-success" : "text-warning"}>
+                          {item.trend}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted/40">
+                      <div
+                        className={`h-full rounded-full ${item.color}`}
+                        style={{ width: `${(item.value / Math.max(1, item.total)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <div className="rounded-2xl bg-muted/40 p-4 text-xs text-muted-foreground">
+                  {dashboardStats.activeClients} out of {dashboardStats.totalClients} clients have accessed their documents this month.
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        {/* Right Column: Activities & Quick Actions */}
+        <div className="space-y-6">
+          {/* Recent Activity */}
+          <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold text-foreground">
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {dashboardStats.recentActivity.length > 0 ? (
+                dashboardStats.recentActivity.map((activity, index) => {
+                  const iconMap = {
+                    login: <UserCheck className="h-4 w-4 text-success" />,
+                    download: <Download className="h-4 w-4 text-primary" />,
+                    upload: <Upload className="h-4 w-4 text-warning" />,
+                    view: <Eye className="h-4 w-4 text-info" />,
+                  };
+
+                  return (
+                    <div key={index} className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 transition-colors hover:border-primary/30">
+                      <div className="flex items-center gap-2">
+                        {iconMap[activity.type] || <Clock className="h-4 w-4" />}
+                        <p className="text-sm font-medium text-foreground">
+                          {activity.title}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        {activity.description}
+                      </p>
+                      <p className="text-[0.7rem] text-muted-foreground">
+                        {activity.timestamp}
+                      </p>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-4">
+                  <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No recent activity</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold text-foreground">
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <Button asChild variant="outline" size="sm" className="justify-start">
+                <Link href="/dashboard/documents/upload">
+                  <Upload className="mr-2 h-4 w-4" /> Upload Document
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="justify-start">
+                <Link href="/dashboard/clients">
+                  <Users className="mr-2 h-4 w-4" /> Manage Clients
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="justify-start">
+                <Link href="/dashboard/documents">
+                  <FileText className="mr-2 h-4 w-4" /> View All Documents
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="justify-start">
+                <Link href="/dashboard/reports">
+                  <BarChart3 className="mr-2 h-4 w-4" /> Generate Reports
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="justify-start">
+                <Link href="/dashboard/settings">
+                  <MoreHorizontal className="mr-2 h-4 w-4" /> Settings
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* ======== Operational Highlights ======== */}
+      <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+        <CardHeader className="flex flex-row items-center justify-between pb-6">
+          <div>
+            <CardTitle className="text-base font-semibold text-foreground">
+              System Overview
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Document security, client access, and compliance metrics
+            </CardDescription>
+          </div>
           <Button
             variant="outline"
             size="sm"
-            className="border-border hover:bg-accent"
-            onClick={handleRefresh}
-            disabled={refreshing}
+            className="gap-2 rounded-lg border-border/80"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            <FileText className="h-4 w-4" /> View Details
           </Button>
-          <Button
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            onClick={handleExportReport}
-            disabled={exporting}
-          >
-            <Download className={`h-4 w-4 mr-2 ${exporting ? 'animate-spin' : ''}`} />
-            {exporting ? 'Exporting...' : 'Export Report'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Clients Card */}
-        <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Total Clients
-            </CardTitle>
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Building className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {dashboardStats.totalClients}
-            </div>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="flex-1">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Active</span>
-                  <span className="font-medium text-foreground">{dashboardStats.activeClients}</span>
-                </div>
-                <Progress 
-                  value={(dashboardStats.activeClients / dashboardStats.totalClients) * 100} 
-                  className="h-1 bg-primary/20" 
-                />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Pending</span>
-                  <span className="font-medium text-foreground">{dashboardStats.pendingClients}</span>
-                </div>
-                <Progress 
-                  value={(dashboardStats.pendingClients / dashboardStats.totalClients) * 100} 
-                  className="h-1 bg-amber-200" 
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Guards Card */}
-        <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Security Guards
-            </CardTitle>
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Shield className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {dashboardStats.totalGuards}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {dashboardStats.activeGuards} currently active
-            </p>
-            <div className="mt-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Active Rate</span>
-                <span>{Math.round((dashboardStats.activeGuards / dashboardStats.totalGuards) * 100)}%</span>
-              </div>
-              <Progress 
-                value={(dashboardStats.activeGuards / dashboardStats.totalGuards) * 100} 
-                className="h-1 mt-1 bg-primary/20" 
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Usage Card */}
-        <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Email Usage
-            </CardTitle>
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Mail className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {dashboardStats.emailUsage}
-            </div>
-            <p className="text-xs text-muted-foreground">Emails sent today</p>
-            <div className="mt-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Daily Limit</span>
-                <span>{dashboardStats.emailUsage} / 500</span>
-              </div>
-              <Progress 
-                value={(dashboardStats.emailUsage / 500) * 100} 
-                className="h-1 mt-1 bg-primary/20" 
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Requests Card */}
-        <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">
-              Email Requests
-            </CardTitle>
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Inbox className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {dashboardStats.emailRequests}
-            </div>
-            <p className="text-xs text-muted-foreground">Pending requests</p>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="h-2 w-2 bg-amber-500 rounded-full"></div>
-              <p className="text-xs text-amber-600 font-medium">Requires attention</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Detailed Sections Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Email Activities */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <Mail className="h-5 w-5 text-primary" />
-                Recent Email Activities
-              </CardTitle>
-              <CardDescription>
-                Latest email sending activities and status
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary/10"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            {[
-              { type: 'success', message: 'Welcome email sent to new client', time: '5 min ago' },
-              { type: 'success', message: 'Password reset email delivered', time: '15 min ago' },
-              { type: 'warning', message: 'Email limit at 80% - 400/500 used', time: '1 hour ago' },
-              { type: 'success', message: 'Monthly report sent to all clients', time: '2 hours ago' },
-              { type: 'info', message: 'System notification email queued', time: '3 hours ago' },
-            ].map((activity, index) => (
-              <div
-                key={index}
-                className={`flex items-center space-x-3 p-4 ${
-                  index < 4 ? "border-b border-border" : ""
-                }`}
-              >
-                <div className="flex-shrink-0">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    activity.type === 'success' ? 'bg-green-100 text-green-600' :
-                    activity.type === 'warning' ? 'bg-amber-100 text-amber-600' :
-                    'bg-blue-100 text-blue-600'
-                  }`}>
-                    {activity.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> :
-                     activity.type === 'warning' ? <AlertCircle className="h-5 w-5" /> :
-                     <Clock className="h-5 w-5" />}
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-none text-foreground">
-                    {activity.message}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {activity.time}
-                  </p>
-                </div>
-                <div className="ml-auto">
-                  <Badge
-                    variant={
-                      activity.type === 'success' ? 'default' :
-                      activity.type === 'warning' ? 'secondary' : 'outline'
-                    }
-                    className={`text-xs ${
-                      activity.type === 'success' ? 'bg-green-100 text-green-800 border-green-200' :
-                      activity.type === 'warning' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                      'bg-blue-100 text-blue-800 border-blue-200'
-                    }`}
-                  >
-                    {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-            <div className="p-4 border-t border-border">
-              <Button
-                variant="ghost"
-                className="w-full text-sm text-primary hover:bg-primary/5"
-                size="sm"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View all email activities
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* System Alerts */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                System Alerts
-              </CardTitle>
-              <CardDescription>
-                Important system notifications and alerts
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary/10"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            {[
-              { severity: 'medium', title: 'Email Usage High', description: '80% of daily email limit used', time: '1 hour ago' },
-              { severity: 'low', title: 'Backup Completed', description: 'System backup completed successfully', time: '2 hours ago' },
-              { severity: 'high', title: 'Security Alert', description: 'Multiple failed login attempts detected', time: '3 hours ago' },
-              { severity: 'low', title: 'System Update', description: 'New security patches available', time: '5 hours ago' },
-              { severity: 'medium', title: 'Storage Warning', description: 'Document storage at 75% capacity', time: '1 day ago' },
-            ].map((alert, index) => (
-              <div
-                key={index}
-                className={`flex items-start space-x-3 p-4 ${
-                  index < 4 ? "border-b border-border" : ""
-                }`}
-              >
-                <div className="flex-shrink-0 mt-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    alert.severity === 'high' ? 'bg-red-100 text-red-600' :
-                    alert.severity === 'medium' ? 'bg-amber-100 text-amber-600' :
-                    'bg-green-100 text-green-600'
-                  }`}>
-                    <AlertCircle className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-none text-foreground">
-                    {alert.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {alert.description}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {alert.time}
-                  </p>
-                </div>
-                <div className="ml-auto">
-                  <Badge
-                    variant={
-                      alert.severity === 'high' ? 'destructive' :
-                      alert.severity === 'medium' ? 'secondary' : 'default'
-                    }
-                    className={`text-xs ${
-                      alert.severity === 'high' ? 'bg-red-100 text-red-800 border-red-200' :
-                      alert.severity === 'medium' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                      'bg-green-100 text-green-800 border-green-200'
-                    }`}
-                  >
-                    {alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1)}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-            <div className="p-4 border-t border-border">
-              <Button
-                variant="ghost"
-                className="w-full text-sm text-primary hover:bg-primary/5"
-                size="sm"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View all alerts
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            Quick Actions
-          </CardTitle>
-          <CardDescription>
-            Frequently used administrative actions
-          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button className="flex flex-col h-auto p-4 cursor-pointer gap-2 bg-primary/5 hover:bg-primary/10 border border-primary/20">
-              <UserPlus className="h-6 w-6 text-primary" />
-              <span className="font-medium">Add Guard</span>
-              <span className="text-xs text-muted-foreground">Register new security personnel</span>
-            </Button>
-            
-            <Button className="flex flex-col h-auto p-4 cursor-pointer gap-2 bg-primary/5 hover:bg-primary/10 border border-primary/20">
-              <Users className="h-6 w-6 text-primary" />
-              <span className="font-medium">Add Client</span>
-              <span className="text-xs text-muted-foreground">Create new client account</span>
-            </Button>
-            
-            <Button className="flex flex-col h-auto p-4 cursor-pointer gap-2 bg-primary/5 hover:bg-primary/10 border border-primary/20">
-              <FileText className="h-6 w-6 text-primary" />
-              <span className="font-medium">Upload Docs</span>
-              <span className="text-xs text-muted-foreground">Add new documents</span>
-            </Button>
-            
-            <Button className="flex flex-col h-auto p-4 cursor-pointer gap-2 bg-primary/5 hover:bg-primary/10 border border-primary/20">
-              <Mail className="h-6 w-6 text-primary" />
-              <span className="font-medium">Email Management</span>
-              <span className="text-xs text-muted-foreground">Manage email settings</span>
-            </Button>
-          </div>
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              icon: Shield,
+              label: "Document Security",
+              sublabel: "All documents encrypted",
+              trend: "100% Secure",
+              status: "success",
+            },
+            {
+              icon: Users,
+              label: "Client Access",
+              sublabel: "Active client logins",
+              trend: "+42 this week",
+              status: "info",
+            },
+            {
+              icon: CheckCircle2,
+              label: "Compliance Rate",
+              sublabel: "Documents approved",
+              trend: "98.5%",
+              status: "success",
+            },
+            {
+              icon: Clock,
+              label: "Avg. Response Time",
+              sublabel: "Document approval",
+              trend: "2.4 hours",
+              status: "warning",
+            },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.label}
+                className="flex items-center gap-4 rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30"
+              >
+                <span
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                    item.status === "success"
+                      ? "bg-success/10 text-success"
+                      : item.status === "warning"
+                      ? "bg-warning/10 text-warning"
+                      : "bg-primary/10 text-primary"
+                  }`}
+                >
+                  <Icon className="h-6 w-6" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">
+                    {item.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.sublabel}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-primary">
+                    {item.trend}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
     </div>

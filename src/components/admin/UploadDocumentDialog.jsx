@@ -1,17 +1,11 @@
-// File: src/components/admin/UploadDocumentDialog.jsx
 "use client";
 
-import { useState, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -19,391 +13,635 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileText, X, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from "sonner";
+import { Upload, X, Calendar } from "lucide-react";
 
-export function UploadDocumentDialog({
-  open,
-  onOpenChange,
-  clientId,
-  onUpload,
-  isCompanyDocument = false,
-}) {
+export function UploadDocumentDialog({ open, onOpenChange, clientId, onUpload, isAdmin = false }) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState("");
+  const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [files, setFiles] = useState([]);
-  const [formData, setFormData] = useState({
-    type: "",
-    category: "",
-    description: "",
-  });
+  const [progress, setProgress] = useState(0);
+  const [selectedClients, setSelectedClients] = useState([]);
+  const [allClients, setAllClients] = useState([]);
+  const [category, setCategory] = useState("client");
+  
+  // NEW: Date fields
+  const [dateOption, setDateOption] = useState("none"); // none, single, range
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [customPeriod, setCustomPeriod] = useState("");
 
-  const fileInputRef = useRef(null);
+  const documentCategories = [
+    { id: "agreement", name: "Agreement" },
+    { id: "attendance", name: "Attendance" },
+    { id: "bills", name: "Bills" },
+    { id: "salary-sheet", name: "Salary Sheet" },
+    { id: "pay-slip", name: "Pay Slip" },
+    { id: "esi", name: "ESI" },
+    { id: "pf", name: "PF" },
+    { id: "employee-details", name: "Employee Details" },
+    { id: "training", name: "Training" },
+    { id: "night-checking", name: "Night Checking" },
+    { id: "paid-gst", name: "Paid GST" },
+  ];
 
-  const handleFilesChange = (e) => {
-    const newFiles = Array.from(e.target.files);
-
-    if (newFiles.length === 0) return;
-
-    const updatedFiles = newFiles.map((file) => ({
-      file,
-      name: file.name,
-      id: Math.random().toString(36).substr(2, 9),
-    }));
-
-    setFiles((prev) => [...prev, ...updatedFiles]);
-
-    // Reset file input to allow selecting same file again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removeFile = (fileId) => {
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
-  };
-
-  const handleUpload = async () => {
-    if (files.length === 0 || !formData.type) {
-      alert("Please select at least one file and document type");
-      return;
-    }
-
-    // ✅ CLIENT ID VALIDATION
-    if (!clientId || clientId === "undefined") {
-      alert(
-        "Error: Client ID is missing. Please refresh the page and try again."
-      );
-      return;
-    }
-
-    try {
-      setUploading(true);
-      const uploadedDocuments = [];
-
-      console.log("📤 Starting upload process for client:", clientId);
-
-      // Upload each file sequentially
-      for (const fileObj of files) {
-        console.log("📄 Uploading file:", fileObj.name);
-
-        // Cloudinary upload
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", fileObj.file);
-
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: uploadFormData,
-        });
-
-        const uploadResult = await uploadResponse.json();
-
-        if (!uploadResult.success) {
-          throw new Error(`Upload failed for ${fileObj.name}`);
-        }
-
-        console.log("☁️ Cloudinary upload successful:", uploadResult.fileUrl);
-
-        // ✅ IMPROVED DOCUMENT DATA STRUCTURE
-        const documentData = {
-          name: fileObj.name,
-          type: formData.type,
-          category: formData.category || "General",
-          description: formData.description || "",
-          fileUrl: uploadResult.fileUrl,
-          uploaded: new Date().toISOString(),
-          size: `${(fileObj.file.size / 1024 / 1024).toFixed(2)} MB`,
-          uploadedBy: "Admin",
-          // ✅ ACCESS CONTROL FIELDS
-          accessLevel: "specific", // Always specific for client uploads
-          specificClients: [clientId], // Only this client can access
-          isCompanyDocument: isCompanyDocument,
-          targetClient: clientId, // Mark as targeted for this client
-        };
-
-        console.log("💾 Saving document to database:", documentData);
-
-        // ✅ OPTION 1: Save to main documents collection (RECOMMENDED)
-        let saveResponse;
-        let saveResult;
-
-        try {
-          // Try saving to main documents collection first
-          saveResponse = await fetch("/api/documents", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(documentData),
-          });
-
-          saveResult = await saveResponse.json();
-
-          if (!saveResponse.ok) {
-            throw new Error(`Main save failed: ${saveResult.error}`);
-          }
-
-          console.log(
-            "✅ Document saved to main collection:",
-            saveResult.document
-          );
-        } catch (mainSaveError) {
-          console.warn(
-            "⚠️ Main save failed, trying client-specific API:",
-            mainSaveError
-          );
-
-          // ✅ OPTION 2: Fallback to client-specific API
-          saveResponse = await fetch(`/api/auth/client/${clientId}/documents`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(documentData),
-          });
-
-          saveResult = await saveResponse.json();
-
-          if (!saveResponse.ok) {
-            throw new Error(`Client save failed: ${saveResult.error}`);
-          }
-
-          console.log("✅ Document saved via client API:", saveResult.document);
-        }
-
-        uploadedDocuments.push(saveResult.document);
-      }
-
-      // ✅ IMPROVED REFRESH MECHANISM
-      console.log("🔄 All documents uploaded, refreshing...");
-
-      // Method 1: Call onUpload callback if provided
-      if (typeof onUpload === "function") {
-        onUpload(uploadedDocuments);
-      }
-
-      // Method 2: Force refresh after short delay
-      setTimeout(() => {
-        // Try to refresh the parent component's data
-        if (typeof window !== "undefined") {
-          // Dispatch custom event for refresh
-          window.dispatchEvent(new CustomEvent("documentsUpdated"));
-
-          // Also try to reload the page as fallback
-          window.location.reload();
-        }
-      }, 700);
-
-      onOpenChange(false);
-      resetForm();
-
-      // Success message
-      alert(
-        `✅ Successfully uploaded ${uploadedDocuments.length} document(s)! Documents will appear shortly.`
-      );
-    } catch (error) {
-      console.error("❌ Upload error:", error);
-      alert(`Upload failed: ${error.message}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setFiles([]);
-    setFormData({
-      type: "",
-      category: "",
-      description: "",
-    });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  // Handle dialog close
-  const handleDialogClose = (open) => {
+  // Reset form when dialog opens/closes
+  useEffect(() => {
     if (!open) {
       resetForm();
     }
-    onOpenChange(open);
+  }, [open]);
+
+  // Fetch clients if admin mode
+  useEffect(() => {
+    if (isAdmin && open) {
+      fetchClients();
+    }
+  }, [isAdmin, open]);
+
+  const fetchClients = async () => {
+    try {
+      const response = await fetch("/api/auth/client?limit=1000");
+      if (response.ok) {
+        const data = await response.json();
+        setAllClients(data.clients || []);
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation(); // Stop event bubbling
+    
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      // Validate file size (100MB max)
+      if (selectedFile.size > 100 * 1024 * 1024) {
+        toast.error("File size must be less than 100MB");
+        e.target.value = ""; // Clear the file input
+        return;
+      }
+      setFile(selectedFile);
+      
+      // Auto-fill name from file name (without extension)
+      if (!name) {
+        const fileNameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
+        setName(fileNameWithoutExt);
+      }
+    }
+  };
+
+  // Reset form function
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setType("");
+    setFile(null);
+    setSelectedClients([]);
+    setCategory("client");
+    setDateOption("none");
+    setStartDate("");
+    setEndDate("");
+    setCustomPeriod("");
+    setUploading(false);
+    setProgress(0);
+    
+    // Reset file input element
+    const fileInput = document.getElementById("file");
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault(); // CRITICAL: Prevent form auto-submit
+    
+    console.log("🔄 Starting upload process...");
+    
+    if (!file) {
+      toast.error("Please select a file");
+      return;
+    }
+
+    if (!type) {
+      toast.error("Please select a document type");
+      return;
+    }
+
+    if (!name.trim()) {
+      toast.error("Please enter a document name");
+      return;
+    }
+
+    // Validate dates if selected
+    if (dateOption === "single" && !startDate) {
+      toast.error("Please select a start date");
+      return;
+    }
+    
+    if (dateOption === "range") {
+      if (!startDate || !endDate) {
+        toast.error("Please select both start and end dates");
+        return;
+      }
+      if (new Date(startDate) > new Date(endDate)) {
+        toast.error("Start date cannot be after end date");
+        return;
+      }
+    }
+
+    setUploading(true);
+    setProgress(10);
+
+    try {
+      // Get token from localStorage or auth context
+      const token = localStorage.getItem("token") || 
+                    sessionStorage.getItem("token") ||
+                    localStorage.getItem("authToken") ||
+                    sessionStorage.getItem("authToken");
+      
+      console.log("🔑 Token found:", !!token);
+      
+      if (!token) {
+        toast.error("Please login to upload documents");
+        setUploading(false);
+        return;
+      }
+
+      // Step 1: Upload file to server
+      const formData = new FormData();
+      formData.append("file", file);
+      if (clientId && !isAdmin) {
+        formData.append("clientId", clientId);
+      }
+
+      setProgress(30);
+      
+      console.log("📤 Uploading file to server...");
+      
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData,
+      });
+
+      setProgress(60);
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        console.error("❌ File upload failed:", errorData);
+        throw new Error(errorData.error || "File upload failed");
+      }
+
+      const uploadData = await uploadResponse.json();
+      console.log("✅ File uploaded successfully:", uploadData);
+
+      setProgress(80);
+
+      // Step 2: Create document record
+      const documentData = {
+        name: name || file.name,
+        description,
+        type,
+        fileId: uploadData.fileId,
+        fileName: uploadData.fileName,
+        originalName: file.name,
+        fileUrl: uploadData.fileUrl,
+        size: uploadData.size,
+        mimeType: uploadData.mimeType,
+        // Add date fields
+        documentStartDate: startDate || null,
+        documentEndDate: endDate || null,
+        documentPeriod: customPeriod || generateDocumentPeriod()
+      };
+
+      console.log("📝 Creating document record:", documentData);
+
+      // For admin mode, add category and client selections
+      if (isAdmin) {
+        documentData.category = category;
+        
+        if (category === "client") {
+          if (selectedClients.length > 0) {
+            documentData.specificClients = selectedClients;
+          } else if (clientId) {
+            documentData.targetClient = clientId;
+          }
+        }
+        
+        // Use admin API
+        console.log("🛡️ Using admin API...");
+        const response = await fetch("/api/admin/documents", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(documentData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("❌ Admin API error:", errorData);
+          throw new Error(errorData.error || "Failed to create document record");
+        }
+        
+        console.log("✅ Document created via admin API");
+      } else {
+        // Use client-specific API
+        console.log("👤 Using client API for client:", clientId);
+        const response = await fetch(`/api/auth/client/${clientId}/documents`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(documentData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("❌ Client API error:", errorData);
+          throw new Error(errorData.error || "Failed to create document record");
+        }
+        
+        console.log("✅ Document created via client API");
+      }
+
+      setProgress(100);
+      console.log("🎉 Upload complete!");
+
+      // Notify parent
+      if (onUpload) {
+        onUpload();
+      }
+
+      toast.success("Document uploaded successfully!");
+      
+      // Close dialog after delay
+      setTimeout(() => {
+        resetForm();
+        onOpenChange(false);
+      }, 1000);
+
+    } catch (error) {
+      console.error("❌ Upload error:", error);
+      toast.error(error.message || "Failed to upload document");
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
+  };
+
+  // Helper function to generate document period string
+  const generateDocumentPeriod = () => {
+    if (dateOption === "none") return "";
+    
+    if (dateOption === "single" && startDate) {
+      const date = new Date(startDate);
+      return `From ${date.toLocaleDateString('en-IN', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric' 
+      })}`;
+    }
+    
+    if (dateOption === "range" && startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return `${start.toLocaleDateString('en-IN', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric' 
+      })} to ${end.toLocaleDateString('en-IN', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric' 
+      })}`;
+    }
+    
+    return customPeriod;
+  };
+
+  const handleClientToggle = (clientId) => {
+    setSelectedClients(prev =>
+      prev.includes(clientId)
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault(); // Prevent default form submission
+    console.log("📝 Form submitted manually");
+    handleUpload(e);
+  };
+
+  // Handle dialog close
+  const handleDialogClose = () => {
+    resetForm();
+    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {clientId ? "Upload Document for Client" : "Upload Documents"}
+            {isAdmin ? "Upload Document (Admin)" : "Upload Client Document"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Improved File Upload Section */}
-          <div className="space-y-2">
-            <Label>Select Files *</Label>
-            <div
-              className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {files.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {files.length} file(s) selected
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFiles([]);
-                      }}
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                  <div className="max-h-32 overflow-y-auto space-y-1">
-                    {files.map((fileObj) => (
-                      <div
-                        key={fileObj.id}
-                        className="flex items-center justify-between p-2 bg-muted rounded"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          <span className="text-sm truncate max-w-[200px]">
-                            {fileObj.name}
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFile(fileObj.id);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Click to upload or drag and drop multiple files
-                  </p>
-                </div>
-              )}
-
-              <Input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                id="file-upload"
-                multiple
-                onChange={handleFilesChange}
-                accept=".pdf,.doc,.docx,.xlsx,.jpg,.jpeg,.png,.txt"
-              />
-              <Label
-                htmlFor="file-upload"
-                className="cursor-pointer text-primary hover:underline inline-flex items-center gap-1"
-                onClick={(e) => e.stopPropagation()}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Admin-only: Category Selection */}
+          {isAdmin && (
+            <div className="space-y-3">
+              <Label>Document Category</Label>
+              <Select 
+                value={category} 
+                onValueChange={setCategory}
+                disabled={uploading}
               >
-                <Plus className="h-4 w-4" />
-                {files.length > 0 ? "Add More Files" : "Choose Files"}
-              </Label>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="client">Client Document</SelectItem>
+                  <SelectItem value="company">Company Document</SelectItem>
+                  <SelectItem value="general">General Document</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {category === "company" 
+                  ? "Visible to all clients"
+                  : category === "general"
+                  ? "Visible to authorized users only"
+                  : "Visible to selected clients only"}
+              </p>
             </div>
+          )}
+
+          {/* Client Selection (Admin mode, client category) */}
+          {isAdmin && category === "client" && (
+            <div className="space-y-3">
+              <Label>Select Clients</Label>
+              <div className="max-h-60 overflow-y-auto border rounded-md p-3 space-y-2">
+                {allClients.map(client => (
+                  <div key={client._id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`client-${client._id}`}
+                      checked={selectedClients.includes(client._id)}
+                      onCheckedChange={() => handleClientToggle(client._id)}
+                      disabled={uploading}
+                    />
+                    <label
+                      htmlFor={`client-${client._id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {client.name} ({client.companyName || "No Company"})
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {selectedClients.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Selected {selectedClients.length} client(s)
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Document Details */}
+          <div className="space-y-3">
+            <Label htmlFor="name">Document Name *</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter document name (will be used in downloaded filename)"
+              required
+              disabled={uploading}
+            />
           </div>
 
-          {/* Document Type - Required */}
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter document description"
+              rows={3}
+              disabled={uploading}
+            />
+          </div>
+
+          <div className="space-y-3">
             <Label htmlFor="type">Document Type *</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, type: value }))
-              }
+            <Select 
+              value={type} 
+              onValueChange={setType} 
+              required
+              disabled={uploading}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select document type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="agreement">Agreement</SelectItem>
-                <SelectItem value="invoice">Invoice</SelectItem>
-                <SelectItem value="report">Report</SelectItem>
-                <SelectItem value="certificate">Certificate</SelectItem>
-                <SelectItem value="policy">Policy</SelectItem>
-                <SelectItem value="kyc">KYC Document</SelectItem>
-                <SelectItem value="identity">Identity Proof</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                {documentCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              value={formData.category}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, category: e.target.value }))
-              }
-              placeholder="e.g., Legal, Financial, Operational"
-            />
-          </div>
+          {/* NEW: Document Date/Period Section */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              <Label className="text-lg">Document Period</Label>
+            </div>
+            
+            <RadioGroup 
+              value={dateOption} 
+              onValueChange={setDateOption} 
+              className="space-y-3"
+              disabled={uploading}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="none" id="none" />
+                <Label htmlFor="none">No specific period</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="single" id="single" />
+                <Label htmlFor="single">Single date (e.g., for specific month)</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="range" id="range" />
+                <Label htmlFor="range">Date range (start to end)</Label>
+              </div>
+            </RadioGroup>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              placeholder="Brief description for all documents"
-              rows={3}
-            />
-          </div>
-
-          {/* Upload Info */}
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-700">
-              <strong>Note:</strong> {files.length} file(s) will be uploaded.
-              {clientId &&
-                " This document will be visible only to this specific client."}
-            </p>
-          </div>
-        </div>
-
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={() => handleDialogClose(false)}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleUpload}
-            disabled={uploading || files.length === 0 || !formData.type}
-            className="flex-1"
-            permission="documents-create"
-          >
-            {uploading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Uploading...
-              </>
-            ) : (
-              `Upload ${files.length} File(s)`
+            {/* Show date inputs based on selection */}
+            {dateOption === "single" && (
+              <div className="space-y-3 ml-6">
+                <Label htmlFor="startDate">Date *</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                  disabled={uploading}
+                />
+              </div>
             )}
-          </Button>
-        </DialogFooter>
+
+            {dateOption === "range" && (
+              <div className="space-y-3 ml-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDateRange">Start Date *</Label>
+                    <Input
+                      id="startDateRange"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      required
+                      disabled={uploading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endDateRange">End Date *</Label>
+                    <Input
+                      id="endDateRange"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      required
+                      disabled={uploading}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Custom period description */}
+            {(dateOption === "single" || dateOption === "range") && (
+              <div className="space-y-2 ml-6">
+                <Label htmlFor="customPeriod">Period Description (Optional)</Label>
+                <Input
+                  id="customPeriod"
+                  value={customPeriod}
+                  onChange={(e) => setCustomPeriod(e.target.value)}
+                  placeholder="e.g., January 2024, Q1 2024, etc."
+                  disabled={uploading}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {generateDocumentPeriod() || "No period description"}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* File Upload */}
+          <div className="space-y-3">
+            <Label htmlFor="file">File *</Label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              {file ? (
+                <div className="flex items-center justify-between bg-muted p-3 rounded-md">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary/10 rounded">
+                      <Upload className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium">{file.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFile(null)}
+                    disabled={uploading}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground mb-2">
+                    Drag & drop your file here or click to browse
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Max file size: 100MB
+                  </p>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("file").click()}
+                    disabled={uploading}
+                  >
+                    Browse Files
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Upload Progress */}
+          {uploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Uploading...</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDialogClose}
+              disabled={uploading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={uploading}
+              onClick={handleUpload}
+            >
+              {uploading ? "Uploading..." : "Upload Document"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -128,7 +128,7 @@ export default function UnifiedSidebar({
             {permissions.canViewDashboard && (
               <Button
                 variant={isActive("dashboard") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("dashboard")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -142,7 +142,7 @@ export default function UnifiedSidebar({
             {permissions.canManageClients && (
               <Button
                 variant={isActive("clients") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("clients")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -159,7 +159,7 @@ export default function UnifiedSidebar({
               <div className="space-y-1 w-full">
                 <Button
                   variant={activeTab.startsWith("documents") ? "default" : "ghost"}
-                  className={`w-full justify-start shadow-sm truncate ${
+                  className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                     activeTab.startsWith("documents")
                       ? "bg-primary text-white"
                       : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -184,7 +184,7 @@ export default function UnifiedSidebar({
                   <div className="pl-6 space-y-1 pt-1 w-full">
                     <Button
                       variant={activeTab === "documents" ? "default" : "ghost"}
-                      className={`w-full justify-start text-sm shadow-sm truncate ${
+                      className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
                         activeTab === "documents"
                           ? "bg-primary text-white"
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -207,7 +207,7 @@ export default function UnifiedSidebar({
                             ? "default"
                             : "ghost"
                         }
-                        className={`w-full justify-start text-sm shadow-sm truncate ${
+                        className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
                           activeTab === `documents-${category.id}`
                             ? "bg-primary text-white"
                             : "text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -231,7 +231,7 @@ export default function UnifiedSidebar({
                   variant={
                     activeTab.startsWith("company-documents") ? "default" : "ghost"
                   }
-                  className={`w-full justify-start shadow-sm truncate ${
+                  className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                     activeTab.startsWith("company-documents")
                       ? "bg-primary text-white"
                       : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -261,7 +261,7 @@ export default function UnifiedSidebar({
                       variant={
                         activeTab === "company-documents" ? "default" : "ghost"
                       }
-                      className={`w-full justify-start text-sm shadow-sm truncate ${
+                      className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
                         activeTab === "company-documents"
                           ? "bg-primary text-white"
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -284,7 +284,7 @@ export default function UnifiedSidebar({
                             ? "default"
                             : "ghost"
                         }
-                        className={`w-full justify-start text-sm shadow-sm truncate ${
+                        className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
                           activeTab === `company-documents-${category.id}`
                             ? "bg-primary text-white"
                             : "text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -305,7 +305,7 @@ export default function UnifiedSidebar({
             {permissions.canManageRequests && (
               <Button
                 variant={isActive("requests") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("requests")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -313,13 +313,13 @@ export default function UnifiedSidebar({
                 onClick={() => handleNavigation("requests")}
               >
                 <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="truncate">Request Reports</span>
+                <span className="truncate">Document Requests</span>
               </Button>
             )}
             {permissions.canManageGuards && (
               <Button
                 variant={isActive("guards") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("guards")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -333,7 +333,7 @@ export default function UnifiedSidebar({
             {permissions.canManageRoles && (
               <Button
                 variant={isActive("roles") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("roles")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -347,7 +347,7 @@ export default function UnifiedSidebar({
             {permissions.canManageContact && (
               <Button
                 variant={isActive("contact") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("contact")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -361,7 +361,7 @@ export default function UnifiedSidebar({
             {permissions.canManageFrontend && (
               <Button
                 variant={isActive("frontend") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("frontend")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -375,7 +375,7 @@ export default function UnifiedSidebar({
             {permissions.canManageSettings && (
               <Button
                 variant={isActive("settings") ? "default" : "ghost"}
-                className={`w-full justify-start shadow-sm truncate ${
+                className={`w-full cursor-pointer justify-start shadow-sm truncate ${
                   isActive("settings")
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -390,17 +390,17 @@ export default function UnifiedSidebar({
         </nav>
       </div>
 
-      {/* Fixed Bottom Section - No Scroll */}
+      {/* Fixed Bottom Section - No Scroll
       <div className={`flex-shrink-0 border-t border-border/50 p-4 w-full`}>
         <Button
           variant="ghost"
-          className="w-full justify-start shadow-sm bg-primary text-white truncate"
+          className="w-full cursor-pointer justify-start shadow-sm bg-primary text-white truncate"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4 mr-2 flex-shrink-0" />
           <span className="truncate">Sign Out</span>
         </Button>
-      </div>
+      </div> */}
     </div>
   );
 
@@ -416,7 +416,7 @@ export default function UnifiedSidebar({
   }
 
   return (
-    <aside className="w-72 border-r border-border bg-card shadow-sm hidden md:flex flex-col h-screen sticky top-0 overflow-hidden">
+    <aside className="w-70 border-r border-border bg-card shadow-sm hidden md:flex flex-col h-screen sticky top-0 overflow-hidden">
       {renderSidebarContent()}
     </aside>
   );

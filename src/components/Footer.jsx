@@ -59,7 +59,7 @@ export function Footer() {
                 ACME Protection Services Pvt. Ltd.
               </h3>
               <p className="text-sm text-secondary">
-                Leading security solutions provider with 10+ years of trusted
+                Leading security solutions provider with 37+ years of trusted
                 service across India.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-secondary">
@@ -181,15 +181,15 @@ export function Footer() {
               </h4>
               <div className="space-y-2">
                 <p className="text-sm flex items-center gap-2 text-secondary">
-                  <MapPin className="h-4 w-4 text-primary" /> 1st Floor, Acme
-                  House, Opposite <br /> Central Market, Bhiwadi, Alwar, <br />{" "}
-                  Bhiwadi-301019, Rajasthan, India
+                  <MapPin className="h-4 w-4 text-primary" /> 1st Floor Acme
+                  House Opposite Central Market Bhiwadi Alwar
+                  Bhiwadi-301019 Rajasthan India
                 </p>
                 <a
                   href="tel:+919314554244"
                   className="text-sm flex items-center gap-2 text-secondary hover:text-primary transition-colors cursor-pointer"
                 >
-                  <Phone className="h-4 w-4 text-primary" /> +91-9314554244
+                  <Phone className="h-4 w-4 text-primary" /> +91 9314554244
                 </a>
                 <a
                   href="mailto:protection.acme@gmail.com"

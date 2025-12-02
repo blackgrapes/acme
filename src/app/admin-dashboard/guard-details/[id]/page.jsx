@@ -84,6 +84,7 @@ import {
   File as FileIcon,
   Loader2,
   Shield as ShieldIcon,
+  TrendingUpIcon,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";

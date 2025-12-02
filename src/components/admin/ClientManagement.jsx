@@ -1,3 +1,4 @@
+// File: src/components/admin/ClientManagement.jsx - COMPLETELY FIXED VERSION
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -34,79 +35,130 @@ import {
   Plus,
   Search,
   Filter,
-  MoreVertical,
   Edit,
-  Trash2,
-  Download,
-  Mail,
-  Phone,
-  Building,
-  Calendar,
   User,
   Shield,
   CheckCircle,
   Clock,
   XCircle,
+  Mail,
+  Phone,
+  Building,
+  MapPin,
+  Users,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 export default function ClientManagement({
   guardSearch,
   handleGuardSearch,
   selectedGuards,
   toggleGuardSelection,
-  filteredClientGuards,
+  handleClientRowClick,
 }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [planFilter, setPlanFilter] = useState("all");
+  const [clientTypeFilter, setClientTypeFilter] = useState("all");
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Initial form state - SIMPLIFIED AND FIXED
+  const initialFormData = {
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
     phone: "",
-    org: "",
-    address: "",
-    plan: "",
-    startDate: "",
-    endDate: "",
-  });
+    alternatePhone: "",
+    clientType: "Corporate",
+    companyName: "",
+    designation: "",
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "India"
+    },
+    securityPlan: "Standard",
+    serviceType: "",
+    contractStartDate: "",
+    contractEndDate: "",
+    contractValue: "",
+    sites: [{
+      siteName: "",
+      address: "",
+      contactPerson: "",
+      contactNumber: "",
+    }],
+    emergencyContacts: [{
+      name: "",
+      relationship: "",
+      phone: "",
+    }],
+    requiredGuards: {
+      male: 0,
+      female: 0,
+      total: 0
+    },
+    equipmentRequired: "",
+    notes: "",
+  };
 
-  // Real clients fetch करें
+  const [formData, setFormData] = useState(initialFormData);
+
+  // Service types options
+  const serviceTypeOptions = [
+    { value: "Static Guarding", label: "Static Guarding" },
+    { value: "Patrolling", label: "Patrolling" },
+    { value: "CCTV Monitoring", label: "CCTV Monitoring" },
+    { value: "Event Security", label: "Event Security" },
+    { value: "VIP Protection", label: "VIP Protection" },
+    { value: "Asset Protection", label: "Asset Protection" }
+  ];
+
+  // Equipment options
+  const equipmentOptions = [
+    { value: "Walkie Talkie", label: "Walkie Talkie" },
+    { value: "CCTV", label: "CCTV" },
+    { value: "Metal Detector", label: "Metal Detector" },
+    { value: "Fire Extinguisher", label: "Fire Extinguisher" },
+    { value: "First Aid", label: "First Aid Kit" },
+    { value: "Vehicle", label: "Security Vehicle" }
+  ];
+
+    // Fetch clients from API
   useEffect(() => {
     fetchClients();
   }, []);
 
-  // ClientManagement.jsx में fetchClients function update करें
   const fetchClients = async () => {
     try {
-      console.log("🔄 Fetching clients...");
+      setLoading(true);
       const response = await fetch("/api/auth/client");
       const data = await response.json();
-
+      
+      console.log("📋 API Response:", data);
+      
       if (response.ok) {
-        console.log("✅ Clients fetched:", data.clients);
-        // Only show users with role "Client"
-        const clientUsers = data.clients.filter(
-          (user) =>
-            user.role && (user.role.name === "Client" || user.role === "Client")
-        );
-        setClients(clientUsers);
+        // The API already returns only clients, no need to filter
+        setClients(data.clients || []);
+        console.log(`✅ Loaded ${data.clients?.length || 0} clients`);
       } else {
-        console.error("❌ Failed to fetch clients:", data.error);
         setClients([]);
+        toast.error("Failed to load clients");
       }
     } catch (error) {
-      console.error("💥 Error fetching clients:", error);
+      console.error("❌ Error fetching clients:", error);
       setClients([]);
+      toast.error("Error loading clients");
     } finally {
       setLoading(false);
     }
@@ -118,16 +170,41 @@ export default function ClientManagement({
       client.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (client.companyName &&
-        client.companyName.toLowerCase().includes(searchQuery.toLowerCase()));
+        client.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (client.address && 
+        client.address.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus =
       statusFilter === "all" || client.status === statusFilter;
-    const matchesPlan =
-      planFilter === "all" || client.securityPlan === planFilter;
+    
+    const matchesClientType =
+      clientTypeFilter === "all" || client.clientType === clientTypeFilter;
 
-    return matchesSearch && matchesStatus && matchesPlan;
+    return matchesSearch && matchesStatus && matchesClientType;
   });
 
+  // Get total required guards
+  const getTotalRequiredGuards = () => {
+    return clients.reduce((total, client) => {
+      return total + (client.requiredGuards?.total || 0);
+    }, 0);
+  };
+
+  // Get total assigned guards
+  const getTotalAssignedGuards = () => {
+    return clients.reduce((total, client) => {
+      return total + (client.assignedGuards?.length || 0);
+    }, 0);
+  };
+
+  // Get total contract value
+  const getTotalContractValue = () => {
+    return clients.reduce((total, client) => {
+      return total + (client.contractValue || 0);
+    }, 0);
+  };
+
+  // Status badge helpers
   const getStatusIcon = (status) => {
     switch (status) {
       case "Active":
@@ -154,48 +231,219 @@ export default function ClientManagement({
     }
   };
 
-  // Form input handle करें
+  // // Filter clients
+  // const filteredClients = clients.filter((client) => {
+  //   const matchesSearch =
+  //     client.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     (client.companyName &&
+  //       client.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+  //     (client.address?.city &&
+  //       client.address.city.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  //   const matchesStatus =
+  //     statusFilter === "all" || client.status === statusFilter;
+  //   const matchesClientType =
+  //     clientTypeFilter === "all" || client.clientType === clientTypeFilter;
+
+  //   return matchesSearch && matchesStatus && matchesClientType;
+  // });
+
+  // // Status badge helpers
+  // const getStatusIcon = (status) => {
+  //   switch (status) {
+  //     case "Active":
+  //       return <CheckCircle className="h-3 w-3" />;
+  //     case "Pending":
+  //       return <Clock className="h-3 w-3" />;
+  //     case "Inactive":
+  //       return <XCircle className="h-3 w-3" />;
+  //     default:
+  //       return <Shield className="h-3 w-3" />;
+  //   }
+  // };
+
+  // const getStatusVariant = (status) => {
+  //   switch (status) {
+  //     case "Active":
+  //       return "default";
+  //     case "Pending":
+  //       return "secondary";
+  //     case "Inactive":
+  //       return "outline";
+  //     default:
+  //       return "secondary";
+  //   }
+  // };
+
+  // ✅ FIXED: Handle form input changes - SIMPLIFIED VERSION
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
+    const { name, value, type } = e.target;
+    
+    // Handle simple fields
+    if (!name.includes('.')) {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'number' ? parseInt(value) || 0 : value
+      }));
+      return;
+    }
+
+    // Handle nested fields with dot notation
+    const keys = name.split('.');
+    
+    setFormData(prev => {
+      const newState = { ...prev };
+      let current = newState;
+      
+      // Navigate to the nested level
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        
+        // Handle array indices
+        if (!isNaN(keys[i+1])) {
+          const index = parseInt(keys[i+1]);
+          if (!current[key] || !Array.isArray(current[key])) {
+            current[key] = [];
+          }
+          if (!current[key][index]) {
+            current[key][index] = {};
+          }
+          current = current[key][index];
+          i++; // Skip the index key since we already handled it
+        } else {
+          if (!current[key] || typeof current[key] !== 'object') {
+            current[key] = {};
+          }
+          current = current[key];
+        }
+      }
+      
+      // Set the value
+      const lastKey = keys[keys.length - 1];
+      current[lastKey] = type === 'number' ? parseInt(value) || 0 : value;
+      
+      return newState;
+    });
+  };
+
+  // ✅ FIXED: Alternative method for simpler cases
+  const handleSimpleNestedChange = (fieldPath, value) => {
+    const keys = fieldPath.split('.');
+    
+    setFormData(prev => {
+      if (keys.length === 1) {
+        return { ...prev, [keys[0]]: value };
+      }
+      
+      if (keys.length === 2) {
+        if (keys[0] === 'requiredGuards') {
+          return {
+            ...prev,
+            requiredGuards: {
+              ...prev.requiredGuards,
+              [keys[1]]: parseInt(value) || 0
+            }
+          };
+        }
+        
+        if (keys[0] === 'address') {
+          return {
+            ...prev,
+            address: {
+              ...prev.address,
+              [keys[1]]: value
+            }
+          };
+        }
+      }
+      
+      if (keys.length === 3 && keys[0] === 'sites' && keys[1] === '0') {
+        return {
+          ...prev,
+          sites: [{
+            ...prev.sites[0],
+            [keys[2]]: value
+          }]
+        };
+      }
+      
+      if (keys.length === 3 && keys[0] === 'emergencyContacts' && keys[1] === '0') {
+        return {
+          ...prev,
+          emergencyContacts: [{
+            ...prev.emergencyContacts[0],
+            [keys[2]]: value
+          }]
+        };
+      }
+      
+      return prev;
+    });
+  };
+
+  // Handle select changes
+  const handleSelectChange = (name, value) => {
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
   };
 
-  // Client registration form submission - SIMPLIFIED VERSION
+  // Reset form
+  const resetForm = () => {
+    setFormData(initialFormData);
+  };
+
+  // Submit client registration
   const handleClientSubmit = async (event) => {
     event.preventDefault();
+    
+    setIsSubmitting(true);
 
-    // Basic validation
+    // Validation
+    if (!formData.name || !formData.email || !formData.password) {
+      toast.error("Name, email and password are required");
+      setIsSubmitting(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match!");
+      setIsSubmitting(false);
       return;
     }
 
     if (formData.password.length < 6) {
-      alert("Password must be at least 6 characters long!");
+      toast.error("Password must be at least 6 characters long!");
+      setIsSubmitting(false);
       return;
     }
 
     try {
+      // Prepare client data
       const clientData = {
         name: formData.name,
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
-        companyName: formData.org,
+        alternatePhone: formData.alternatePhone,
+        clientType: formData.clientType,
+        companyName: formData.companyName,
+        designation: formData.designation,
         address: formData.address,
-        securityPlan: formData.plan,
-        serviceDuration: {
-          from: formData.startDate,
-          to: formData.endDate,
-        },
+        securityPlan: formData.securityPlan,
+        serviceType: formData.serviceType ? [formData.serviceType] : [],
+        contractStartDate: formData.contractStartDate,
+        contractEndDate: formData.contractEndDate,
+        contractValue: formData.contractValue ? parseFloat(formData.contractValue) : 0,
+        sites: formData.sites,
+        emergencyContacts: formData.emergencyContacts,
+        requiredGuards: formData.requiredGuards,
+        equipmentRequired: formData.equipmentRequired ? [formData.equipmentRequired] : [],
+        notes: formData.notes,
         roleName: "Client",
-        documents: [],
       };
-
-      console.log("📝 Sending client data:", clientData);
 
       const response = await fetch("/api/auth/register", {
         method: "POST",
@@ -207,49 +455,35 @@ export default function ClientManagement({
 
       const result = await response.json();
 
-      // ClientManagement.jsx में handleClientSubmit में
       if (response.ok) {
-        console.log("✅ Client registered successfully:", result.message);
-        // Refresh clients list
+        toast.success("Client registered successfully!");
         await fetchClients();
-        // Close dialog and reset form
         setIsDialogOpen(false);
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          phone: "",
-          org: "",
-          address: "",
-          plan: "",
-          startDate: "",
-          endDate: "",
-        });
-        // ✅ Simple success message
-        alert("Client registered successfully!");
+        resetForm();
       } else {
-        console.error("❌ Registration failed:", result.error);
-        alert(`Registration failed: ${result.error}`);
+        toast.error(`Registration failed: ${result.error}`);
       }
     } catch (error) {
-      console.error("💥 Registration error:", error);
-      alert("Registration error. Please try again.");
+      console.error("Registration error:", error);
+      toast.error("Registration error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleClientRowClick = (clientId) => {
-    router.push(`/admin-dashboard/client-details/${clientId}`);
-  };
+  // // Get total required guards
+  // const getTotalRequiredGuards = () => {
+  //   return clients.reduce((total, client) => {
+  //     return total + (client.requiredGuards?.total || 0);
+  //   }, 0);
+  // };
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading clients...</p>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading clients...</p>
         </div>
       </div>
     );
@@ -264,276 +498,507 @@ export default function ClientManagement({
             Client Management
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage client accounts, assignments, and permissions
+            Manage client accounts, security assignments, and contracts
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="border-primary/20 hover:bg-primary/5"
-            permission="clients-read"
-          >
-            <Download className="h-4 w-4 mr-2 text-primary" />
-            Export
-          </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" permission="clients-create">
+              <Button className="bg-primary cursor-pointer hover:bg-primary/90 text-primary-foreground">
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Client
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="text-foreground">
-                  Add New Client
-                </DialogTitle>
+                <DialogTitle>Add New Client</DialogTitle>
                 <DialogDescription>
-                  Create a new client account with security assignments and
-                  preferences.
+                  Create a new client account with complete security setup
                 </DialogDescription>
               </DialogHeader>
 
-              {/* FORM START */}
-              <form
-                onSubmit={handleClientSubmit}
-                className="grid gap-6 py-4 grid-cols-1 md:grid-cols-2"
-              >
-                {/* Personal Information */}
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    Personal Information
-                  </h3>
+              {/* FORM START - USING SIMPLIFIED HANDLERS */}
+              <form onSubmit={handleClientSubmit} className="grid gap-6 py-4">
+                {/* Basic Information */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name *</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="John Smith"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="john@example.com"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="••••••••"
+                      required
+                      minLength="6"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="••••••••"
+                      required
+                      minLength="6"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="name" className="text-sm font-medium">
-                    Full Name *
-                  </Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    placeholder="John Smith"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
+                {/* Contact Information */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="+91 9876543210"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="alternatePhone">Alternate Phone</Label>
+                    <Input
+                      id="alternatePhone"
+                      name="alternatePhone"
+                      value={formData.alternatePhone}
+                      onChange={handleInputChange}
+                      placeholder="+91 9876543211"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email Address *
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="john@example.com"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
+                {/* Client Information */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="clientType">Client Type</Label>
+                    <Select
+                      value={formData.clientType}
+                      onValueChange={(value) => handleSelectChange('clientType', value)}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Individual">Individual</SelectItem>
+                        <SelectItem value="Corporate">Corporate</SelectItem>
+                        <SelectItem value="Government">Government</SelectItem>
+                        <SelectItem value="Residential">Residential</SelectItem>
+                        <SelectItem value="Commercial">Commercial</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">Company Name</Label>
+                    <Input
+                      id="companyName"
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleInputChange}
+                      placeholder="ABC Corporation"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="designation">Designation</Label>
+                    <Input
+                      id="designation"
+                      name="designation"
+                      value={formData.designation}
+                      onChange={handleInputChange}
+                      placeholder="Security Manager"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="phone" className="text-sm font-medium">
-                    Phone Number
-                  </Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    placeholder="(555) 123-4567"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="org" className="text-sm font-medium">
-                    Organization
-                  </Label>
-                  <Input
-                    id="org"
-                    name="org"
-                    placeholder="Company Name"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.org}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="space-y-3 md:col-span-2">
-                  <Label htmlFor="address" className="text-sm font-medium">
-                    Address
-                  </Label>
-                  <Textarea
-                    id="address"
-                    name="address"
-                    placeholder="Enter full address..."
-                    className="border-primary/20 focus:border-primary min-h-[80px]"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password *
-                  </Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    minLength="6"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="text-sm font-medium"
-                  >
-                    Confirm Password *
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    required
-                    minLength="6"
-                  />
-                </div>
-
-                {/* Security Plan */}
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    Security Plan
-                  </h3>
-                </div>
-
-                <div className="space-y-3 md:col-span-2">
-                  <Label htmlFor="plan" className="text-sm font-medium">
-                    Security Plan *
-                  </Label>
-                  <Select
-                    name="plan"
-                    required
-                    value={formData.plan}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, plan: value }))
-                    }
-                  >
-                    <SelectTrigger className="border-primary/20 focus:border-primary">
-                      <SelectValue placeholder="Select Security Plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Personal Security Officer">
-                        Personal Security Officer
-                      </SelectItem>
-                      <SelectItem value="Security Guard">
-                        Security Guard
-                      </SelectItem>
-                      <SelectItem value="Security Officer">
-                        Security Officer
-                      </SelectItem>
-                      <SelectItem value="Security Supervisor">
-                        Security Supervisor
-                      </SelectItem>
-                      <SelectItem value="Lady Security Guard">
-                        Lady Security Guard
-                      </SelectItem>
-                      <SelectItem value="Security Gunmen">
-                        Security Gunmen
-                      </SelectItem>
-                      <SelectItem value="Ex-men Security Guard & Bodyguards">
-                        Ex-men Security Guard & Bodyguards
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">
-                    Service Duration
-                  </Label>
-                  <div className="flex gap-3">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="startDate" className="text-xs">
-                        Start Date
-                      </Label>
+                {/* Address Information - FIXED */}
+                <div className="grid gap-4">
+                  <h3 className="text-lg font-semibold">Address Information</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="address.street">Street Address</Label>
                       <Input
-                        id="startDate"
-                        name="startDate"
-                        type="date"
-                        className="border-primary/20 focus:border-primary"
-                        value={formData.startDate}
-                        onChange={handleInputChange}
+                        id="address.street"
+                        name="address.street"
+                        value={formData.address.street}
+                        onChange={(e) => handleSimpleNestedChange('address.street', e.target.value)}
+                        placeholder="123 Main Street"
+                        disabled={isSubmitting}
                       />
                     </div>
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="endDate" className="text-xs">
-                        End Date
-                      </Label>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="address.city">City</Label>
                       <Input
-                        id="endDate"
-                        name="endDate"
-                        type="date"
-                        className="border-primary/20 focus:border-primary"
-                        value={formData.endDate}
-                        onChange={handleInputChange}
+                        id="address.city"
+                        name="address.city"
+                        value={formData.address.city}
+                        onChange={(e) => handleSimpleNestedChange('address.city', e.target.value)}
+                        placeholder="Mumbai"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="address.state">State</Label>
+                      <Input
+                        id="address.state"
+                        name="address.state"
+                        value={formData.address.state}
+                        onChange={(e) => handleSimpleNestedChange('address.state', e.target.value)}
+                        placeholder="Maharashtra"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="address.postalCode">Postal Code</Label>
+                      <Input
+                        id="address.postalCode"
+                        name="address.postalCode"
+                        value={formData.address.postalCode}
+                        onChange={(e) => handleSimpleNestedChange('address.postalCode', e.target.value)}
+                        placeholder="400001"
+                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0 md:col-span-2">
+                {/* Service Information */}
+                <div className="grid gap-4">
+                  <h3 className="text-lg font-semibold">Service Information</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="securityPlan">Security Plan</Label>
+                      <Select
+                        value={formData.securityPlan}
+                        onValueChange={(value) => handleSelectChange('securityPlan', value)}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select plan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Basic">Basic</SelectItem>
+                          <SelectItem value="Standard">Standard</SelectItem>
+                          <SelectItem value="Premium">Premium</SelectItem>
+                          <SelectItem value="Enterprise">Enterprise</SelectItem>
+                          <SelectItem value="Custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Service Type</Label>
+                      <Select
+                        value={formData.serviceType}
+                        onValueChange={(value) => handleSelectChange('serviceType', value)}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select service type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {serviceTypeOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contract Information */}
+                <div className="grid gap-4">
+                  <h3 className="text-lg font-semibold">Contract Information</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="contractStartDate">Start Date</Label>
+                      <Input
+                        id="contractStartDate"
+                        name="contractStartDate"
+                        type="date"
+                        value={formData.contractStartDate}
+                        onChange={handleInputChange}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contractEndDate">End Date</Label>
+                      <Input
+                        id="contractEndDate"
+                        name="contractEndDate"
+                        type="date"
+                        value={formData.contractEndDate}
+                        onChange={handleInputChange}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contractValue">Contract Value (₹)</Label>
+                      <Input
+                        id="contractValue"
+                        name="contractValue"
+                        type="number"
+                        value={formData.contractValue}
+                        onChange={handleInputChange}
+                        placeholder="50000"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Site Information - FIXED */}
+                <div className="grid gap-4">
+                  <h3 className="text-lg font-semibold">Site Information</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="siteName">Site Name</Label>
+                      <Input
+                        id="siteName"
+                        name="sites.0.siteName"
+                        value={formData.sites[0]?.siteName || ""}
+                        onChange={(e) => handleSimpleNestedChange('sites.0.siteName', e.target.value)}
+                        placeholder="Head Office"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="siteAddress">Site Address</Label>
+                      <Input
+                        id="siteAddress"
+                        name="sites.0.address"
+                        value={formData.sites[0]?.address || ""}
+                        onChange={(e) => handleSimpleNestedChange('sites.0.address', e.target.value)}
+                        placeholder="Site full address"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="siteContactPerson">Contact Person</Label>
+                      <Input
+                        id="siteContactPerson"
+                        name="sites.0.contactPerson"
+                        value={formData.sites[0]?.contactPerson || ""}
+                        onChange={(e) => handleSimpleNestedChange('sites.0.contactPerson', e.target.value)}
+                        placeholder="Site Manager"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="siteContactNumber">Contact Number</Label>
+                      <Input
+                        id="siteContactNumber"
+                        name="sites.0.contactNumber"
+                        value={formData.sites[0]?.contactNumber || ""}
+                        onChange={(e) => handleSimpleNestedChange('sites.0.contactNumber', e.target.value)}
+                        placeholder="+91 9876543212"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Requirements - FIXED */}
+                <div className="grid gap-4">
+                  <h3 className="text-lg font-semibold">Security Requirements</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="maleGuards">Male Guards</Label>
+                      <Input
+                        id="maleGuards"
+                        name="requiredGuards.male"
+                        type="number"
+                        min="0"
+                        value={formData.requiredGuards.male}
+                        onChange={(e) => handleSimpleNestedChange('requiredGuards.male', e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="femaleGuards">Female Guards</Label>
+                      <Input
+                        id="femaleGuards"
+                        name="requiredGuards.female"
+                        type="number"
+                        min="0"
+                        value={formData.requiredGuards.female}
+                        onChange={(e) => handleSimpleNestedChange('requiredGuards.female', e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="totalGuards">Total Guards</Label>
+                      <Input
+                        id="totalGuards"
+                        name="requiredGuards.total"
+                        type="number"
+                        min="0"
+                        value={formData.requiredGuards.total}
+                        onChange={(e) => handleSimpleNestedChange('requiredGuards.total', e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Equipment Required</Label>
+                    <Select
+                      value={formData.equipmentRequired}
+                      onValueChange={(value) => handleSelectChange('equipmentRequired', value)}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select equipment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {equipmentOptions.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Emergency Contact - FIXED */}
+                <div className="grid gap-4">
+                  <h3 className="text-lg font-semibold">Emergency Contact</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyName">Contact Name</Label>
+                      <Input
+                        id="emergencyName"
+                        name="emergencyContacts.0.name"
+                        value={formData.emergencyContacts[0]?.name || ""}
+                        onChange={(e) => handleSimpleNestedChange('emergencyContacts.0.name', e.target.value)}
+                        placeholder="Emergency Contact"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyRelationship">Relationship</Label>
+                      <Input
+                        id="emergencyRelationship"
+                        name="emergencyContacts.0.relationship"
+                        value={formData.emergencyContacts[0]?.relationship || ""}
+                        onChange={(e) => handleSimpleNestedChange('emergencyContacts.0.relationship', e.target.value)}
+                        placeholder="Spouse/Manager"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyPhone">Contact Phone</Label>
+                      <Input
+                        id="emergencyPhone"
+                        name="emergencyContacts.0.phone"
+                        value={formData.emergencyContacts[0]?.phone || ""}
+                        onChange={(e) => handleSimpleNestedChange('emergencyContacts.0.phone', e.target.value)}
+                        placeholder="+91 9876543213"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Additional Notes</Label>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    placeholder="Any special instructions or notes..."
+                    rows={3}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-primary/20 hover:bg-primary/5"
                     onClick={() => {
                       setIsDialogOpen(false);
-                      setFormData({
-                        name: "",
-                        email: "",
-                        password: "",
-                        confirmPassword: "",
-                        phone: "",
-                        org: "",
-                        address: "",
-                        plan: "",
-                        startDate: "",
-                        endDate: "",
-                      });
+                      resetForm();
                     }}
+                    className="cursor-pointer"
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                    permission="clients-create"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Client Account
+                  <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Client Account
+                      </>
+                    )}
                   </Button>
                 </DialogFooter>
               </form>
-              {/* FORM END */}
             </DialogContent>
           </Dialog>
         </div>
@@ -541,67 +1006,75 @@ export default function ClientManagement({
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  Total Clients
-                </p>
-                <p className="text-2xl font-bold text-foreground">
-                  {clients.length}
+                <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
+                <p className="text-2xl font-bold">{clients.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filteredClients.length} filtered
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <User className="h-5 w-5 text-primary" />
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Active</p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-sm font-medium text-muted-foreground">Active Clients</p>
+                <p className="text-2xl font-bold">
                   {clients.filter((c) => c.status === "Active").length}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {clients.filter((c) => c.status !== "Active").length} inactive
+                </p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-primary" />
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Pending</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {clients.filter((c) => c.status === "Pending").length}
+                <p className="text-sm font-medium text-muted-foreground">Corporate Clients</p>
+                <p className="text-2xl font-bold">
+                  {clients.filter((c) => c.clientType === "Corporate").length}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {clients.filter((c) => c.clientType !== "Corporate").length} other types
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-primary" />
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Building className="h-5 w-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0 bg-gradient-to-r from-primary/10 to-primary/5">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Revenue</p>
-                <p className="text-2xl font-bold text-foreground">
-                  ₹{clients.length * 25000}
+                <p className="text-sm font-medium text-muted-foreground">Guards Required</p>
+                <p className="text-2xl font-bold">
+                  {getTotalRequiredGuards()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {getTotalAssignedGuards()} assigned
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-primary" />
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <Shield className="h-5 w-5 text-orange-600" />
               </div>
             </div>
           </CardContent>
@@ -609,22 +1082,22 @@ export default function ClientManagement({
       </div>
 
       {/* Clients Table */}
-      <Card className="shadow-md border-0">
+      <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3">
-          <CardTitle className="text-foreground">Client Directory</CardTitle>
+          <CardTitle>Client Directory</CardTitle>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center space-x-2 w-full sm:w-64">
-              <Search className="h-4 w-4 text-primary flex-shrink-0" />
+              <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search clients..."
-                className="h-9 flex-1 border-primary/20 focus:border-primary"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px] border-primary/20 focus:border-primary">
-                <Filter className="h-4 w-4 mr-2 text-primary" />
+              <SelectTrigger className="w-[140px]">
+                <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -632,20 +1105,20 @@ export default function ClientManagement({
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="Suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={planFilter} onValueChange={setPlanFilter}>
-              <SelectTrigger className="w-[160px] border-primary/20 focus:border-primary">
-                <SelectValue placeholder="All Plans" />
+            <Select value={clientTypeFilter} onValueChange={setClientTypeFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Client Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Plans</SelectItem>
-                <SelectItem value="Personal Security Officer">
-                  Personal
-                </SelectItem>
-                <SelectItem value="Security Guard">Guard</SelectItem>
-                <SelectItem value="Security Officer">Officer</SelectItem>
-                <SelectItem value="Security Supervisor">Supervisor</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Corporate">Corporate</SelectItem>
+                <SelectItem value="Individual">Individual</SelectItem>
+                <SelectItem value="Government">Government</SelectItem>
+                <SelectItem value="Residential">Residential</SelectItem>
+                <SelectItem value="Commercial">Commercial</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -654,58 +1127,59 @@ export default function ClientManagement({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[280px]">Client</TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    Contact
-                  </TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Organization
-                  </TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="hidden xl:table-cell">Plan</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow>
+                  <TableHead className="min-w-[200px]">Client</TableHead>
+                  <TableHead className="hidden md:table-cell min-w-[180px]">Contact</TableHead>
+                  <TableHead className="hidden lg:table-cell min-w-[150px]">Address</TableHead>
+                  <TableHead className="text-center min-w-[100px]">Status</TableHead>
+                  <TableHead className="hidden xl:table-cell min-w-[120px]">Type</TableHead>
+                  <TableHead className="hidden 2xl:table-cell min-w-[100px]">Guards</TableHead>
+                  <TableHead className="text-right min-w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredClients.map((client) => (
                   <TableRow
                     key={client._id}
-                    className="cursor-pointer hover:bg-primary/5 transition-colors group"
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleClientRowClick(client._id)}
                   >
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-5 w-5 text-primary" />
+                          {client.avatar ? (
+                            <div className="text-primary font-medium">
+                              {client.avatar}
+                            </div>
+                          ) : (
+                            <User className="h-5 w-5 text-primary" />
+                          )}
                         </div>
-                        <div>
-                          <div className="font-medium text-foreground">
-                            {client.name}
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{client.name}</div>
+                          <div className="text-sm text-muted-foreground truncate">
+                            {client.companyName || "No company"}
                           </div>
-                          <div className="text-sm text-muted-foreground hidden sm:block">
-                            {client.email}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="h-3 w-3 text-primary" />
-                          {client.email}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-3 w-3 text-primary" />
-                          {client.phone || "N/A"}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 text-sm truncate">
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{client.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm truncate">
+                          <Phone className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{client.phone || "N/A"}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       <div className="flex items-center gap-2">
-                        <Building className="h-4 w-4 text-primary" />
-                        <span className="text-sm">
-                          {client.companyName || "N/A"}
+                        <MapPin className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-sm truncate">
+                          {client.address || "N/A"}
                         </span>
                       </div>
                     </TableCell>
@@ -713,43 +1187,63 @@ export default function ClientManagement({
                       <div className="flex justify-center">
                         <Badge
                           variant={getStatusVariant(client.status)}
-                          className={`flex items-center gap-1 ${
-                            client.status === "Active"
-                              ? "bg-green-500 text-white"
-                              : client.status === "Pending"
-                              ? "bg-yellow-500 text-white"
-                              : "bg-gray-500 text-white"
-                          }`}
+                          className="flex items-center gap-1 px-2 py-1"
                         >
                           {getStatusIcon(client.status)}
-                          {client.status}
+                          <span className="truncate">{client.status}</span>
                         </Badge>
                       </div>
                     </TableCell>
                     <TableCell className="hidden xl:table-cell">
-                      <div className="text-sm text-foreground font-medium">
-                        {client.securityPlan || "N/A"}
+                      <div className="flex items-center gap-2">
+                        {client.clientType === "Corporate" ? (
+                          <Building className="h-3 w-3 text-muted-foreground" />
+                        ) : client.clientType === "Individual" ? (
+                          <User className="h-3 w-3 text-muted-foreground" />
+                        ) : (
+                          <Briefcase className="h-3 w-3 text-muted-foreground" />
+                        )}
+                        <span className="text-sm truncate">
+                          {client.clientType || "Corporate"}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden 2xl:table-cell">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium truncate">
+                            {client.assignedGuards?.length || 0} / {client.requiredGuards?.total || 0}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            Assigned / Required
+                          </span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-8 w-8 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleClientRowClick(client._id);
                           }}
-                          permission="clients-read"
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          permission="clients-update"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toast.info("Edit functionality coming soon");
+                          }}
+                          title="Edit Client"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -763,17 +1257,48 @@ export default function ClientManagement({
 
           {filteredClients.length === 0 && (
             <div className="text-center py-12">
-              <User className="h-12 w-12 text-primary/30 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                {clients.length === 0
-                  ? "No clients registered yet"
-                  : "No clients found"}
-              </h3>
-              <p className="text-muted-foreground">
-                {clients.length === 0
-                  ? "Add your first client using the button above."
-                  : "Try adjusting your search or filters"}
-              </p>
+              {clients.length === 0 ? (
+                <>
+                  <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No clients registered yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Add your first client using the button above.
+                  </p>
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Client
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No clients found</h3>
+                  <p className="text-muted-foreground">
+                    Try adjusting your search or filters
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Total count footer */}
+          {filteredClients.length > 0 && (
+            <div className="border-t p-4">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  Showing {filteredClients.length} of {clients.length} clients
+                </span>
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-2">
+                    <Shield className="h-3 w-3" />
+                    {getTotalAssignedGuards()} guards assigned
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Building className="h-3 w-3" />
+                    {clients.filter(c => c.clientType === "Corporate").length} corporate
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

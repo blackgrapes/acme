@@ -1,4 +1,4 @@
-// src/app/api/auth/register/route.js - FIXED VERSION
+// src/app/api/auth/register/route.js - COMPLETELY FIXED
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { User, Role } from "@/lib/db";
@@ -15,19 +15,30 @@ export async function POST(request) {
       email,
       password,
       phone,
+      alternatePhone,
+      clientType,
       companyName,
+      designation,
       address,
       securityPlan,
-      serviceDuration,
+      serviceType,
+      contractStartDate,
+      contractEndDate,
+      contractValue,
+      sites,
+      emergencyContacts,
+      requiredGuards,
+      equipmentRequired,
+      assignedGuards,
+      notes,
       roleName = "Client",
-      permissions = [], // ✅ Add permissions from frontend
+      permissions = [],
     } = await request.json();
 
     console.log("📝 Registration data:", {
       name,
       email,
       roleName,
-      permissions,
     });
 
     // Validation
@@ -49,7 +60,7 @@ export async function POST(request) {
       );
     }
 
-    // ✅ FIXED: Get or create Role with proper permissions handling
+    // Get or create Role
     let role = await Role.findOne({ name: roleName });
 
     if (!role) {
@@ -69,14 +80,9 @@ export async function POST(request) {
           description: `${roleName} user role`,
           permissions: rolePermissions,
           status: "Active",
-          users: 0, // Initialize user count
+          users: 0,
         });
-        console.log(
-          "✅ New role created:",
-          role.name,
-          "with permissions:",
-          rolePermissions
-        );
+        console.log("✅ New role created:", role.name);
       } catch (roleError) {
         console.error("💥 Role creation failed:", roleError);
         return NextResponse.json(
@@ -92,31 +98,131 @@ export async function POST(request) {
     const hashedPassword = await bcrypt.hash(password, 12);
     console.log("🔑 Password hashed");
 
-    // Create User
-    const newUser = await User.create({
+    // ✅ FIXED: Create address object with proper structure
+    let addressObj = {
+      street: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "India"
+    };
+
+    if (address) {
+      if (typeof address === 'string') {
+        addressObj.street = address;
+      } else if (typeof address === 'object') {
+        addressObj = {
+          street: address.street || "",
+          city: address.city || "",
+          state: address.state || "",
+          postalCode: address.postalCode || "",
+          country: address.country || "India",
+        };
+      }
+    }
+
+    // ✅ FIXED: Prepare user data with proper field initialization
+    const userData = {
       name,
       email,
       password: hashedPassword,
       role: role._id,
       phone: phone || "",
+      alternatePhone: alternatePhone || "",
+      clientType: clientType || "Corporate",
       companyName: companyName || "",
-      address: address || "",
-      securityPlan: securityPlan || "",
-      serviceDuration: serviceDuration || {},
+      designation: designation || "",
+      address: addressObj, // ✅ Now properly structured object
       status: "Active",
       avatar: name.charAt(0).toUpperCase(),
-    });
+    };
 
-    console.log("✅ User created:", newUser._id);
+    // Add optional fields only if provided
+    if (securityPlan) {
+      userData.securityPlan = securityPlan;
+    }
 
-    // ✅ FIXED: Update role user count properly
+    if (serviceType && Array.isArray(serviceType)) {
+      userData.serviceType = serviceType;
+    }
+
+    if (contractStartDate) {
+      userData.contractStartDate = new Date(contractStartDate);
+    }
+
+    if (contractEndDate) {
+      userData.contractEndDate = new Date(contractEndDate);
+    }
+
+    if (contractValue) {
+      userData.contractValue = parseFloat(contractValue);
+    }
+
+    if (sites && Array.isArray(sites)) {
+      userData.sites = sites.map(site => ({
+        siteName: site.siteName || "",
+        address: site.address || "",
+        contactPerson: site.contactPerson || "",
+        contactNumber: site.contactNumber || "",
+        shiftTimings: {
+          start: site.shiftTimings?.start || "",
+          end: site.shiftTimings?.end || "",
+        },
+        isActive: site.isActive !== undefined ? site.isActive : true,
+      }));
+    } else {
+      userData.sites = [];
+    }
+
+    if (emergencyContacts && Array.isArray(emergencyContacts)) {
+      userData.emergencyContacts = emergencyContacts.map(contact => ({
+        name: contact.name || "",
+        relationship: contact.relationship || "",
+        phone: contact.phone || "",
+        priority: contact.priority || 1,
+      }));
+    } else {
+      userData.emergencyContacts = [];
+    }
+
+    if (requiredGuards) {
+      userData.requiredGuards = {
+        male: parseInt(requiredGuards.male) || 0,
+        female: parseInt(requiredGuards.female) || 0,
+        total: parseInt(requiredGuards.total) || 0,
+      };
+    }
+
+    if (equipmentRequired && Array.isArray(equipmentRequired)) {
+      userData.equipmentRequired = equipmentRequired;
+    } else {
+      userData.equipmentRequired = [];
+    }
+
+    if (assignedGuards && Array.isArray(assignedGuards)) {
+      userData.assignedGuards = assignedGuards;
+    } else {
+      userData.assignedGuards = [];
+    }
+
+    if (notes) {
+      userData.notes = notes.substring(0, 500);
+    }
+
+    console.log("📦 Final user data:", JSON.stringify(userData, null, 2));
+
+    // Create User
+    const newUser = await User.create(userData);
+    console.log("✅ User created successfully:", newUser._id);
+
+    // Update role user count
     await Role.findByIdAndUpdate(role._id, {
       $inc: { users: 1 },
     });
 
     const { password: _, ...userWithoutPassword } = newUser.toObject();
 
-    // Generate token with actual permissions
+    // Generate token
     const tokenPayload = {
       userId: newUser._id,
       email: newUser.email,
@@ -124,7 +230,7 @@ export async function POST(request) {
       permissions: role.permissions || [],
     };
 
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET || "your-secret-key", {
       expiresIn: "7d",
     });
 
@@ -133,7 +239,7 @@ export async function POST(request) {
       token,
       role: role.name,
       permissions: role.permissions || [],
-      message: "Role and user created successfully!",
+      message: "User registered successfully!",
     });
 
     // Set auth cookie
@@ -149,27 +255,34 @@ export async function POST(request) {
     return response;
   } catch (error) {
     console.error("💥 Register error:", error);
+    console.error("💥 Error details:", error.message);
+    console.error("💥 Error stack:", error.stack);
 
     if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map(e => e.message);
+      console.error("💥 Validation errors:", errors);
       return NextResponse.json(
-        {
-          error: `Validation error: ${Object.values(error.errors)
-            .map((e) => e.message)
-            .join(", ")}`,
+        { 
+          error: `Validation error: ${errors.join(", ")}`,
+          details: errors 
         },
         { status: 400 }
       );
     }
 
     if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
       return NextResponse.json(
-        { error: "Role name already exists" },
+        { error: `${field} already exists` },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: "Internal server error: " + error.message },
+      { 
+        error: "Internal server error",
+        details: error.message 
+      },
       { status: 500 }
     );
   }
