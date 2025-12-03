@@ -1,4 +1,4 @@
-// File: src/app/admin-dashboard/documents/page.jsx - WITH TAB SUPPORT
+// File: src/app/admin-dashboard/documents/page.jsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -6,9 +6,12 @@ import DocumentManagement from "@/components/admin/DocumentManagement";
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
-  const [currentCategory, setCurrentCategory] = useState(null);
+  const [currentCategory, setCurrentCategory] = useState({ id: "all", name: "All Documents" });
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const documentCategories = [
+    { id: "all", name: "All Documents" },
     { id: "agreement", name: "Agreement" },
     { id: "attendance", name: "Attendance" },
     { id: "bills", name: "Bills" },
@@ -22,33 +25,55 @@ export default function DocumentsPage() {
     { id: "paid-gst", name: "Paid GST" },
   ];
 
-  // ✅ OPTIMIZED: Fetch documents
+  // Fetch all clients for selection in upload dialog
+  const fetchClients = async () => {
+    try {
+      const response = await fetch("/api/auth/client?limit=1000");
+      if (response.ok) {
+        const data = await response.json();
+        setClients(data.clients || []);
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+    }
+  };
+
   const fetchDocuments = useCallback(async () => {
     try {
-      let url = "/api/documents";
+      setLoading(true);
+      let url = "/api/documents?admin=true";
       if (currentCategory && currentCategory.id !== "all") {
-        url += `?category=${currentCategory.id}`;
+        url += `&category=${currentCategory.id}`;
       }
 
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setDocuments(data.documents || []);
+      } else {
+        console.error("Failed to fetch documents");
+        setDocuments([]);
       }
     } catch (error) {
       console.error("Error fetching documents:", error);
       setDocuments([]);
+    } finally {
+      setLoading(false);
     }
   }, [currentCategory]);
 
-  // ✅ OPTIMIZED: Handle category change from sidebar - NO ROUTE CHANGE
   const handleCategoryChange = useCallback((category) => {
     setCurrentCategory(category);
   }, []);
 
-  // ✅ SETUP: Global handler for sidebar category changes
+  // Setup global handler for sidebar
   useEffect(() => {
     window.handleDocumentCategoryChange = handleCategoryChange;
+
+    // Set default category
+    if (!currentCategory) {
+      setCurrentCategory(documentCategories[0]);
+    }
 
     return () => {
       window.handleDocumentCategoryChange = null;
@@ -57,14 +82,18 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     fetchDocuments();
+    fetchClients();
   }, [fetchDocuments]);
 
   return (
     <DocumentManagement
-      dummyDocuments={documents}
-      currentCategory={currentCategory || { id: "all", name: "All Documents" }}
+      documents={documents}
+      currentCategory={currentCategory}
       onCategoryChange={handleCategoryChange}
       documentCategories={documentCategories}
+      allClients={clients}
+      loading={loading}
+      onRefresh={fetchDocuments}
       isCompanyDocuments={false}
     />
   );

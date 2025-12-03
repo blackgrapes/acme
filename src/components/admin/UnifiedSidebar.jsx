@@ -390,7 +390,7 @@ export default function UnifiedSidebar({
         </nav>
       </div>
 
-      {/* Fixed Bottom Section - No Scroll
+      
       <div className={`flex-shrink-0 border-t border-border/50 p-4 w-full`}>
         <Button
           variant="ghost"
@@ -400,7 +400,7 @@ export default function UnifiedSidebar({
           <LogOut className="h-4 w-4 mr-2 flex-shrink-0" />
           <span className="truncate">Sign Out</span>
         </Button>
-      </div> */}
+      </div>
     </div>
   );
 

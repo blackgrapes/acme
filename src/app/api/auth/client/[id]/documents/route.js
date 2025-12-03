@@ -1,4 +1,4 @@
-//src/app/api/auth/client/[clientId]/documents/route.js
+// File: src/app/api/auth/client/[clientId]/documents/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { User, Document } from "@/lib/db";
@@ -7,13 +7,13 @@ import fs from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
 
-// GET: Fetch documents for a specific client
+// GET: Fetch documents for a specific client (ONLY CLIENT-SPECIFIC DOCUMENTS)
 export async function GET(request, { params }) {
   try {
     await connectDB();
     const { id: clientId } = await params;
 
-    console.log("📄 Fetching documents for client:", clientId);
+    console.log("📄 Fetching CLIENT-SPECIFIC documents for client:", clientId);
 
     // Validate client exists
     const client = await User.findById(clientId);
@@ -21,18 +21,19 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Fetch documents for this client
+    // Fetch ONLY client-specific documents (NOT company documents)
     const documents = await Document.find({
       $or: [
         { targetClient: clientId },
-        { specificClients: clientId },
-        { isCompanyDocument: true },
-        { category: "general" },
+        { specificClients: clientId }
       ],
+      isCompanyDocument: false // ONLY non-company documents
     })
-      .populate("uploadedBy", "name email role") // Populate uploadedBy
+      .populate("uploadedBy", "name email role")
       .sort({ uploadDate: -1 })
       .lean();
+
+    console.log(`✅ Client ${clientId} fetched ${documents.length} CLIENT-SPECIFIC documents`);
 
     // Format response
     const formattedDocuments = documents.map((doc) => ({
@@ -76,14 +77,14 @@ export async function GET(request, { params }) {
   }
 }
 
-// POST: Upload document for a specific client
+// POST: Upload document for a specific client (FROM CLIENT DETAILS PAGE)
 export async function POST(request, { params }) {
   try {
     await connectDB();
     const { id: clientId } = await params;
     const data = await request.json();
 
-    console.log("📤 Uploading document for client:", clientId);
+    console.log("📤 Uploading document for client from client details page:", clientId);
 
     // Get current user from central auth helper
     const currentUser = await getCurrentUser(request);
@@ -108,7 +109,16 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Create document record
+    // Validate document type is client type (not company type)
+    const companyDocumentTypes = ["msme", "gst", "pasara", "pan", "profile", "bank-details"];
+    if (companyDocumentTypes.includes(data.type)) {
+      return NextResponse.json(
+        { error: "Company documents cannot be uploaded from client details page" },
+        { status: 400 }
+      );
+    }
+
+    // Create document record - ALWAYS set as client document
     const document = new Document({
       name: data.name || data.originalName,
       description: data.description,
@@ -119,10 +129,10 @@ export async function POST(request, { params }) {
       fileUrl: data.fileUrl,
       size: data.size,
       mimeType: data.mimeType,
-      uploadedBy: currentUser._id, // Use current user's ID
-      targetClient: clientId,
+      uploadedBy: currentUser._id,
+      targetClient: clientId, // ALWAYS set target client
       category: "client",
-      isCompanyDocument: false,
+      isCompanyDocument: false, // ALWAYS false for client uploads
       status: "approved",
       tags: data.tags || [],
       documentStartDate: data.documentStartDate || null,
@@ -136,7 +146,7 @@ export async function POST(request, { params }) {
     await document.populate("uploadedBy", "name email role");
 
     console.log(
-      "✅ Document uploaded by:",
+      "✅ Document uploaded from client details page by:",
       currentUser.name,
       "for client:",
       clientId
@@ -174,7 +184,6 @@ export async function POST(request, { params }) {
     );
   }
 }
-
 // DELETE: Delete a specific document for a client (WITH FILE SYSTEM CLEANUP)
 export async function DELETE(request, { params }) {
   try {

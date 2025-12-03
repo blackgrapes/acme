@@ -1,9 +1,7 @@
-// src/app/api/auth/register/route.js - COMPLETELY FIXED
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { User, Role } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 export async function POST(request) {
   try {
@@ -43,7 +41,6 @@ export async function POST(request) {
 
     // Validation
     if (!name || !email || !password) {
-      console.log("❌ Missing required fields");
       return NextResponse.json(
         { error: "Name, email and password are required" },
         { status: 400 }
@@ -53,20 +50,16 @@ export async function POST(request) {
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log("❌ User already exists:", email);
       return NextResponse.json(
         { error: "Email already exists" },
         { status: 400 }
       );
     }
 
-    // Get or create Role
+    // Role handling
     let role = await Role.findOne({ name: roleName });
 
     if (!role) {
-      console.log("🆕 Creating new role:", roleName);
-
-      // Use permissions from request or default based on role
       const rolePermissions =
         permissions.length > 0
           ? permissions
@@ -82,35 +75,30 @@ export async function POST(request) {
           status: "Active",
           users: 0,
         });
-        console.log("✅ New role created:", role.name);
       } catch (roleError) {
-        console.error("💥 Role creation failed:", roleError);
         return NextResponse.json(
           { error: "Failed to create role: " + roleError.message },
           { status: 500 }
         );
       }
-    } else {
-      console.log("✅ Existing role found:", role.name);
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
-    console.log("🔑 Password hashed");
 
-    // ✅ FIXED: Create address object with proper structure
+    // Address handling
     let addressObj = {
       street: "",
       city: "",
       state: "",
       postalCode: "",
-      country: "India"
+      country: "India",
     };
 
     if (address) {
-      if (typeof address === 'string') {
+      if (typeof address === "string") {
         addressObj.street = address;
-      } else if (typeof address === 'object') {
+      } else if (typeof address === "object") {
         addressObj = {
           street: address.street || "",
           city: address.city || "",
@@ -121,7 +109,7 @@ export async function POST(request) {
       }
     }
 
-    // ✅ FIXED: Prepare user data with proper field initialization
+    // Prepare user data
     const userData = {
       name,
       email,
@@ -132,34 +120,22 @@ export async function POST(request) {
       clientType: clientType || "Corporate",
       companyName: companyName || "",
       designation: designation || "",
-      address: addressObj, // ✅ Now properly structured object
+      address: addressObj,
       status: "Active",
       avatar: name.charAt(0).toUpperCase(),
     };
 
-    // Add optional fields only if provided
-    if (securityPlan) {
-      userData.securityPlan = securityPlan;
-    }
-
-    if (serviceType && Array.isArray(serviceType)) {
+    if (securityPlan) userData.securityPlan = securityPlan;
+    if (serviceType && Array.isArray(serviceType))
       userData.serviceType = serviceType;
-    }
 
-    if (contractStartDate) {
+    if (contractStartDate)
       userData.contractStartDate = new Date(contractStartDate);
-    }
-
-    if (contractEndDate) {
-      userData.contractEndDate = new Date(contractEndDate);
-    }
-
-    if (contractValue) {
-      userData.contractValue = parseFloat(contractValue);
-    }
+    if (contractEndDate) userData.contractEndDate = new Date(contractEndDate);
+    if (contractValue) userData.contractValue = parseFloat(contractValue);
 
     if (sites && Array.isArray(sites)) {
-      userData.sites = sites.map(site => ({
+      userData.sites = sites.map((site) => ({
         siteName: site.siteName || "",
         address: site.address || "",
         contactPerson: site.contactPerson || "",
@@ -175,7 +151,7 @@ export async function POST(request) {
     }
 
     if (emergencyContacts && Array.isArray(emergencyContacts)) {
-      userData.emergencyContacts = emergencyContacts.map(contact => ({
+      userData.emergencyContacts = emergencyContacts.map((contact) => ({
         name: contact.name || "",
         relationship: contact.relationship || "",
         phone: contact.phone || "",
@@ -205,15 +181,10 @@ export async function POST(request) {
       userData.assignedGuards = [];
     }
 
-    if (notes) {
-      userData.notes = notes.substring(0, 500);
-    }
+    if (notes) userData.notes = notes.substring(0, 500);
 
-    console.log("📦 Final user data:", JSON.stringify(userData, null, 2));
-
-    // Create User
+    // Create user
     const newUser = await User.create(userData);
-    console.log("✅ User created successfully:", newUser._id);
 
     // Update role user count
     await Role.findByIdAndUpdate(role._id, {
@@ -222,49 +193,22 @@ export async function POST(request) {
 
     const { password: _, ...userWithoutPassword } = newUser.toObject();
 
-    // Generate token
-    const tokenPayload = {
-      userId: newUser._id,
-      email: newUser.email,
-      role: role.name,
-      permissions: role.permissions || [],
-    };
-
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET || "your-secret-key", {
-      expiresIn: "7d",
-    });
-
-    const response = NextResponse.json({
+    // 🔥 FINAL RESPONSE (No Token)
+    return NextResponse.json({
       user: userWithoutPassword,
-      token,
       role: role.name,
       permissions: role.permissions || [],
       message: "User registered successfully!",
     });
-
-    // Set auth cookie
-    response.cookies.set("authToken", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60,
-      path: "/",
-    });
-
-    console.log("✅ Registration completed successfully");
-    return response;
   } catch (error) {
     console.error("💥 Register error:", error);
-    console.error("💥 Error details:", error.message);
-    console.error("💥 Error stack:", error.stack);
 
     if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map(e => e.message);
-      console.error("💥 Validation errors:", errors);
+      const errors = Object.values(error.errors).map((e) => e.message);
       return NextResponse.json(
-        { 
+        {
           error: `Validation error: ${errors.join(", ")}`,
-          details: errors 
+          details: errors,
         },
         { status: 400 }
       );
@@ -279,9 +223,9 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { 
+      {
         error: "Internal server error",
-        details: error.message 
+        details: error.message,
       },
       { status: 500 }
     );

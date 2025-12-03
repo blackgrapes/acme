@@ -1,3 +1,4 @@
+// File: lib/models/Document.js
 import mongoose from "mongoose";
 
 const documentSchema = new mongoose.Schema({
@@ -12,7 +13,8 @@ const documentSchema = new mongoose.Schema({
     required: true,
     enum: [
       "agreement", "attendance", "bills", "salary-sheet", "pay-slip",
-      "esi", "pf", "employee-details", "training", "night-checking", "paid-gst"
+      "esi", "pf", "employee-details", "training", "night-checking", "paid-gst",
+      "msme", "gst", "pasara", "pan", "profile", "bank-details" // Added company categories
     ]
   },
   
@@ -41,7 +43,7 @@ const documentSchema = new mongoose.Schema({
     required: false
   },
 
-   documentStartDate: {
+  documentStartDate: {
     type: Date
   },
   documentEndDate: {
@@ -60,7 +62,7 @@ const documentSchema = new mongoose.Schema({
   // Document Category
   category: {
     type: String,
-    enum: ["client", "company", "general"],
+    enum: ["client", "company"],
     default: "client"
   },
   
@@ -88,7 +90,6 @@ const documentSchema = new mongoose.Schema({
     enum: ["pending", "approved", "rejected"],
     default: "approved"
   },
-  tags: [String],
   
   // System
   createdAt: {
@@ -108,6 +109,7 @@ documentSchema.index({ targetClient: 1, uploadDate: -1 });
 documentSchema.index({ specificClients: 1 });
 documentSchema.index({ isCompanyDocument: 1 });
 documentSchema.index({ category: 1 });
+documentSchema.index({ type: 1 });
 
 const Document = mongoose.models.Document || mongoose.model("Document", documentSchema);
 

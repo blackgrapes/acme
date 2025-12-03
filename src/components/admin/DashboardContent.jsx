@@ -2,12 +2,16 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-
 import {
   Shield,
   Users,
@@ -27,6 +31,14 @@ import {
   MoreHorizontal,
   ArrowUpRight,
   ArrowDownRight,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock4,
+  FileQuestion,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 
 // Main Dashboard Component
@@ -36,127 +48,230 @@ export default function SecurityDashboard() {
     clients: [],
     documents: [],
     guards: [],
-    recentActivity: [],
+    documentRequests: [],
+    stats: {
+      totalClients: 0,
+      activeClients: 0,
+      totalDocuments: 0,
+      pendingDocuments: 0,
+      approvedDocuments: 0,
+      totalGuards: 0,
+      activeGuards: 0,
+      pendingRequests: 0,
+      totalRequests: 0,
+    },
   });
 
   // Fetch dashboard data
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch clients
-        const clientsResponse = await fetch("/api/auth/client");
-        if (clientsResponse.ok) {
-          const clientsData = await clientsResponse.json();
-          const clientUsers = clientsData.clients?.filter(
-            (user) => user.role && (user.role.name === "Client" || user.role === "Client")
-          ) || [];
-          setDashboardData(prev => ({ ...prev, clients: clientUsers }));
-        }
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
 
-        // Fetch documents
-        const docsResponse = await fetch("/api/documents");
-        if (docsResponse.ok) {
-          const docsData = await docsResponse.json();
-          setDashboardData(prev => ({ ...prev, documents: docsData.documents || [] }));
-        }
+      // Get token for authenticated requests
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        sessionStorage.getItem("authToken");
 
-        // Fetch guards
-        const guardsResponse = await fetch("/api/guards");
-        if (guardsResponse.ok) {
-          const guardsData = await guardsResponse.json();
-          setDashboardData(prev => ({ ...prev, guards: guardsData.guards || [] }));
-        }
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
 
-        // Fetch recent activity
-        const activityResponse = await fetch("/api/activity");
-        if (activityResponse.ok) {
-          const activityData = await activityResponse.json();
-          setDashboardData(prev => ({ ...prev, recentActivity: activityData.activities || [] }));
-        }
-
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
+      // Fetch clients (only those with Client role)
+      const clientsResponse = await fetch("/api/auth/client?limit=1000", {
+        headers,
+      });
+      let clients = [];
+      if (clientsResponse.ok) {
+        const clientsData = await clientsResponse.json();
+        clients = clientsData.clients || [];
       }
-    };
 
+      // Fetch documents - Use the admin endpoint
+      const docsResponse = await fetch("/api/admin/documents?limit=10", {
+        headers,
+      });
+      let documents = [];
+      if (docsResponse.ok) {
+        const docsData = await docsResponse.json();
+        documents = docsData.documents || [];
+      }
+
+      // Fetch guards
+      const guardsResponse = await fetch("/api/auth/guard", { headers });
+      let guards = [];
+      if (guardsResponse.ok) {
+        const guardsData = await guardsResponse.json();
+        guards = guardsData.guards || [];
+      }
+
+      // CORRECTION: Tumhari API `/api/admin/requests` hai, `/api/admin/document-requests` nahi
+      // Fetch document requests from clients
+      const requestsResponse = await fetch("/api/admin/requests", {
+        headers,
+      });
+      let documentRequests = [];
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json();
+        documentRequests = requestsData.requests || [];
+      }
+
+      // Calculate stats
+      const totalClients = clients.length;
+      const activeClients = clients.filter(
+        (c) => c.status === "active" || c.isActive
+      ).length;
+      const totalDocuments = documents.length;
+      const pendingDocuments = documents.filter(
+        (d) => d.status === "pending"
+      ).length;
+      const approvedDocuments = documents.filter(
+        (d) => d.status === "approved"
+      ).length;
+      const totalGuards = guards.length;
+      const activeGuards = guards.filter(
+        (g) => g.status === "active" || g.isActive
+      ).length;
+      
+      // CORRECTION: Tumhari API se aaya data
+      const totalRequests = documentRequests.length;
+      const pendingRequests = documentRequests.filter(
+        (r) => r.status === "pending"
+      ).length;
+
+      setDashboardData({
+        clients,
+        documents: documents.slice(0, 5),
+        guards,
+        // CORRECTION: Only show pending requests (latest 5)
+        documentRequests: documentRequests
+          .filter(req => req.status === "pending")
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5),
+        stats: {
+          totalClients,
+          activeClients,
+          totalDocuments,
+          pendingDocuments,
+          approvedDocuments,
+          totalGuards,
+          activeGuards,
+          pendingRequests,
+          totalRequests,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to update document request status
+  const updateRequestStatus = async (requestId, status) => {
+    try {
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+      // CORRECTION: Tumhari API `/api/admin/requests` hai
+      const response = await fetch('/api/admin/requests', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          requestId, // Tumhari API expects requestId (not id)
+          status
+        })
+      });
+
+      if (response.ok) {
+        // Refresh the dashboard data
+        fetchDashboardData();
+      }
+    } catch (error) {
+      console.error('Error updating request status:', error);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboardData();
   }, []);
 
-  // Memoized calculations
-  const dashboardStats = useMemo(() => {
-    const totalClients = dashboardData.clients.length;
-    const activeClients = dashboardData.clients.filter(c => c.status === "active").length;
-    const totalDocuments = dashboardData.documents.length;
-    const pendingDocuments = dashboardData.documents.filter(d => d.status === "pending").length;
-    const approvedDocuments = dashboardData.documents.filter(d => d.status === "approved").length;
-    const totalGuards = dashboardData.guards.length;
-    const activeGuards = dashboardData.guards.filter(g => g.status === "active").length;
+  // Tumhari API ke hisaab se fields
+  // Request model: { clientName, clientEmail, documentName, documentType, description, status, createdAt }
+  
+  // Status badge colors for requests
+  const requestStatusColors = {
+    pending: "bg-amber-100 text-amber-700",
+    approved: "bg-green-100 text-green-700",
+    rejected: "bg-red-100 text-red-700"
+  };
 
-    return {
-      totalClients,
-      activeClients,
-      totalDocuments,
-      pendingDocuments,
-      approvedDocuments,
-      totalGuards,
-      activeGuards,
-      recentDocuments: dashboardData.documents.slice(0, 5),
-      recentActivity: dashboardData.recentActivity.slice(0, 5),
-    };
-  }, [dashboardData]);
+  // Document type colors
+  const documentTypeColors = {
+    "Salary Slip": "bg-blue-100 text-blue-700",
+    "Appointment Letter": "bg-purple-100 text-purple-700",
+    "NDA": "bg-green-100 text-green-700",
+    "Contract": "bg-orange-100 text-orange-700",
+    "Other": "bg-gray-100 text-gray-700"
+  };
 
-  // Stats cards data
+  // Stats cards data - Updated with document requests
   const statsCards = [
     {
       title: "Total Clients",
-      value: dashboardStats.totalClients.toString(),
+      value: dashboardData.stats.totalClients.toString(),
       changeLabel: "Active clients",
-      changeValue: dashboardStats.activeClients.toString(),
+      changeValue: dashboardData.stats.activeClients.toString(),
       trend: "up",
       icon: Building,
       color: "bg-blue-500",
     },
     {
-      title: "Security Guards",
-      value: dashboardStats.totalGuards.toString(),
-      changeLabel: "On duty",
-      changeValue: dashboardStats.activeGuards.toString(),
-      trend: "up",
-      icon: Shield,
-      color: "bg-green-500",
+      title: "Document Requests",
+      value: dashboardData.stats.pendingRequests.toString(),
+      changeLabel: "Pending requests",
+      changeValue: `${dashboardData.stats.pendingRequests} pending`,
+      trend: dashboardData.stats.pendingRequests > 0 ? "warning" : "up",
+      icon: FileQuestion,
+      color: "bg-amber-500",
     },
     {
       title: "Total Documents",
-      value: dashboardStats.totalDocuments.toString(),
+      value: dashboardData.stats.totalDocuments.toString(),
       changeLabel: "Approved",
-      changeValue: dashboardStats.approvedDocuments.toString(),
+      changeValue: dashboardData.stats.approvedDocuments.toString(),
       trend: "up",
       icon: FileText,
       color: "bg-purple-500",
     },
     {
-      title: "Total Email Requests",
-      value: dashboardStats.pendingDocuments.toString(),
-      changeLabel: "Requires attention",
-      changeValue: dashboardStats.pendingDocuments.toString(),
-      trend: "warning",
-      icon: AlertCircle,
-      color: "bg-amber-500",
+      title: "Security Guards",
+      value: dashboardData.stats.totalGuards.toString(),
+      changeLabel: "On duty",
+      changeValue: dashboardData.stats.activeGuards.toString(),
+      trend: "up",
+      icon: Shield,
+      color: "bg-green-500",
     },
   ];
 
-  // Loading skeleton
+  // Loading skeleton (same as before)
   if (loading) {
     return (
       <div className="space-y-7 animate-pulse">
         {/* Stats Grid Skeleton */}
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded-3xl border border-border/70 bg-card/95 shadow-card p-5"
+            >
               <div className="space-y-4">
                 <div className="h-4 w-24 bg-gray-200 rounded"></div>
                 <div className="flex justify-between">
@@ -180,8 +295,11 @@ export default function SecurityDashboard() {
               <div className="space-y-4">
                 <div className="h-6 w-48 bg-gray-200 rounded"></div>
                 <div className="space-y-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 bg-gray-200 rounded-lg"></div>
                         <div className="space-y-2">
@@ -211,7 +329,7 @@ export default function SecurityDashboard() {
                 <div className="space-y-4">
                   <div className="h-6 w-32 bg-gray-200 rounded"></div>
                   <div className="space-y-3">
-                    {[1, 2, 3].map(i => (
+                    {[1, 2, 3].map((i) => (
                       <div key={i}>
                         <div className="h-3 w-full bg-gray-200 rounded mb-2"></div>
                         <div className="h-2 w-full bg-gray-200 rounded-full"></div>
@@ -230,7 +348,7 @@ export default function SecurityDashboard() {
               <div className="space-y-4">
                 <div className="h-6 w-32 bg-gray-200 rounded"></div>
                 <div className="space-y-3">
-                  {[1, 2, 3].map(i => (
+                  {[1, 2, 3].map((i) => (
                     <div key={i} className="space-y-2 p-3 border rounded-lg">
                       <div className="h-4 w-full bg-gray-200 rounded"></div>
                       <div className="h-3 w-3/4 bg-gray-200 rounded"></div>
@@ -246,8 +364,11 @@ export default function SecurityDashboard() {
               <div className="space-y-4">
                 <div className="h-6 w-32 bg-gray-200 rounded"></div>
                 <div className="grid gap-2">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-10 w-full bg-gray-200 rounded-lg"></div>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="h-10 w-full bg-gray-200 rounded-lg"
+                    ></div>
                   ))}
                 </div>
               </div>
@@ -260,15 +381,43 @@ export default function SecurityDashboard() {
 
   return (
     <div className="space-y-7">
+      {/* ======== Header with Refresh Button ======== */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your security management system
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={fetchDashboardData}
+          disabled={loading}
+          className="cursor-pointer"
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+          />
+          Refresh Data
+        </Button>
+      </div>
+
       {/* ======== Key Metrics Grid ======== */}
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {statsCards.map((stat) => {
           const Icon = stat.icon;
-          const TrendIcon = stat.trend === "up" ? ArrowUpRight : 
-                          stat.trend === "down" ? ArrowDownRight : AlertCircle;
-          
+          const TrendIcon =
+            stat.trend === "up"
+              ? ArrowUpRight
+              : stat.trend === "down"
+              ? ArrowDownRight
+              : AlertCircle;
+
           return (
-            <Card key={stat.title} className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+            <Card
+              key={stat.title}
+              className="rounded-3xl border-border/70 bg-card/95 shadow-card"
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -285,21 +434,27 @@ export default function SecurityDashboard() {
                     <p className="text-3xl font-bold text-foreground">
                       {stat.value}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.changeLabel}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stat.changeLabel}
+                    </p>
                   </div>
-                  <span className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
-                    stat.trend === "up" ? "bg-success/15 text-success" :
-                    stat.trend === "down" ? "bg-destructive/15 text-destructive" :
-                    "bg-warning/15 text-warning"
-                  }`}>
+                  <span
+                    className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                      stat.trend === "up"
+                        ? "bg-success/15 text-success"
+                        : stat.trend === "down"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-warning/15 text-warning"
+                    }`}
+                  >
                     <TrendIcon className="h-3.5 w-3.5" />
                     {stat.changeValue}
                   </span>
                 </div>
                 <div className="mt-3">
-                  <Progress 
-                    value={parseInt(stat.value) * 10} 
-                    className="h-2 bg-gray-200" 
+                  <Progress
+                    value={parseInt(stat.value) * 10}
+                    className="h-2 bg-gray-200"
                   />
                 </div>
               </CardContent>
@@ -323,62 +478,111 @@ export default function SecurityDashboard() {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="gap-2 rounded-lg">
-                  <Filter className="h-4 w-4" /> Filter
-                </Button>
-                <Button size="sm" className="gap-2 rounded-lg bg-primary">
-                  <Upload className="h-4 w-4" /> Upload New
-                </Button>
+                <Link href="/admin-dashboard/documents">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 rounded-lg cursor-pointer"
+                  >
+                    <Filter className="h-4 w-4" /> View All
+                  </Button>
+                </Link>
+                <Link href="/admin-dashboard/documents">
+                  <Button size="sm" className="gap-2 cursor-pointer rounded-lg bg-primary">
+                    <Upload className="h-4 w-4" /> Upload New
+                  </Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {dashboardStats.recentDocuments.length > 0 ? (
-                  dashboardStats.recentDocuments.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${
-                          doc.status === 'approved' ? 'bg-green-100' : 
-                          doc.status === 'pending' ? 'bg-amber-100' : 
-                          'bg-gray-100'
-                        }`}>
-                          <FileText className={`h-5 w-5 ${
-                            doc.status === 'approved' ? 'text-green-600' : 
-                            doc.status === 'pending' ? 'text-amber-600' : 
-                            'text-gray-600'
-                          }`} />
+                {dashboardData.documents.length > 0 ? (
+                  dashboardData.documents.map((doc, index) => {
+                    const clientName =
+                      doc.targetClient?.name ||
+                      doc.specificClients?.[0]?.name ||
+                      (doc.isCompanyDocument
+                        ? "All Clients"
+                        : "Unknown Client");
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`p-3 rounded-xl ${
+                              doc.status === "approved"
+                                ? "bg-green-100"
+                                : doc.status === "pending"
+                                ? "bg-amber-100"
+                                : "bg-gray-100"
+                            }`}
+                          >
+                            <FileText
+                              className={`h-5 w-5 ${
+                                doc.status === "approved"
+                                  ? "text-green-600"
+                                  : doc.status === "pending"
+                                  ? "text-amber-600"
+                                  : "text-gray-600"
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-foreground">
+                              {doc.name || "Unnamed Document"}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                              {doc.isCompanyDocument
+                                ? "Company Document • "
+                                : "Client Document • "}
+                              Shared with: {clientName} •{" "}
+                              {new Date(
+                                doc.uploadDate || doc.createdAt
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-medium text-foreground">{doc.name || doc.filename}</h4>
-                          <p className="text-xs text-muted-foreground">
-                            Shared with: {doc.clientName || "Client"} • {new Date(doc.uploadDate || doc.createdAt).toLocaleDateString()}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            className={`rounded-full ${
+                              doc.status === "approved"
+                                ? "bg-green-100 text-green-600"
+                                : doc.status === "pending"
+                                ? "bg-amber-100 text-amber-600"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {doc.status?.charAt(0).toUpperCase() +
+                              doc.status?.slice(1)}
+                          </Badge>
+                          <div className="flex gap-1">
+                            {doc.fileUrl && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 cursor-pointer"
+                                onClick={() =>
+                                  window.open(doc.fileUrl, "_blank")
+                                }
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={`rounded-full ${
-                          doc.status === 'approved' ? 'bg-green-100 text-green-600' : 
-                          doc.status === 'pending' ? 'bg-amber-100 text-amber-600' : 
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {doc.status?.charAt(0).toUpperCase() + doc.status?.slice(1)}
-                        </Badge>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500">No documents found</p>
-                    <p className="text-sm text-gray-400 mt-1">Upload your first document to get started</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Upload your first document to get started
+                    </p>
                   </div>
                 )}
               </div>
@@ -399,38 +603,69 @@ export default function SecurityDashboard() {
                   </p>
                 </div>
                 <Badge className="rounded-full bg-primary/15 text-primary">
-                  {dashboardStats.approvedDocuments} Approved
+                  {dashboardData.stats.approvedDocuments} Approved
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="relative h-40 rounded-2xl bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
                   <div className="flex h-full w-full items-end gap-3">
                     {[
-                      { label: 'Approved', value: dashboardStats.approvedDocuments, color: 'bg-green-500' },
-                      { label: 'Pending', value: dashboardStats.pendingDocuments, color: 'bg-amber-500' },
-                      { label: 'Draft', value: Math.max(0, dashboardStats.totalDocuments - dashboardStats.approvedDocuments - dashboardStats.pendingDocuments), color: 'bg-gray-400' },
+                      {
+                        label: "Approved",
+                        value: dashboardData.stats.approvedDocuments,
+                        color: "bg-green-500",
+                      },
+                      {
+                        label: "Pending",
+                        value: dashboardData.stats.pendingDocuments,
+                        color: "bg-amber-500",
+                      },
+                      {
+                        label: "Other",
+                        value: Math.max(
+                          0,
+                          dashboardData.stats.totalDocuments -
+                            dashboardData.stats.approvedDocuments -
+                            dashboardData.stats.pendingDocuments
+                        ),
+                        color: "bg-gray-400",
+                      },
                     ].map((item, index) => (
-                      <div key={index} className="flex-1 flex flex-col items-center">
+                      <div
+                        key={index}
+                        className="flex-1 flex flex-col items-center"
+                      >
                         <div
                           className={`w-full rounded-t-2xl transition-all hover:opacity-80 ${item.color}`}
-                          style={{ 
-                            height: `${(item.value / Math.max(1, dashboardStats.totalDocuments)) * 100}%` 
+                          style={{
+                            height: `${
+                              (item.value /
+                                Math.max(
+                                  1,
+                                  dashboardData.stats.totalDocuments
+                                )) *
+                              100
+                            }%`,
                           }}
                         />
-                        <span className="mt-2 text-xs text-muted-foreground">{item.label}</span>
+                        <span className="mt-2 text-xs text-muted-foreground">
+                          {item.label}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-green-500" /> Approved
+                    <span className="h-3 w-3 rounded-full bg-green-500" />{" "}
+                    Approved
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-amber-500" /> Pending Review
+                    <span className="h-3 w-3 rounded-full bg-amber-500" />{" "}
+                    Pending Review
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-gray-400" /> Draft
+                    <span className="h-3 w-3 rounded-full bg-gray-400" /> Other
                   </span>
                 </div>
               </CardContent>
@@ -448,29 +683,37 @@ export default function SecurityDashboard() {
                   </p>
                 </div>
                 <Badge className="rounded-full bg-primary/15 px-3 py-1 text-primary">
-                  {dashboardStats.activeClients} Active
+                  {dashboardData.stats.activeClients} Active
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-5">
                 {[
                   {
                     label: "Active Clients",
-                    value: dashboardStats.activeClients,
-                    total: dashboardStats.totalClients,
+                    value: dashboardData.stats.activeClients,
+                    total: dashboardData.stats.totalClients,
                     trend: "+12%",
                     color: "bg-primary",
                   },
                   {
                     label: "Document Access",
-                    value: Math.round((dashboardStats.activeClients / Math.max(1, dashboardStats.totalClients)) * 100),
+                    value: Math.round(
+                      (dashboardData.stats.activeClients /
+                        Math.max(1, dashboardData.stats.totalClients)) *
+                        100
+                    ),
                     total: 100,
                     trend: "+8.2%",
                     color: "bg-success",
                   },
                   {
-                    label: "Pending Invites",
-                    value: Math.max(0, dashboardStats.totalClients - dashboardStats.activeClients),
-                    total: dashboardStats.totalClients,
+                    label: "Inactive Clients",
+                    value: Math.max(
+                      0,
+                      dashboardData.stats.totalClients -
+                        dashboardData.stats.activeClients
+                    ),
+                    total: dashboardData.stats.totalClients,
                     trend: "-3.1%",
                     color: "bg-warning",
                   },
@@ -482,7 +725,13 @@ export default function SecurityDashboard() {
                         <span className="font-semibold text-foreground">
                           {item.value}/{item.total}
                         </span>
-                        <span className={item.trend.startsWith("+") ? "text-success" : "text-warning"}>
+                        <span
+                          className={
+                            item.trend.startsWith("+")
+                              ? "text-success"
+                              : "text-warning"
+                          }
+                        >
                           {item.trend}
                         </span>
                       </span>
@@ -490,61 +739,133 @@ export default function SecurityDashboard() {
                     <div className="h-2.5 overflow-hidden rounded-full bg-muted/40">
                       <div
                         className={`h-full rounded-full ${item.color}`}
-                        style={{ width: `${(item.value / Math.max(1, item.total)) * 100}%` }}
+                        style={{
+                          width: `${
+                            (item.value / Math.max(1, item.total)) * 100
+                          }%`,
+                        }}
                       />
                     </div>
                   </div>
                 ))}
                 <div className="rounded-2xl bg-muted/40 p-4 text-xs text-muted-foreground">
-                  {dashboardStats.activeClients} out of {dashboardStats.totalClients} clients have accessed their documents this month.
+                  {dashboardData.stats.activeClients} out of{" "}
+                  {dashboardData.stats.totalClients} clients have access to
+                  documents.
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Right Column: Activities & Quick Actions */}
+        {/* Right Column: Document Requests & Quick Actions */}
         <div className="space-y-6">
-          {/* Recent Activity */}
+          {/* Recent Document Requests from Clients */}
           <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold text-foreground">
-                Recent Activity
-              </CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                  <FileQuestion className="h-5 w-5 text-amber-500" /> Recent Document Requests
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Pending requests from clients
+                </CardDescription>
+              </div>
+              <Badge className="bg-amber-500 hover:bg-amber-600">
+                {dashboardData.stats.pendingRequests} Pending
+              </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
-              {dashboardStats.recentActivity.length > 0 ? (
-                dashboardStats.recentActivity.map((activity, index) => {
-                  const iconMap = {
-                    login: <UserCheck className="h-4 w-4 text-success" />,
-                    download: <Download className="h-4 w-4 text-primary" />,
-                    upload: <Upload className="h-4 w-4 text-warning" />,
-                    view: <Eye className="h-4 w-4 text-info" />,
-                  };
+              {dashboardData.documentRequests.length > 0 ? (
+                dashboardData.documentRequests.map((request, index) => {
+                  // Tumhari API ke fields:
+                  // _id, clientName, clientEmail, documentName, documentType, description, status, createdAt
+                  const timeAgo = new Date(request.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
 
                   return (
-                    <div key={index} className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 transition-colors hover:border-primary/30">
-                      <div className="flex items-center gap-2">
-                        {iconMap[activity.type] || <Clock className="h-4 w-4" />}
-                        <p className="text-sm font-medium text-foreground">
-                          {activity.title}
+                    <div
+                      key={index}
+                      className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 transition-colors hover:border-primary/30"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-lg bg-blue-100">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <p className="text-sm font-medium text-foreground">
+                            {request.documentName}
+                          </p>
+                        </div>
+                        <Badge className={`text-xs ${requestStatusColors[request.status] || "bg-gray-100 text-gray-700"}`}>
+                          {request.status || "pending"}
+                        </Badge>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        {request.description || "No description provided"}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-foreground">
+                            {request.clientName}
+                          </p>
+                          <p className="text-[0.7rem] text-muted-foreground">
+                            {request.clientEmail}
+                          </p>
+                          <Badge variant="outline" className="mt-1 text-[0.65rem]">
+                            {request.documentType || "Other"}
+                          </Badge>
+                        </div>
+                        <p className="text-[0.7rem] text-muted-foreground">
+                          {timeAgo}
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        {activity.description}
-                      </p>
-                      <p className="text-[0.7rem] text-muted-foreground">
-                        {activity.timestamp}
-                      </p>
+
+                      {request.status === 'pending' && (
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            className="h-7 cursor-pointer text-xs bg-green-500 hover:bg-green-600"
+                            onClick={() => updateRequestStatus(request._id, 'approved')}
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs cursor-pointer"
+                            onClick={() => updateRequestStatus(request._id, 'rejected')}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" /> Reject
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })
               ) : (
-                <div className="text-center py-4">
-                  <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No recent activity</p>
+                <div className="text-center py-6">
+                  <FileQuestion className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">No pending requests</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    All document requests have been processed
+                  </p>
                 </div>
               )}
+              
+              {/* CORRECTION: Link to correct page */}
+              <Link href="/admin-dashboard/requests">
+                <Button variant="outline" className="w-full gap-2 cursor-pointer">
+                  <Eye className="h-4 w-4" />
+                  View All Document Requests
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -556,31 +877,52 @@ export default function SecurityDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
-              <Button asChild variant="outline" size="sm" className="justify-start">
-                <Link href="/dashboard/documents/upload">
+              <Link href="/admin-dashboard/documents">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start w-full cursor-pointer"
+                >
                   <Upload className="mr-2 h-4 w-4" /> Upload Document
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="justify-start">
-                <Link href="/dashboard/clients">
+                </Button>
+              </Link>
+              <Link href="/admin-dashboard/clients">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start w-full cursor-pointer"
+                >
                   <Users className="mr-2 h-4 w-4" /> Manage Clients
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="justify-start">
-                <Link href="/dashboard/documents">
-                  <FileText className="mr-2 h-4 w-4" /> View All Documents
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="justify-start">
-                <Link href="/dashboard/reports">
-                  <BarChart3 className="mr-2 h-4 w-4" /> Generate Reports
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="justify-start">
-                <Link href="/dashboard/settings">
-                  <MoreHorizontal className="mr-2 h-4 w-4" /> Settings
-                </Link>
-              </Button>
+                </Button>
+              </Link>
+              {/* CORRECTION: Link to correct requests page */}
+              <Link href="/admin-dashboard/requests">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start w-full cursor-pointer"
+                >
+                  <FileQuestion className="mr-2 h-4 w-4" /> View Document Requests
+                </Button>
+              </Link>
+              <Link href="/admin-dashboard/company-documents">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start w-full cursor-pointer"
+                >
+                  <Building className="mr-2 h-4 w-4" /> Company Documents
+                </Button>
+              </Link>
+              <Link href="/admin-dashboard/guards">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start w-full cursor-pointer"
+                >
+                  <Shield className="mr-2 h-4 w-4" /> Manage Guards
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -600,9 +942,10 @@ export default function SecurityDashboard() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 rounded-lg border-border/80"
+            className="gap-2 cursor-pointer rounded-lg border-border/80"
+            onClick={fetchDashboardData}
           >
-            <FileText className="h-4 w-4" /> View Details
+            <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -618,22 +961,22 @@ export default function SecurityDashboard() {
               icon: Users,
               label: "Client Access",
               sublabel: "Active client logins",
-              trend: "+42 this week",
+              trend: `${dashboardData.stats.activeClients} Active`,
               status: "info",
             },
             {
               icon: CheckCircle2,
-              label: "Compliance Rate",
-              sublabel: "Documents approved",
-              trend: "98.5%",
-              status: "success",
+              label: "Document Requests",
+              sublabel: "Pending requests",
+              trend: `${dashboardData.stats.pendingRequests} Pending`,
+              status: dashboardData.stats.pendingRequests > 0 ? "warning" : "success",
             },
             {
               icon: Clock,
-              label: "Avg. Response Time",
-              sublabel: "Document approval",
-              trend: "2.4 hours",
-              status: "warning",
+              label: "Document Count",
+              sublabel: "Total documents in system",
+              trend: `${dashboardData.stats.totalDocuments} Docs`,
+              status: "info",
             },
           ].map((item) => {
             const Icon = item.icon;
@@ -660,7 +1003,13 @@ export default function SecurityDashboard() {
                   <p className="text-xs text-muted-foreground">
                     {item.sublabel}
                   </p>
-                  <p className="mt-1 text-xs font-semibold text-primary">
+                  <p className={`mt-1 text-xs font-semibold ${
+                    item.status === "success"
+                      ? "text-success"
+                      : item.status === "warning"
+                      ? "text-warning"
+                      : "text-primary"
+                  }`}>
                     {item.trend}
                   </p>
                 </div>

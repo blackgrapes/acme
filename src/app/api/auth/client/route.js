@@ -38,6 +38,24 @@ export async function GET(request) {
         return parts.join(", ") || "Address not provided";
       };
 
+      // ✅ IMPORTANT: Add isActive field with proper default
+      // If isActive is undefined in database, default to true
+      // If status is "Disabled", then isActive should be false
+      let isActive = true;
+      
+      // First check if isActive field exists in database
+      if (client.isActive !== undefined) {
+        isActive = client.isActive;
+      } 
+      // If isActive doesn't exist but status is Disabled, set isActive to false
+      else if (client.status === "Disabled") {
+        isActive = false;
+      }
+      // Otherwise, check status field
+      else if (client.status && client.status !== "Active") {
+        isActive = false;
+      }
+
       return {
         _id: client._id,
         name: client.name,
@@ -61,6 +79,8 @@ export async function GET(request) {
         assignedGuards: client.assignedGuards || [],
         equipmentRequired: client.equipmentRequired || [],
         status: client.status || "Active",
+        // ✅ Add isActive field explicitly
+        isActive: isActive,
         joinDate: client.joinDate,
         lastLogin: client.lastLogin,
         avatar: client.avatar || "",

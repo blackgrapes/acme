@@ -1,28 +1,8 @@
-// File: src/components/admin/DocumentManagement.jsx - FIXED & OPTIMIZED
+// File: src/components/admin/DocumentManagement.jsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -32,202 +12,270 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Download,
-  Trash2,
-  Plus,
-  Search,
-  FileText,
-  Shield,
-  Calendar,
-  Eye,
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "../ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, Trash2, Plus, Search, FileText, Eye, Calendar, User, RefreshCw } from "lucide-react";
+import { UploadDocumentDialog } from "./UploadDocumentDialog";
+import { toast } from "sonner";
 
 export default function DocumentManagement({
-  dummyDocuments = [],
-  showSpecificClients = false,
-  setShowSpecificClients,
-  docGuardSearch = "",
-  handleGuardSearch,
-  selectedDocGuards = [],
-  toggleGuardSelection,
-  filteredDocGuards = [],
+  documents = [],
   currentCategory = null,
   onCategoryChange,
-  addNewCategory,
   documentCategories = [],
-  companyDocumentCategories = [],
+  allClients = [],
+  loading = false,
+  onRefresh,
   isCompanyDocuments = false,
 }) {
-  const [selectedType, setSelectedType] = useState("");
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [accessLevel, setAccessLevel] = useState("general");
-  const [docName, setDocName] = useState("");
-  const [docDescription, setDocDescription] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  // ✅ OPTIMIZED: Memoized category handler
-  const handleCategoryClick = useCallback(
-    (category) => {
-      if (onCategoryChange) {
-        onCategoryChange(category);
-      }
-    },
-    [onCategoryChange]
-  );
-
-  // ✅ OPTIMIZED: Memoized filtered documents
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+ 
+  // Filter documents based on search and filters
   const filteredDocuments = useMemo(() => {
-    if (currentCategory && currentCategory.id && currentCategory.id !== "all") {
-      return dummyDocuments.filter((doc) => doc.type === currentCategory.id);
-    }
-    return dummyDocuments;
-  }, [currentCategory, dummyDocuments]);
+    let filtered = documents;
 
-  // ✅ OPTIMIZED: Memoized page title and description
-  const { pageTitle, pageDescription } = useMemo(() => {
-    let title = isCompanyDocuments
-      ? "Company Document Repository"
-      : "Secure Document Repository";
-    let description = isCompanyDocuments
-      ? "All company documents across categories, with audit logs and secure sharing."
-      : "All documents across categories, with audit logs and secure sharing.";
-
-    if (currentCategory) {
-      if (currentCategory.id === "add-tab") {
-        title = "Create New Document Category";
-        description =
-          "Organize your documents with custom categories for optimal security and accessibility.";
-      } else if (currentCategory.name) {
-        title = currentCategory.child
-          ? `${currentCategory.name} - ${currentCategory.child} Repository`
-          : `${currentCategory.name} Repository`;
-        description = `Manage encrypted ${currentCategory.name.toLowerCase()} documents with role-based access.`;
-      }
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(doc =>
+        doc.name.toLowerCase().includes(query) ||
+        doc.description?.toLowerCase().includes(query) ||
+        (doc.targetClient?.name?.toLowerCase().includes(query)) ||
+        (doc.specificClients?.some(client => client.name?.toLowerCase().includes(query)))
+      );
     }
 
-    return { pageTitle: title, pageDescription: description };
-  }, [currentCategory, isCompanyDocuments]);
-
-  // ✅ OPTIMIZED: Memoized available categories
-  const availableCategories = useMemo(() => {
-    return isCompanyDocuments ? companyDocumentCategories : documentCategories;
-  }, [isCompanyDocuments, companyDocumentCategories, documentCategories]);
-
-  // ✅ OPTIMIZED: Document upload with better error handling
-  const handleDocumentUpload = async () => {
-    if (!docName || !selectedFile || !selectedType) {
-      alert("Please fill all required fields and select a file");
-      return;
+    // Document type filter
+    if (documentTypeFilter !== "all") {
+      filtered = filtered.filter(doc => doc.type === documentTypeFilter);
     }
 
-    try {
-      setUploadProgress(10);
+    // Period filter
+    if (periodFilter.trim()) {
+      const query = periodFilter.toLowerCase();
+      filtered = filtered.filter(doc =>
+        doc.documentPeriod?.toLowerCase().includes(query) ||
+        formatDateOnly(doc.documentStartDate)?.toLowerCase().includes(query) ||
+        formatDateOnly(doc.documentEndDate)?.toLowerCase().includes(query)
+      );
+    }
 
-      // Simulate upload for demo (remove in production)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setUploadProgress(100);
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(doc => doc.status === statusFilter);
+    }
 
-      alert("✅ Document uploaded successfully!");
-      setAddDialogOpen(false);
-      resetUploadForm();
+    return filtered;
+  }, [documents, searchQuery, documentTypeFilter, periodFilter, statusFilter]);
 
-      // Refresh documents list
-      window.dispatchEvent(new CustomEvent("documentsUpdated"));
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert("Upload failed. Please try again.");
-      setUploadProgress(0);
+  // Check if filters are active
+  const isFilterActive = useMemo(() => {
+    return documentTypeFilter !== "all" || periodFilter !== "" || statusFilter !== "all";
+  }, [documentTypeFilter, periodFilter, statusFilter]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setDocumentTypeFilter("all");
+    setPeriodFilter("");
+    setStatusFilter("all");
+    setSearchQuery("");
+  };
+
+  // Handle document upload success
+  const handleUploadSuccess = () => {
+    toast.success("Document uploaded successfully!");
+    if (onRefresh) {
+      onRefresh();
     }
   };
 
-  const resetUploadForm = () => {
-    setDocName("");
-    setDocDescription("");
-    setSelectedFile(null);
-    setSelectedType("");
-    setAccessLevel("general");
-    setUploadProgress(0);
-  };
-
-  const simulateUpload = () => {
-    setUploadProgress(30);
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const getAccessBadge = (access) => {
-    const variants = {
-      general: {
-        className: "bg-green-500 text-white",
-        label: "General Access",
-      },
-      specific: {
-        className: "bg-blue-500 text-white",
-        label: "Specific Access",
-      },
-      admin: { className: "bg-red-500 text-white", label: "Admin Only" },
-    };
-    const config = variants[access] || {
-      className: "bg-gray-500 text-white",
-      label: access,
-    };
-    return (
-      <Badge className={`rounded-full ${config.className}`}>
-        {config.label}
-      </Badge>
-    );
-  };
-
-  // ✅ OPTIMIZED: Document actions
-  const handleDownload = (doc) => {
-    if (doc.fileUrl) {
-      const link = document.createElement("a");
-      link.href = doc.fileUrl;
-      link.download = doc.name;
-      link.click();
-    } else {
-      alert("No file URL available for download");
-    }
-  };
-
+  // Document actions
   const handleView = (doc) => {
     if (doc.fileUrl) {
       window.open(doc.fileUrl, "_blank");
     } else {
-      alert("No file URL available for viewing");
+      toast.error("No file URL available for viewing");
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    try {
+      if (doc.fileUrl) {
+        // Extract file extension
+        const fileExtension = doc.originalName?.split(".").pop() || "pdf";
+        
+        // Get document type name
+        const docTypeName = getDocumentTypeName(doc.type);
+        
+        // Format date for filename
+        let dateForFilename = "";
+        if (doc.documentStartDate) {
+          const date = new Date(doc.documentStartDate);
+          dateForFilename = date.toLocaleDateString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+          }).replace(/ /g, "-").replace(/,/g, "");
+        }
+
+        // Clean document name for filename
+        const cleanDocName = (doc.name || "Document")
+          .replace(/[^a-zA-Z0-9-_]/g, "_")
+          .replace(/_+/g, "_")
+          .substring(0, 50);
+
+        // Construct filename
+        let fileName = `${cleanDocName}`;
+        if (docTypeName) {
+          fileName += `_${docTypeName.replace(/ /g, "_")}`;
+        }
+        if (dateForFilename) {
+          fileName += `_${dateForFilename}`;
+        }
+        fileName += `.${fileExtension}`;
+
+        const link = document.createElement("a");
+        link.href = doc.fileUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success(`Downloading: ${fileName}`);
+      } else {
+        toast.error("No file URL available for download");
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download document");
     }
   };
 
   const handleDelete = async (doc) => {
-    if (confirm(`Are you sure you want to delete "${doc.name}"?`)) {
-      try {
-        // Simulate delete for demo
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        alert("Document deleted successfully!");
-        window.dispatchEvent(new CustomEvent("documentsUpdated"));
-      } catch (error) {
-        console.error("Delete error:", error);
-        alert("Failed to delete document");
+    if (!confirm(`Are you sure you want to delete "${doc.name}"?`)) return;
+
+    try {
+      const response = await fetch(`/api/documents/${doc.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Document deleted successfully");
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Failed to delete document");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete document");
+    }
+  };
+
+  // Format date functions
+  const formatDate = (dateString) => {
+    if (!dateString) return "Not set";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Not set";
+      return date.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      return "Not set";
+    }
+  };
+
+  const formatDateOnly = (dateString) => {
+    if (!dateString) return "Not set";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Not set";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      return "Not set";
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // Get document type name
+  const getDocumentTypeName = (typeId) => {
+    const category = documentCategories.find(cat => cat.id === typeId);
+    return category ? category.name : typeId;
+  };
+
+  // Get client names for display
+  const getClientDisplay = (doc) => {
+    if (doc.isCompanyDocument) {
+      return <Badge variant="secondary">Company</Badge>;
+    }
+    
+    if (doc.specificClients && doc.specificClients.length > 0) {
+      if (doc.specificClients.length === 1) {
+        return <span className="text-sm">{doc.specificClients[0].name}</span>;
+      } else {
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-sm">{doc.specificClients[0].name}</span>
+            <Badge variant="outline" className="text-xs">
+              +{doc.specificClients.length - 1} more
+            </Badge>
+          </div>
+        );
       }
     }
+    
+    if (doc.targetClient) {
+      return <span className="text-sm">{doc.targetClient.name}</span>;
+    }
+    
+    return <span className="text-sm text-muted-foreground">Not assigned</span>;
+  };
+
+  // Get document period display
+  const getDocumentPeriod = (doc) => {
+    if (doc.documentStartDate && doc.documentEndDate) {
+      const start = formatDateOnly(doc.documentStartDate);
+      const end = formatDateOnly(doc.documentEndDate);
+      return `${start} - ${end}`;
+    } else if (doc.documentStartDate) {
+      return `From ${formatDateOnly(doc.documentStartDate)}`;
+    } else if (doc.documentPeriod) {
+      return doc.documentPeriod;
+    }
+    return "-";
+  };
+
+  // Get status badge
+  const getStatusBadge = (status) => {
+    const variants = {
+      approved: { className: "bg-green-500 text-white", label: "Approved" },
+      pending: { className: "bg-yellow-500 text-white", label: "Pending" },
+      rejected: { className: "bg-red-500 text-white", label: "Rejected" },
+    };
+    const config = variants[status] || { className: "bg-gray-500 text-white", label: status };
+    return <Badge className={`rounded-full ${config.className}`}>{config.label}</Badge>;
   };
 
   return (
@@ -235,213 +283,145 @@ export default function DocumentManagement({
       {/* Header with Upload Button */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="space-y-2 flex-1">
-          <h2 className="text-3xl font-bold text-foreground">{pageTitle}</h2>
-          <p className="text-muted-foreground">{pageDescription}</p>
+          <h2 className="text-3xl font-bold text-foreground">
+            {currentCategory?.name || "All Documents"}
+          </h2>
+          <p className="text-muted-foreground">
+            Manage encrypted documents with role-based access control
+          </p>
         </div>
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-2xl px-6 bg-primary shadow-lg" permission="documents-create">
-              <Plus className="h-4 w-4 mr-2" />
-              Upload Document
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold">
-                Upload Secure Document
-              </DialogTitle>
-              <DialogDescription>
-                All files are automatically encrypted and access-controlled
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6 max-h-[60vh] overflow-y-auto">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="docName" className="text-sm font-semibold">
-                    Document Name *
-                  </Label>
-                  <Input
-                    id="docName"
-                    placeholder="e.g., Q4 Financial Report.pdf"
-                    value={docName}
-                    onChange={(e) => setDocName(e.target.value)}
-                    className="mt-2 rounded-2xl"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="docType" className="text-sm font-semibold">
-                      Document Type *
-                    </Label>
-                    <Select
-                      value={selectedType}
-                      onValueChange={setSelectedType}
-                    >
-                      <SelectTrigger className="mt-2 rounded-2xl">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        <SelectGroup>
-                          <SelectLabel>Categories</SelectLabel>
-                          {availableCategories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label
-                      htmlFor="accessLevel"
-                      className="text-sm font-semibold"
-                    >
-                      Access Level *
-                    </Label>
-                    <Select
-                      value={accessLevel}
-                      onValueChange={(value) => {
-                        setAccessLevel(value);
-                        if (value === "general") setShowSpecificClients(false);
-                      }}
-                    >
-                      <SelectTrigger className="mt-2 rounded-2xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        <SelectItem value="general">General Access</SelectItem>
-                        <SelectItem value="specific">
-                          Specific Clients
-                        </SelectItem>
-                        <SelectItem value="admin">Admin Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {accessLevel === "specific" && (
-                  <div className="space-y-3">
-                    <Label className="text-sm font-semibold flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      Select Clients (Specific Access)
-                    </Label>
-                    <div className="max-h-32 overflow-y-auto border rounded-xl p-3 space-y-2">
-                      {filteredDocGuards.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-2">
-                          No clients available
-                        </p>
-                      ) : (
-                        filteredDocGuards.slice(0, 5).map((client) => (
-                          <div
-                            key={client._id || client.id}
-                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent"
-                          >
-                            <Checkbox
-                              id={`doc-client-${client._id || client.id}`}
-                              checked={selectedDocGuards.includes(
-                                client._id || client.id
-                              )}
-                              onCheckedChange={() =>
-                                toggleGuardSelection(client._id || client.id)
-                              }
-                            />
-                            <Label
-                              htmlFor={`doc-client-${client._id || client.id}`}
-                              className="text-sm cursor-pointer flex-1"
-                            >
-                              <div className="font-medium">{client.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {client.email}
-                              </div>
-                            </Label>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <Label className="text-sm font-semibold">Upload File *</Label>
-                  <div
-                    className="border-2 border-dashed border-border/50 rounded-2xl p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                    onClick={() =>
-                      document.getElementById("file-upload").click()
-                    }
-                  >
-                    <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm font-medium text-foreground mb-1">
-                      {selectedFile
-                        ? selectedFile.name
-                        : "Click to browse files"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PDF, DOCX, XLSX • Max 100MB
-                    </p>
-                    <Progress
-                      value={uploadProgress}
-                      className="mt-3 h-2 rounded-full"
-                    />
-                    <Input
-                      id="file-upload"
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.xlsx"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          setSelectedFile(file);
-                          simulateUpload();
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="space-x-2">
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDocumentUpload}
-                disabled={!docName || !selectedType || !selectedFile}
-                permission="documents-create"
-              >
-                {uploadProgress > 0
-                  ? `Uploading... ${uploadProgress}%`
-                  : "Upload Document"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button 
+            className="rounded-2xl px-6 bg-primary shadow-lg"
+            onClick={() => setUploadDialogOpen(true)}
+            permission="documents-create"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Upload Document
+          </Button>
+        </div>
       </div>
 
+      {/* Upload Dialog */}
+      <UploadDocumentDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onUpload={handleUploadSuccess}
+        isAdmin={true}
+        isCompanyDocuments={isCompanyDocuments}
+        allClients={allClients}
+        currentCategory={currentCategory}
+      />
+
+      {/* Filters Section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Document Type Filter */}
+            <div>
+              <label htmlFor="type-filter" className="text-sm font-medium mb-2 block">
+                Document Type
+              </label>
+              <Select value={documentTypeFilter} onValueChange={setDocumentTypeFilter}>
+                <SelectTrigger id="type-filter" className="w-full">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {documentCategories
+                    .filter(cat => cat.id !== "all" && cat.id !== "company")
+                    .map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Period Filter */}
+            <div>
+              <label htmlFor="period-filter" className="text-sm font-medium mb-2 block">
+                Period/Month
+              </label>
+              <Input
+                id="period-filter"
+                placeholder="e.g. December, Q1 2024"
+                value={periodFilter}
+                onChange={(e) => setPeriodFilter(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label htmlFor="status-filter" className="text-sm font-medium mb-2 block">
+                Status
+              </label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="status-filter" className="w-full">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="w-full"
+                disabled={!isFilterActive && !searchQuery}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            </div>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="mt-4 flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, description, or client..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Document Table */}
       <Card className="rounded-2xl border-border/70">
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-xl font-bold flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                {isCompanyDocuments
-                  ? "Company Document Library"
-                  : "Document Library"}
+                Document Library
               </CardTitle>
               <CardDescription>
-                {currentCategory?.name
-                  ? `${currentCategory.name} • `
-                  : "All Documents • "}
-                {filteredDocuments.length} items
+                {filteredDocuments.length} {filteredDocuments.length === 1 ? 'item' : 'items'} found
+                {isFilterActive && " (filtered)"}
               </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search..." className="rounded-xl h-9 w-40" />
             </div>
           </div>
         </CardHeader>
@@ -451,48 +431,105 @@ export default function DocumentManagement({
               <TableHeader>
                 <TableRow>
                   <TableHead>Document Name</TableHead>
-                  {!currentCategory && <TableHead>Category</TableHead>}
+                  <TableHead>Client</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Period</TableHead>
                   <TableHead>Uploaded</TableHead>
                   <TableHead>Size</TableHead>
-                  <TableHead>Access</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocuments.length === 0 ? (
+                {loading ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center py-8 text-muted-foreground"
-                    >
+                    <TableCell colSpan={10} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                        <p>Loading documents...</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredDocuments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>No documents found</p>
+                      {isFilterActive && (
+                        <p className="text-sm mt-1">Try clearing your filters</p>
+                      )}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredDocuments.map((doc) => (
-                    <TableRow
-                      key={doc.id || doc._id}
-                      className="hover:bg-muted/50"
-                    >
+                    <TableRow key={doc.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-primary" />
-                          {doc.name}
+                          <div>
+                            <div className="font-semibold">{doc.name}</div>
+                            {doc.description && (
+                              <div className="text-sm text-muted-foreground">
+                                {doc.description}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
-                      {!currentCategory && (
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {doc.type}
-                          </Badge>
-                        </TableCell>
-                      )}
-                      <TableCell className="text-sm">
-                        {formatDate(doc.uploaded)}
+                      <TableCell>
+                        {getClientDisplay(doc)}
                       </TableCell>
-                      <TableCell className="text-sm">{doc.size}</TableCell>
-                      <TableCell>{getAccessBadge(doc.access)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {getDocumentTypeName(doc.type)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {doc.documentStartDate ? (
+                            <span className="text-sm">{formatDateOnly(doc.documentStartDate)}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Not set</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {doc.documentEndDate ? (
+                            <span className="text-sm">{formatDateOnly(doc.documentEndDate)}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Not set</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {getDocumentPeriod(doc)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {formatDate(doc.uploadDate || doc.createdAt)}
+                        </div>
+                        {doc.uploadedBy && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {doc.uploadedBy.name}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {formatFileSize(doc.size)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(doc.status || "approved")}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
                           <Button
@@ -500,6 +537,7 @@ export default function DocumentManagement({
                             size="sm"
                             onClick={() => handleView(doc)}
                             permission="documents-read"
+                            title="View"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -508,6 +546,7 @@ export default function DocumentManagement({
                             size="sm"
                             onClick={() => handleDownload(doc)}
                             permission="documents-read"
+                            title="Download"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -516,6 +555,8 @@ export default function DocumentManagement({
                             size="sm"
                             onClick={() => handleDelete(doc)}
                             permission="documents-delete"
+                            title="Delete"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

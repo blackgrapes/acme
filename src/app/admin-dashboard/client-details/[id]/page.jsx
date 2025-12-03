@@ -1,7 +1,7 @@
 // src/app/admin-dashboard/clients/[id]/page.jsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -117,7 +117,11 @@ export default function ClientDetails() {
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-const [documentToDelete, setDocumentToDelete] = useState(null);
+  // Add these states after other state declarations
+  const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [documentToDelete, setDocumentToDelete] = useState(null);
   const handleViewGuardDetails = (guardId) => {
     router.push(`/admin-dashboard/guard-details/${guardId}`);
   };
@@ -242,14 +246,20 @@ const [documentToDelete, setDocumentToDelete] = useState(null);
     try {
       setRefreshing(true);
 
-      // Just refresh the documents list
+      // Refresh only client-specific documents
       const docsResponse = await fetch(
         `/api/auth/client/${clientId}/documents`
       );
       if (docsResponse.ok) {
         const docsData = await docsResponse.json();
-        setClientDocuments(docsData.documents || []);
-        toast.success("Documents refreshed successfully!");
+
+        // Filter out any company documents (just in case)
+        const clientSpecificDocs = docsData.documents.filter(
+          (doc) => !doc.isCompanyDocument && doc.category === "client"
+        );
+
+        setClientDocuments(clientSpecificDocs || []);
+        toast.success("Client documents refreshed successfully!");
       } else {
         toast.error("Failed to refresh documents");
       }
@@ -405,44 +415,52 @@ const [documentToDelete, setDocumentToDelete] = useState(null);
       document.body.removeChild(link);
     }
   };
- 
 
-const handleDeleteDocument = async (documentId, documentName) => {
-  if (!confirm(`Are you sure you want to delete "${documentName}"? This action cannot be undone.`)) {
-    return;
-  }
-
-  try {
-    setRefreshing(true);
-    
-    // Fetch API with credentials (cookies will be sent automatically)
-    const response = await fetch(`/api/auth/client/${clientId}/documents?documentId=${documentId}`, {
-      method: "DELETE",
-      credentials: 'include', // This sends cookies
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    console.log("Delete response status:", response.status);
-    
-    const data = await response.json();
-    console.log("Delete response data:", data);
-
-    if (response.ok) {
-      toast.success("Document deleted successfully!");
-      // Update the documents list by filtering out the deleted document
-      setClientDocuments(prevDocs => prevDocs.filter(doc => doc.id !== documentId));
-    } else {
-      toast.error(data.error || "Failed to delete document");
+  const handleDeleteDocument = async (documentId, documentName) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${documentName}"? This action cannot be undone.`
+      )
+    ) {
+      return;
     }
-  } catch (error) {
-    console.error("Error deleting document:", error);
-    toast.error("Error deleting document");
-  } finally {
-    setRefreshing(false);
-  }
-};
+
+    try {
+      setRefreshing(true);
+
+      // Fetch API with credentials (cookies will be sent automatically)
+      const response = await fetch(
+        `/api/auth/client/${clientId}/documents?documentId=${documentId}`,
+        {
+          method: "DELETE",
+          credentials: "include", // This sends cookies
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Delete response status:", response.status);
+
+      const data = await response.json();
+      console.log("Delete response data:", data);
+
+      if (response.ok) {
+        toast.success("Document deleted successfully!");
+        // Update the documents list by filtering out the deleted document
+        setClientDocuments((prevDocs) =>
+          prevDocs.filter((doc) => doc.id !== documentId)
+        );
+      } else {
+        toast.error(data.error || "Failed to delete document");
+      }
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast.error("Error deleting document");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Calculate contract status
   const getContractStatus = () => {
@@ -456,6 +474,65 @@ const handleDeleteDocument = async (documentId, documentName) => {
     if (diffDays < 0) return "Expired";
     if (diffDays <= 30) return "Expiring Soon";
     return "Active";
+  };
+
+  // Format date only (without time)
+  const formatDateOnly = (dateString) => {
+    if (!dateString) return "Not set";
+
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Not set";
+
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      return "Not set";
+    }
+  };
+
+  // Check if filters are active
+  const isFilterActive =
+    documentTypeFilter !== "all" ||
+    periodFilter !== "" ||
+    statusFilter !== "all";
+
+  
+const filteredDocuments = useMemo(() => {
+  // First, filter out company documents
+  let filtered = clientDocuments.filter(doc => 
+    !doc.isCompanyDocument && doc.category === "client"
+  );
+  
+  // Then apply other filters
+  if (documentTypeFilter !== "all") {
+    filtered = filtered.filter(doc => doc.type === documentTypeFilter);
+  }
+  
+  if (periodFilter && periodFilter.trim()) {
+    const query = periodFilter.toLowerCase();
+    filtered = filtered.filter(doc => 
+      (doc.documentPeriod && doc.documentPeriod.toLowerCase().includes(query)) ||
+      (doc.documentStartDate && formatDateOnly(doc.documentStartDate).toLowerCase().includes(query)) ||
+      (doc.documentEndDate && formatDateOnly(doc.documentEndDate).toLowerCase().includes(query))
+    );
+  }
+  
+  if (statusFilter !== "all") {
+    filtered = filtered.filter(doc => doc.status === statusFilter);
+  }
+  
+  return filtered;
+}, [clientDocuments, documentTypeFilter, periodFilter, statusFilter]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setDocumentTypeFilter("all");
+    setPeriodFilter("");
+    setStatusFilter("all");
   };
 
   // Calculate remaining days
@@ -490,7 +567,10 @@ const handleDeleteDocument = async (documentId, documentName) => {
           <p className="text-muted-foreground mb-4">
             {error || "Client details could not be loaded."}
           </p>
-          <Button className="cursor-pointer" onClick={() => router.push("/admin-dashboard/clients")}>
+          <Button
+            className="cursor-pointer"
+            onClick={() => router.push("/admin-dashboard/clients")}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Clients
           </Button>
@@ -505,7 +585,7 @@ const handleDeleteDocument = async (documentId, documentName) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
-          className="cursor-pointer"
+            className="cursor-pointer"
             variant="outline"
             size="sm"
             onClick={() => router.push("/admin-dashboard/clients")}
@@ -522,7 +602,7 @@ const handleDeleteDocument = async (documentId, documentName) => {
 
         <div className="flex items-center gap-2">
           <Button
-          className="cursor-pointer"
+            className="cursor-pointer"
             variant="outline"
             size="sm"
             onClick={fetchClientData}
@@ -534,12 +614,19 @@ const handleDeleteDocument = async (documentId, documentName) => {
             Refresh
           </Button>
 
-          <Button className="cursor-pointer" variant="outline" onClick={() => setActiveTab("documents")}>
+          <Button
+            className="cursor-pointer"
+            variant="outline"
+            onClick={() => setActiveTab("documents")}
+          >
             <FileText className="h-4 w-4 mr-2" />
             Documents ({clientDocuments.length})
           </Button>
 
-          <Button className="cursor-pointer" onClick={() => setAssignGuardOpen(true)}>
+          <Button
+            className="cursor-pointer"
+            onClick={() => setAssignGuardOpen(true)}
+          >
             <Users className="h-4 w-4 mr-2" />
             Assign Guard
           </Button>
@@ -604,12 +691,16 @@ const handleDeleteDocument = async (documentId, documentName) => {
         className="space-y-6"
       >
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="guards">
+          <TabsTrigger className="cursor-pointer" value="overview">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="details">
+            Details
+          </TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="guards">
             Guards ({assignedGuards.length})
           </TabsTrigger>
-          <TabsTrigger value="documents">
+          <TabsTrigger className="cursor-pointer" value="documents">
             Documents ({clientDocuments.length})
           </TabsTrigger>
         </TabsList>
@@ -1088,7 +1179,10 @@ const handleDeleteDocument = async (documentId, documentName) => {
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 cursor-pointer w-8 p-0">
+                              <Button
+                                variant="ghost"
+                                className="h-8 cursor-pointer w-8 p-0"
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -1157,144 +1251,309 @@ const handleDeleteDocument = async (documentId, documentName) => {
               </p>
             </div>
 
-            {/* SIMPLE BUTTON - Dialog wrapper REMOVE karo */}
-            <Button className="cursor-pointer" onClick={() => setUploadDocumentOpen(true)}>
+            <Button
+              className="cursor-pointer"
+              onClick={() => setUploadDocumentOpen(true)}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Upload Document
             </Button>
           </div>
 
-          {clientDocuments.length > 0 ? (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Document Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Uploaded</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clientDocuments.map((doc) => (
-                      <TableRow key={doc.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <div>{doc.name || "Unnamed Document"}</div>
-                              {doc.uploadedBy && (
-                                <div className="text-xs text-muted-foreground">
-                                  Uploaded by: {doc.uploadedBy.name} (
-                                  {doc.uploadedBy.role || "User"})
-                                </div>
-                              )}
-                            </div>
+          {/* FILTER SECTION ADD KARO */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Document Type Filter */}
+                <div>
+                  <Label
+                    htmlFor="type-filter"
+                    className="text-sm font-medium mb-2 block"
+                  >
+                    Document Type
+                  </Label>
+                  <Select
+                    value={documentTypeFilter}
+                    onValueChange={setDocumentTypeFilter}
+                  >
+                    <SelectTrigger id="type-filter" className="w-full">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="agreement">Agreement</SelectItem>
+                      <SelectItem value="attendance">Attendance</SelectItem>
+                      <SelectItem value="bills">Bills</SelectItem>
+                      <SelectItem value="salary-sheet">Salary Sheet</SelectItem>
+                      <SelectItem value="pay-slip">Pay Slip</SelectItem>
+                      <SelectItem value="esi">ESI</SelectItem>
+                      <SelectItem value="pf">PF</SelectItem>
+                      <SelectItem value="employee-details">
+                        Employee Details
+                      </SelectItem>
+                      <SelectItem value="training">Training</SelectItem>
+                      <SelectItem value="night-checking">
+                        Night Checking
+                      </SelectItem>
+                      <SelectItem value="paid-gst">Paid GST</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Month/Period Filter */}
+                <div>
+                  <Label
+                    htmlFor="period-filter"
+                    className="text-sm font-medium mb-2 block"
+                  >
+                    Period/Month
+                  </Label>
+                  <Input
+                    id="period-filter"
+                    placeholder="e.g. December, Q1 2024"
+                    value={periodFilter}
+                    onChange={(e) => setPeriodFilter(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Status Filter */}
+                <div>
+                  <Label
+                    htmlFor="status-filter"
+                    className="text-sm font-medium mb-2 block"
+                  >
+                    Status
+                  </Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger id="status-filter" className="w-full">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Clear Filters Button */}
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="w-full cursor-pointer"
+                    disabled={!isFilterActive}
+                    
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {filteredDocuments.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="font-semibold">
+                      Document Name
+                    </TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="font-semibold">Start Date</TableHead>
+                    <TableHead className="font-semibold">End Date</TableHead>
+                    <TableHead className="font-semibold">Period</TableHead>
+                    <TableHead className="font-semibold">Uploaded</TableHead>
+                    <TableHead className="font-semibold">Size</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold text-right">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredDocuments.map((doc) => (
+                    <TableRow key={doc.id} className="hover:bg-muted/30">
+                      <TableCell className="font-medium py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileText className="h-5 w-5 text-primary" />
                           </div>
-                          {doc.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {doc.description}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {getDocumentTypeName(doc.type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div>{formatDate(doc.uploaded)}</div>
+                          <div className="min-w-0">
+                            <div className="font-semibold truncate max-w-xs">
+                              {doc.name || "Unnamed Document"}
+                            </div>
+                            {doc.description && (
+                              <p className="text-sm text-muted-foreground mt-1 truncate max-w-xs">
+                                {doc.description}
+                              </p>
+                            )}
                             {doc.uploadedBy && (
-                              <div className="text-xs text-muted-foreground">
-                                {doc.uploadedBy.name}
+                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {doc.uploadedBy.name} (
+                                {doc.uploadedBy.role || "User"})
                               </div>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell>{formatFileSize(doc.size)}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              doc.status === "approved"
-                                ? "default"
-                                : doc.status === "pending"
-                                ? "secondary"
-                                : doc.status === "rejected"
-                                ? "destructive"
-                                : "outline"
-                            }
-                          >
-                            {doc.status
-                              ? doc.status.charAt(0).toUpperCase() +
-                                doc.status.slice(1)
-                              : "Pending"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-medium">
+                          {getDocumentTypeName(doc.type)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {doc.documentStartDate ? (
+                            <span className="font-medium">
+                              {formatDateOnly(doc.documentStartDate)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground italic">
+                              Not set
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {doc.documentEndDate ? (
+                            <span className="font-medium">
+                              {formatDateOnly(doc.documentEndDate)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground italic">
+                              Not set
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {doc.documentPeriod ? (
+                          <Badge variant="secondary" className="font-medium">
+                            {doc.documentPeriod}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                            className="cursor-pointer"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(doc.fileUrl, "_blank")}
-                              title="View Document"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                            className="cursor-pointer"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDownloadDocument(doc)}
-                              title="Download Document"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => handleDeleteDocument(doc.id, doc.name || "Unnamed Document")}
-      title="Delete Document"
-      className="text-destructive cursor-pointer hover:text-destructive hover:bg-destructive/10"
-      disabled={refreshing}
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
+                        ) : (
+                          <span className="text-muted-foreground italic">
+                            N/A
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">
+                            {formatDate(doc.uploaded)}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                          <div className="text-xs text-muted-foreground">
+                            by {doc.uploadedBy?.name || "Unknown"}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {formatFileSize(doc.size)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            doc.status === "approved"
+                              ? "default"
+                              : doc.status === "pending"
+                              ? "secondary"
+                              : doc.status === "rejected"
+                              ? "destructive"
+                              : "outline"
+                          }
+                          className="font-medium"
+                        >
+                          {doc.status
+                            ? doc.status.charAt(0).toUpperCase() +
+                              doc.status.slice(1)
+                            : "Pending"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => window.open(doc.fileUrl, "_blank")}
+                            title="View Document"
+                            className="h-8 w-8 cursor-pointer"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDownloadDocument(doc)}
+                            title="Download Document"
+                            className="h-8 w-8 cursor-pointer"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              handleDeleteDocument(
+                                doc.id,
+                                doc.name || "Unnamed Document"
+                              )
+                            }
+                            title="Delete Document"
+                            className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                            disabled={refreshing}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <Card className="text-center py-12">
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No Documents</h3>
+              <h3 className="text-lg font-semibold mb-2">No Documents Found</h3>
               <p className="text-muted-foreground mb-4">
-                No documents uploaded for this client yet. Upload documents for
-                contracts, reports, and other important files.
+                {clientDocuments.length === 0
+                  ? "No documents uploaded for this client yet. Upload documents for contracts, reports, and other important files."
+                  : "No documents match your filter criteria. Try changing your filters."}
               </p>
-              {/* SIMPLE BUTTON yahan bhi */}
-              <Button className="cursor-pointer" onClick={() => setUploadDocumentOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Upload First Document
-              </Button>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => setUploadDocumentOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2 cursor-pointer" />
+                  Upload First Document
+                </Button>
+                {isFilterActive && (
+                  <Button className="cursor-pointer" variant="outline" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
             </Card>
           )}
 
-          {/* UploadDialog ko SIRF yahan render karo (NO WRAPPER) */}
+          {/* UploadDialog */}
+
           <UploadDocumentDialog
             open={uploadDocumentOpen}
             onOpenChange={setUploadDocumentOpen}
             clientId={clientId}
             onUpload={handleDocumentUpload}
             isAdmin={false}
+            isCompanyDocuments={false}
           />
         </TabsContent>
       </Tabs>

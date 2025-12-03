@@ -1,3 +1,4 @@
+//api/admin/documents/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Document, User } from "@/lib/db";

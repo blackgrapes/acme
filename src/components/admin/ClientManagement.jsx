@@ -68,7 +68,7 @@ export default function ClientManagement({
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Initial form state - SIMPLIFIED AND FIXED
   const initialFormData = {
     name: "",
@@ -85,35 +85,193 @@ export default function ClientManagement({
       city: "",
       state: "",
       postalCode: "",
-      country: "India"
+      country: "India",
     },
     securityPlan: "Standard",
     serviceType: "",
     contractStartDate: "",
     contractEndDate: "",
     contractValue: "",
-    sites: [{
-      siteName: "",
-      address: "",
-      contactPerson: "",
-      contactNumber: "",
-    }],
-    emergencyContacts: [{
-      name: "",
-      relationship: "",
-      phone: "",
-    }],
+    sites: [
+      {
+        siteName: "",
+        address: "",
+        contactPerson: "",
+        contactNumber: "",
+      },
+    ],
+    emergencyContacts: [
+      {
+        name: "",
+        relationship: "",
+        phone: "",
+      },
+    ],
     requiredGuards: {
       male: 0,
       female: 0,
-      total: 0
+      total: 0,
     },
     equipmentRequired: "",
     notes: "",
   };
 
   const [formData, setFormData] = useState(initialFormData);
+  // Add these states
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
+  const handleEditClick = async (client) => {
+    try {
+      setEditingClient(client);
+
+      // Get address data safely
+      const address = client.address || {};
+      const sites = client.sites || [];
+      const emergencyContacts = client.emergencyContacts || [];
+      const serviceType = client.serviceType || [];
+      const equipmentRequired = client.equipmentRequired || [];
+      const requiredGuards = client.requiredGuards || {
+        male: 0,
+        female: 0,
+        total: 0,
+      };
+
+      setEditFormData({
+        // Basic Information
+        name: client.name || "",
+        email: client.email || "",
+        phone: client.phone || "",
+        alternatePhone: client.alternatePhone || "",
+
+        // Client Information
+        clientType: client.clientType || "Corporate",
+        companyName: client.companyName || "",
+        designation: client.designation || "",
+
+        // Address Information
+        address: {
+          street: address.street || "",
+          city: address.city || "",
+          state: address.state || "",
+          postalCode: address.postalCode || "",
+          country: address.country || "India",
+        },
+
+        // Service Information
+        securityPlan: client.securityPlan || "Standard",
+        serviceType: serviceType[0] || "",
+
+        // Contract Information
+        contractStartDate: client.contractStartDate
+          ? new Date(client.contractStartDate).toISOString().split("T")[0]
+          : "",
+        contractEndDate: client.contractEndDate
+          ? new Date(client.contractEndDate).toISOString().split("T")[0]
+          : "",
+        contractValue: client.contractValue || 0,
+
+        // Site Information (ensure it's an array)
+        sites:
+          sites.length > 0
+            ? sites
+            : [
+                {
+                  siteName: "",
+                  address: "",
+                  contactPerson: "",
+                  contactNumber: "",
+                },
+              ],
+
+        // Security Requirements
+        requiredGuards: requiredGuards,
+
+        // Equipment
+        equipmentRequired: equipmentRequired[0] || "",
+
+        // Emergency Contact (ensure it's an array)
+        emergencyContacts:
+          emergencyContacts.length > 0
+            ? emergencyContacts
+            : [
+                {
+                  name: "",
+                  relationship: "",
+                  phone: "",
+                },
+              ],
+
+        // Notes
+        notes: client.notes || "",
+      });
+
+      setEditDialogOpen(true);
+    } catch (error) {
+      console.error("Error preparing edit form:", error);
+      toast.error("Error loading client data");
+    }
+  };
+
+  // Function to update client
+  const handleUpdateClient = async (event) => {
+    event.preventDefault();
+
+    if (!editingClient) return;
+
+    setIsEditSubmitting(true);
+
+    try {
+      // Prepare update data (without password)
+      const updateData = {
+        name: editFormData.name,
+        phone: editFormData.phone,
+        alternatePhone: editFormData.alternatePhone,
+        clientType: editFormData.clientType,
+        companyName: editFormData.companyName,
+        designation: editFormData.designation,
+        address: editFormData.address,
+        securityPlan: editFormData.securityPlan,
+        serviceType: editFormData.serviceType ? [editFormData.serviceType] : [],
+        contractStartDate: editFormData.contractStartDate,
+        contractEndDate: editFormData.contractEndDate,
+        contractValue: parseFloat(editFormData.contractValue) || 0,
+        sites: [editFormData.sites],
+        emergencyContacts: [editFormData.emergencyContacts],
+        requiredGuards: editFormData.requiredGuards,
+        equipmentRequired: editFormData.equipmentRequired
+          ? [editFormData.equipmentRequired]
+          : [],
+        notes: editFormData.notes,
+      };
+
+      const response = await fetch(`/api/auth/client/${editingClient._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success("Client updated successfully!");
+        await fetchClients(); // Refresh the list
+        setEditDialogOpen(false);
+        setEditingClient(null);
+      } else {
+        toast.error(result.error || "Failed to update client");
+      }
+    } catch (error) {
+      console.error("Error updating client:", error);
+      toast.error("Error updating client");
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
   // Service types options
   const serviceTypeOptions = [
     { value: "Static Guarding", label: "Static Guarding" },
@@ -121,7 +279,7 @@ export default function ClientManagement({
     { value: "CCTV Monitoring", label: "CCTV Monitoring" },
     { value: "Event Security", label: "Event Security" },
     { value: "VIP Protection", label: "VIP Protection" },
-    { value: "Asset Protection", label: "Asset Protection" }
+    { value: "Asset Protection", label: "Asset Protection" },
   ];
 
   // Equipment options
@@ -131,10 +289,10 @@ export default function ClientManagement({
     { value: "Metal Detector", label: "Metal Detector" },
     { value: "Fire Extinguisher", label: "Fire Extinguisher" },
     { value: "First Aid", label: "First Aid Kit" },
-    { value: "Vehicle", label: "Security Vehicle" }
+    { value: "Vehicle", label: "Security Vehicle" },
   ];
 
-    // Fetch clients from API
+  // Fetch clients from API
   useEffect(() => {
     fetchClients();
   }, []);
@@ -144,9 +302,9 @@ export default function ClientManagement({
       setLoading(true);
       const response = await fetch("/api/auth/client");
       const data = await response.json();
-      
+
       console.log("📋 API Response:", data);
-      
+
       if (response.ok) {
         // The API already returns only clients, no need to filter
         setClients(data.clients || []);
@@ -171,12 +329,12 @@ export default function ClientManagement({
       client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (client.companyName &&
         client.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (client.address && 
+      (client.address &&
         client.address.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus =
       statusFilter === "all" || client.status === statusFilter;
-    
+
     const matchesClientType =
       clientTypeFilter === "all" || client.clientType === clientTypeFilter;
 
@@ -231,78 +389,33 @@ export default function ClientManagement({
     }
   };
 
-  // // Filter clients
-  // const filteredClients = clients.filter((client) => {
-  //   const matchesSearch =
-  //     client.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     (client.companyName &&
-  //       client.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-  //     (client.address?.city &&
-  //       client.address.city.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  //   const matchesStatus =
-  //     statusFilter === "all" || client.status === statusFilter;
-  //   const matchesClientType =
-  //     clientTypeFilter === "all" || client.clientType === clientTypeFilter;
-
-  //   return matchesSearch && matchesStatus && matchesClientType;
-  // });
-
-  // // Status badge helpers
-  // const getStatusIcon = (status) => {
-  //   switch (status) {
-  //     case "Active":
-  //       return <CheckCircle className="h-3 w-3" />;
-  //     case "Pending":
-  //       return <Clock className="h-3 w-3" />;
-  //     case "Inactive":
-  //       return <XCircle className="h-3 w-3" />;
-  //     default:
-  //       return <Shield className="h-3 w-3" />;
-  //   }
-  // };
-
-  // const getStatusVariant = (status) => {
-  //   switch (status) {
-  //     case "Active":
-  //       return "default";
-  //     case "Pending":
-  //       return "secondary";
-  //     case "Inactive":
-  //       return "outline";
-  //     default:
-  //       return "secondary";
-  //   }
-  // };
-
-  // ✅ FIXED: Handle form input changes - SIMPLIFIED VERSION
+  // Handle form input changes - SIMPLIFIED VERSION
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
-    
+
     // Handle simple fields
-    if (!name.includes('.')) {
-      setFormData(prev => ({
+    if (!name.includes(".")) {
+      setFormData((prev) => ({
         ...prev,
-        [name]: type === 'number' ? parseInt(value) || 0 : value
+        [name]: type === "number" ? parseInt(value) || 0 : value,
       }));
       return;
     }
 
     // Handle nested fields with dot notation
-    const keys = name.split('.');
-    
-    setFormData(prev => {
+    const keys = name.split(".");
+
+    setFormData((prev) => {
       const newState = { ...prev };
       let current = newState;
-      
+
       // Navigate to the nested level
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
-        
+
         // Handle array indices
-        if (!isNaN(keys[i+1])) {
-          const index = parseInt(keys[i+1]);
+        if (!isNaN(keys[i + 1])) {
+          const index = parseInt(keys[i + 1]);
           if (!current[key] || !Array.isArray(current[key])) {
             current[key] = [];
           }
@@ -312,81 +425,89 @@ export default function ClientManagement({
           current = current[key][index];
           i++; // Skip the index key since we already handled it
         } else {
-          if (!current[key] || typeof current[key] !== 'object') {
+          if (!current[key] || typeof current[key] !== "object") {
             current[key] = {};
           }
           current = current[key];
         }
       }
-      
+
       // Set the value
       const lastKey = keys[keys.length - 1];
-      current[lastKey] = type === 'number' ? parseInt(value) || 0 : value;
-      
+      current[lastKey] = type === "number" ? parseInt(value) || 0 : value;
+
       return newState;
     });
   };
 
-  // ✅ FIXED: Alternative method for simpler cases
+  // Alternative method for simpler cases
   const handleSimpleNestedChange = (fieldPath, value) => {
-    const keys = fieldPath.split('.');
-    
-    setFormData(prev => {
+    const keys = fieldPath.split(".");
+
+    setFormData((prev) => {
       if (keys.length === 1) {
         return { ...prev, [keys[0]]: value };
       }
-      
+
       if (keys.length === 2) {
-        if (keys[0] === 'requiredGuards') {
+        if (keys[0] === "requiredGuards") {
           return {
             ...prev,
             requiredGuards: {
               ...prev.requiredGuards,
-              [keys[1]]: parseInt(value) || 0
-            }
+              [keys[1]]: parseInt(value) || 0,
+            },
           };
         }
-        
-        if (keys[0] === 'address') {
+
+        if (keys[0] === "address") {
           return {
             ...prev,
             address: {
               ...prev.address,
-              [keys[1]]: value
-            }
+              [keys[1]]: value,
+            },
           };
         }
       }
-      
-      if (keys.length === 3 && keys[0] === 'sites' && keys[1] === '0') {
+
+      if (keys.length === 3 && keys[0] === "sites" && keys[1] === "0") {
         return {
           ...prev,
-          sites: [{
-            ...prev.sites[0],
-            [keys[2]]: value
-          }]
+          sites: [
+            {
+              ...prev.sites[0],
+              [keys[2]]: value,
+            },
+          ],
         };
       }
-      
-      if (keys.length === 3 && keys[0] === 'emergencyContacts' && keys[1] === '0') {
+
+      if (
+        keys.length === 3 &&
+        keys[0] === "emergencyContacts" &&
+        keys[1] === "0"
+      ) {
         return {
           ...prev,
-          emergencyContacts: [{
-            ...prev.emergencyContacts[0],
-            [keys[2]]: value
-          }]
+          emergencyContacts: [
+            {
+              ...prev.emergencyContacts[0],
+              [keys[2]]: value,
+            },
+          ],
         };
       }
-      
+
       return prev;
     });
   };
 
   // Handle select changes
   const handleSelectChange = (name, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -398,7 +519,7 @@ export default function ClientManagement({
   // Submit client registration
   const handleClientSubmit = async (event) => {
     event.preventDefault();
-    
+
     setIsSubmitting(true);
 
     // Validation
@@ -436,11 +557,15 @@ export default function ClientManagement({
         serviceType: formData.serviceType ? [formData.serviceType] : [],
         contractStartDate: formData.contractStartDate,
         contractEndDate: formData.contractEndDate,
-        contractValue: formData.contractValue ? parseFloat(formData.contractValue) : 0,
+        contractValue: formData.contractValue
+          ? parseFloat(formData.contractValue)
+          : 0,
         sites: formData.sites,
         emergencyContacts: formData.emergencyContacts,
         requiredGuards: formData.requiredGuards,
-        equipmentRequired: formData.equipmentRequired ? [formData.equipmentRequired] : [],
+        equipmentRequired: formData.equipmentRequired
+          ? [formData.equipmentRequired]
+          : [],
         notes: formData.notes,
         roleName: "Client",
       };
@@ -471,12 +596,113 @@ export default function ClientManagement({
     }
   };
 
-  // // Get total required guards
-  // const getTotalRequiredGuards = () => {
-  //   return clients.reduce((total, client) => {
-  //     return total + (client.requiredGuards?.total || 0);
-  //   }, 0);
-  // };
+  const [loadingToggle, setLoadingToggle] = useState(null);
+
+  // Update toggle function
+  const toggleClientStatus = async (clientId, currentStatus) => {
+    const action =
+      currentStatus === "Disabled" || currentStatus === "Disabled"
+        ? "enable"
+        : "disable";
+    const confirmMessage =
+      action === "disable"
+        ? "Are you sure you want to disable this client? They won't be able to login until enabled."
+        : "Are you sure you want to enable this client?";
+
+    if (!confirm(confirmMessage)) return;
+
+    setLoadingToggle(clientId);
+
+    try {
+      const response = await fetch(
+        `/api/auth/client/${clientId}/toggle-status`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.message);
+        await fetchClients(); // Refresh list
+      } else {
+        toast.error(data.error || "Failed to update client status");
+      }
+    } catch (error) {
+      console.error("Error toggling client status:", error);
+      toast.error("Error updating client status");
+    } finally {
+      setLoadingToggle(null);
+    }
+  };
+
+  // Add these functions for edit form
+
+  // Handle simple input changes for edit form
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle nested changes for edit form
+  const handleEditNestedChange = (fieldPath, value) => {
+    const keys = fieldPath.split(".");
+
+    setEditFormData((prev) => {
+      const newData = { ...prev };
+      let current = newData;
+
+      // Navigate to the nested level
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+
+        // Check if next key is array index
+        if (!isNaN(keys[i + 1])) {
+          // Ensure current[key] is an array
+          if (!current[key] || !Array.isArray(current[key])) {
+            current[key] = [];
+          }
+
+          const index = parseInt(keys[i + 1]);
+          // Ensure the index exists
+          if (!current[key][index]) {
+            current[key][index] = {};
+          }
+
+          current = current[key][index];
+          i++; // Skip the index since we handled it
+        } else {
+          // Handle nested object
+          if (!current[key] || typeof current[key] !== "object") {
+            current[key] = {};
+          }
+          current = current[key];
+        }
+      }
+
+      // Set the value
+      const lastKey = keys[keys.length - 1];
+      current[lastKey] = value;
+
+      return newData;
+    });
+  };
+
+  // Handle select changes for edit form
+  const handleEditSelectChange = (name, value) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   if (loading) {
     return (
@@ -612,7 +838,9 @@ export default function ClientManagement({
                     <Label htmlFor="clientType">Client Type</Label>
                     <Select
                       value={formData.clientType}
-                      onValueChange={(value) => handleSelectChange('clientType', value)}
+                      onValueChange={(value) =>
+                        handleSelectChange("clientType", value)
+                      }
                       disabled={isSubmitting}
                     >
                       <SelectTrigger>
@@ -663,7 +891,12 @@ export default function ClientManagement({
                         id="address.street"
                         name="address.street"
                         value={formData.address.street}
-                        onChange={(e) => handleSimpleNestedChange('address.street', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "address.street",
+                            e.target.value
+                          )
+                        }
                         placeholder="123 Main Street"
                         disabled={isSubmitting}
                       />
@@ -675,7 +908,12 @@ export default function ClientManagement({
                         id="address.city"
                         name="address.city"
                         value={formData.address.city}
-                        onChange={(e) => handleSimpleNestedChange('address.city', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "address.city",
+                            e.target.value
+                          )
+                        }
                         placeholder="Mumbai"
                         disabled={isSubmitting}
                       />
@@ -687,7 +925,12 @@ export default function ClientManagement({
                         id="address.state"
                         name="address.state"
                         value={formData.address.state}
-                        onChange={(e) => handleSimpleNestedChange('address.state', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "address.state",
+                            e.target.value
+                          )
+                        }
                         placeholder="Maharashtra"
                         disabled={isSubmitting}
                       />
@@ -699,7 +942,12 @@ export default function ClientManagement({
                         id="address.postalCode"
                         name="address.postalCode"
                         value={formData.address.postalCode}
-                        onChange={(e) => handleSimpleNestedChange('address.postalCode', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "address.postalCode",
+                            e.target.value
+                          )
+                        }
                         placeholder="400001"
                         disabled={isSubmitting}
                       />
@@ -715,7 +963,9 @@ export default function ClientManagement({
                       <Label htmlFor="securityPlan">Security Plan</Label>
                       <Select
                         value={formData.securityPlan}
-                        onValueChange={(value) => handleSelectChange('securityPlan', value)}
+                        onValueChange={(value) =>
+                          handleSelectChange("securityPlan", value)
+                        }
                         disabled={isSubmitting}
                       >
                         <SelectTrigger>
@@ -735,14 +985,16 @@ export default function ClientManagement({
                       <Label>Service Type</Label>
                       <Select
                         value={formData.serviceType}
-                        onValueChange={(value) => handleSelectChange('serviceType', value)}
+                        onValueChange={(value) =>
+                          handleSelectChange("serviceType", value)
+                        }
                         disabled={isSubmitting}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select service type" />
                         </SelectTrigger>
                         <SelectContent>
-                          {serviceTypeOptions.map(option => (
+                          {serviceTypeOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -755,7 +1007,9 @@ export default function ClientManagement({
 
                 {/* Contract Information */}
                 <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">Contract Information</h3>
+                  <h3 className="text-lg font-semibold">
+                    Contract Information
+                  </h3>
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor="contractStartDate">Start Date</Label>
@@ -806,7 +1060,12 @@ export default function ClientManagement({
                         id="siteName"
                         name="sites.0.siteName"
                         value={formData.sites[0]?.siteName || ""}
-                        onChange={(e) => handleSimpleNestedChange('sites.0.siteName', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "sites.0.siteName",
+                            e.target.value
+                          )
+                        }
                         placeholder="Head Office"
                         disabled={isSubmitting}
                       />
@@ -818,7 +1077,12 @@ export default function ClientManagement({
                         id="siteAddress"
                         name="sites.0.address"
                         value={formData.sites[0]?.address || ""}
-                        onChange={(e) => handleSimpleNestedChange('sites.0.address', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "sites.0.address",
+                            e.target.value
+                          )
+                        }
                         placeholder="Site full address"
                         disabled={isSubmitting}
                       />
@@ -830,7 +1094,12 @@ export default function ClientManagement({
                         id="siteContactPerson"
                         name="sites.0.contactPerson"
                         value={formData.sites[0]?.contactPerson || ""}
-                        onChange={(e) => handleSimpleNestedChange('sites.0.contactPerson', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "sites.0.contactPerson",
+                            e.target.value
+                          )
+                        }
                         placeholder="Site Manager"
                         disabled={isSubmitting}
                       />
@@ -842,7 +1111,12 @@ export default function ClientManagement({
                         id="siteContactNumber"
                         name="sites.0.contactNumber"
                         value={formData.sites[0]?.contactNumber || ""}
-                        onChange={(e) => handleSimpleNestedChange('sites.0.contactNumber', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "sites.0.contactNumber",
+                            e.target.value
+                          )
+                        }
                         placeholder="+91 9876543212"
                         disabled={isSubmitting}
                       />
@@ -852,7 +1126,9 @@ export default function ClientManagement({
 
                 {/* Security Requirements - FIXED */}
                 <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">Security Requirements</h3>
+                  <h3 className="text-lg font-semibold">
+                    Security Requirements
+                  </h3>
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor="maleGuards">Male Guards</Label>
@@ -862,7 +1138,12 @@ export default function ClientManagement({
                         type="number"
                         min="0"
                         value={formData.requiredGuards.male}
-                        onChange={(e) => handleSimpleNestedChange('requiredGuards.male', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "requiredGuards.male",
+                            e.target.value
+                          )
+                        }
                         disabled={isSubmitting}
                       />
                     </div>
@@ -875,7 +1156,12 @@ export default function ClientManagement({
                         type="number"
                         min="0"
                         value={formData.requiredGuards.female}
-                        onChange={(e) => handleSimpleNestedChange('requiredGuards.female', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "requiredGuards.female",
+                            e.target.value
+                          )
+                        }
                         disabled={isSubmitting}
                       />
                     </div>
@@ -888,7 +1174,12 @@ export default function ClientManagement({
                         type="number"
                         min="0"
                         value={formData.requiredGuards.total}
-                        onChange={(e) => handleSimpleNestedChange('requiredGuards.total', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "requiredGuards.total",
+                            e.target.value
+                          )
+                        }
                         disabled={isSubmitting}
                       />
                     </div>
@@ -898,14 +1189,16 @@ export default function ClientManagement({
                     <Label>Equipment Required</Label>
                     <Select
                       value={formData.equipmentRequired}
-                      onValueChange={(value) => handleSelectChange('equipmentRequired', value)}
+                      onValueChange={(value) =>
+                        handleSelectChange("equipmentRequired", value)
+                      }
                       disabled={isSubmitting}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select equipment" />
                       </SelectTrigger>
                       <SelectContent>
-                        {equipmentOptions.map(option => (
+                        {equipmentOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -925,19 +1218,33 @@ export default function ClientManagement({
                         id="emergencyName"
                         name="emergencyContacts.0.name"
                         value={formData.emergencyContacts[0]?.name || ""}
-                        onChange={(e) => handleSimpleNestedChange('emergencyContacts.0.name', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "emergencyContacts.0.name",
+                            e.target.value
+                          )
+                        }
                         placeholder="Emergency Contact"
                         disabled={isSubmitting}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="emergencyRelationship">Relationship</Label>
+                      <Label htmlFor="emergencyRelationship">
+                        Relationship
+                      </Label>
                       <Input
                         id="emergencyRelationship"
                         name="emergencyContacts.0.relationship"
-                        value={formData.emergencyContacts[0]?.relationship || ""}
-                        onChange={(e) => handleSimpleNestedChange('emergencyContacts.0.relationship', e.target.value)}
+                        value={
+                          formData.emergencyContacts[0]?.relationship || ""
+                        }
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "emergencyContacts.0.relationship",
+                            e.target.value
+                          )
+                        }
                         placeholder="Spouse/Manager"
                         disabled={isSubmitting}
                       />
@@ -949,7 +1256,12 @@ export default function ClientManagement({
                         id="emergencyPhone"
                         name="emergencyContacts.0.phone"
                         value={formData.emergencyContacts[0]?.phone || ""}
-                        onChange={(e) => handleSimpleNestedChange('emergencyContacts.0.phone', e.target.value)}
+                        onChange={(e) =>
+                          handleSimpleNestedChange(
+                            "emergencyContacts.0.phone",
+                            e.target.value
+                          )
+                        }
                         placeholder="+91 9876543213"
                         disabled={isSubmitting}
                       />
@@ -984,7 +1296,11 @@ export default function ClientManagement({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
+                  <Button
+                    type="submit"
+                    className="cursor-pointer"
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1002,6 +1318,535 @@ export default function ClientManagement({
             </DialogContent>
           </Dialog>
         </div>
+
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Client: {editingClient?.name}</DialogTitle>
+              <DialogDescription>
+                Update client information and security setup
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleUpdateClient} className="grid gap-6 py-4">
+              {/* Basic Information */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Full Name *</Label>
+                  <Input
+                    id="edit-name"
+                    name="name"
+                    value={editFormData?.name || ""}
+                    onChange={handleEditInputChange}
+                    placeholder="John Smith"
+                    required
+                    disabled={isEditSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email Address *</Label>
+                  <Input
+                    id="edit-email"
+                    name="email"
+                    type="email"
+                    value={editFormData?.email || ""}
+                    onChange={handleEditInputChange}
+                    placeholder="john@example.com"
+                    required
+                    disabled={isEditSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Phone Number</Label>
+                  <Input
+                    id="edit-phone"
+                    name="phone"
+                    value={editFormData?.phone || ""}
+                    onChange={handleEditInputChange}
+                    placeholder="+91 9876543210"
+                    disabled={isEditSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-alternatePhone">Alternate Phone</Label>
+                  <Input
+                    id="edit-alternatePhone"
+                    name="alternatePhone"
+                    value={editFormData?.alternatePhone || ""}
+                    onChange={handleEditInputChange}
+                    placeholder="+91 9876543211"
+                    disabled={isEditSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Client Information */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-clientType">Client Type</Label>
+                  <Select
+                    value={editFormData?.clientType || "Corporate"}
+                    onValueChange={(value) =>
+                      handleEditSelectChange("clientType", value)
+                    }
+                    disabled={isEditSubmitting}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Individual">Individual</SelectItem>
+                      <SelectItem value="Corporate">Corporate</SelectItem>
+                      <SelectItem value="Government">Government</SelectItem>
+                      <SelectItem value="Residential">Residential</SelectItem>
+                      <SelectItem value="Commercial">Commercial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-companyName">Company Name</Label>
+                  <Input
+                    id="edit-companyName"
+                    name="companyName"
+                    value={editFormData?.companyName || ""}
+                    onChange={handleEditInputChange}
+                    placeholder="ABC Corporation"
+                    disabled={isEditSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-designation">Designation</Label>
+                  <Input
+                    id="edit-designation"
+                    name="designation"
+                    value={editFormData?.designation || ""}
+                    onChange={handleEditInputChange}
+                    placeholder="Security Manager"
+                    disabled={isEditSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="grid gap-4">
+                <h3 className="text-lg font-semibold">Address Information</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-address-street">Street Address</Label>
+                    <Input
+                      id="edit-address-street"
+                      value={editFormData?.address?.street || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange("address.street", e.target.value)
+                      }
+                      placeholder="123 Main Street"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-address-city">City</Label>
+                    <Input
+                      id="edit-address-city"
+                      value={editFormData?.address?.city || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange("address.city", e.target.value)
+                      }
+                      placeholder="Mumbai"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-address-state">State</Label>
+                    <Input
+                      id="edit-address-state"
+                      value={editFormData?.address?.state || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange("address.state", e.target.value)
+                      }
+                      placeholder="Maharashtra"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-address-postalCode">Postal Code</Label>
+                    <Input
+                      id="edit-address-postalCode"
+                      value={editFormData?.address?.postalCode || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "address.postalCode",
+                          e.target.value
+                        )
+                      }
+                      placeholder="400001"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Information */}
+              <div className="grid gap-4">
+                <h3 className="text-lg font-semibold">Service Information</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-securityPlan">Security Plan</Label>
+                    <Select
+                      value={editFormData?.securityPlan || "Standard"}
+                      onValueChange={(value) =>
+                        handleEditSelectChange("securityPlan", value)
+                      }
+                      disabled={isEditSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select plan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Basic">Basic</SelectItem>
+                        <SelectItem value="Standard">Standard</SelectItem>
+                        <SelectItem value="Premium">Premium</SelectItem>
+                        <SelectItem value="Enterprise">Enterprise</SelectItem>
+                        <SelectItem value="Custom">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Service Type</Label>
+                    <Select
+                      value={editFormData?.serviceType || ""}
+                      onValueChange={(value) =>
+                        handleEditSelectChange("serviceType", value)
+                      }
+                      disabled={isEditSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select service type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceTypeOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contract Information */}
+              <div className="grid gap-4">
+                <h3 className="text-lg font-semibold">Contract Information</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-contractStartDate">Start Date</Label>
+                    <Input
+                      id="edit-contractStartDate"
+                      name="contractStartDate"
+                      type="date"
+                      value={editFormData?.contractStartDate || ""}
+                      onChange={handleEditInputChange}
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-contractEndDate">End Date</Label>
+                    <Input
+                      id="edit-contractEndDate"
+                      name="contractEndDate"
+                      type="date"
+                      value={editFormData?.contractEndDate || ""}
+                      onChange={handleEditInputChange}
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-contractValue">
+                      Contract Value (₹)
+                    </Label>
+                    <Input
+                      id="edit-contractValue"
+                      name="contractValue"
+                      type="number"
+                      value={editFormData?.contractValue || 0}
+                      onChange={handleEditInputChange}
+                      placeholder="50000"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Site Information */}
+              <div className="grid gap-4">
+                <h3 className="text-lg font-semibold">Site Information</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-siteName">Site Name</Label>
+                    <Input
+                      id="edit-siteName"
+                      value={editFormData?.sites?.[0]?.siteName || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "sites.0.siteName",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Head Office"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-siteAddress">Site Address</Label>
+                    <Input
+                      id="edit-siteAddress"
+                      value={editFormData?.sites?.[0]?.address || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "sites.0.address",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Site full address"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-siteContactPerson">
+                      Contact Person
+                    </Label>
+                    <Input
+                      id="edit-siteContactPerson"
+                      value={editFormData?.sites?.[0]?.contactPerson || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "sites.0.contactPerson",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Site Manager"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-siteContactNumber">
+                      Contact Number
+                    </Label>
+                    <Input
+                      id="edit-siteContactNumber"
+                      value={editFormData?.sites?.[0]?.contactNumber || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "sites.0.contactNumber",
+                          e.target.value
+                        )
+                      }
+                      placeholder="+91 9876543212"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Security Requirements */}
+              <div className="grid gap-4">
+                <h3 className="text-lg font-semibold">Security Requirements</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-maleGuards">Male Guards</Label>
+                    <Input
+                      id="edit-maleGuards"
+                      type="number"
+                      min="0"
+                      value={editFormData?.requiredGuards?.male || 0}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "requiredGuards.male",
+                          e.target.value
+                        )
+                      }
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-femaleGuards">Female Guards</Label>
+                    <Input
+                      id="edit-femaleGuards"
+                      type="number"
+                      min="0"
+                      value={editFormData?.requiredGuards?.female || 0}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "requiredGuards.female",
+                          e.target.value
+                        )
+                      }
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-totalGuards">Total Guards</Label>
+                    <Input
+                      id="edit-totalGuards"
+                      type="number"
+                      min="0"
+                      value={editFormData?.requiredGuards?.total || 0}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "requiredGuards.total",
+                          e.target.value
+                        )
+                      }
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Equipment Required</Label>
+                  <Select
+                    value={editFormData?.equipmentRequired || ""}
+                    onValueChange={(value) =>
+                      handleEditSelectChange("equipmentRequired", value)
+                    }
+                    disabled={isEditSubmitting}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select equipment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {equipmentOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="grid gap-4">
+                <h3 className="text-lg font-semibold">Emergency Contact</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-emergencyName">Contact Name</Label>
+                    <Input
+                      id="edit-emergencyName"
+                      value={editFormData?.emergencyContacts?.[0]?.name || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "emergencyContacts.0.name",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Emergency Contact"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-emergencyRelationship">
+                      Relationship
+                    </Label>
+                    <Input
+                      id="edit-emergencyRelationship"
+                      value={
+                        editFormData?.emergencyContacts?.[0]?.relationship || ""
+                      }
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "emergencyContacts.0.relationship",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Spouse/Manager"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-emergencyPhone">Contact Phone</Label>
+                    <Input
+                      id="edit-emergencyPhone"
+                      value={editFormData?.emergencyContacts?.[0]?.phone || ""}
+                      onChange={(e) =>
+                        handleEditNestedChange(
+                          "emergencyContacts.0.phone",
+                          e.target.value
+                        )
+                      }
+                      placeholder="+91 9876543213"
+                      disabled={isEditSubmitting}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">Additional Notes</Label>
+                <Textarea
+                  id="edit-notes"
+                  name="notes"
+                  value={editFormData?.notes || ""}
+                  onChange={handleEditInputChange}
+                  placeholder="Any special instructions or notes..."
+                  rows={3}
+                  disabled={isEditSubmitting}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setEditDialogOpen(false);
+                    setEditingClient(null);
+                  }}
+                  disabled={isEditSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="cursor-pointer"
+                  type="submit"
+                  disabled={isEditSubmitting}
+                >
+                  {isEditSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Client"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Overview */}
@@ -1010,7 +1855,9 @@ export default function ClientManagement({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Clients
+                </p>
                 <p className="text-2xl font-bold">{clients.length}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {filteredClients.length} filtered
@@ -1027,7 +1874,9 @@ export default function ClientManagement({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Clients</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Active Clients
+                </p>
                 <p className="text-2xl font-bold">
                   {clients.filter((c) => c.status === "Active").length}
                 </p>
@@ -1046,12 +1895,15 @@ export default function ClientManagement({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Corporate Clients</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Corporate Clients
+                </p>
                 <p className="text-2xl font-bold">
                   {clients.filter((c) => c.clientType === "Corporate").length}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {clients.filter((c) => c.clientType !== "Corporate").length} other types
+                  {clients.filter((c) => c.clientType !== "Corporate").length}{" "}
+                  other types
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -1065,10 +1917,10 @@ export default function ClientManagement({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Guards Required</p>
-                <p className="text-2xl font-bold">
-                  {getTotalRequiredGuards()}
+                <p className="text-sm font-medium text-muted-foreground">
+                  Guards Required
                 </p>
+                <p className="text-2xl font-bold">{getTotalRequiredGuards()}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {getTotalAssignedGuards()} assigned
                 </p>
@@ -1108,7 +1960,10 @@ export default function ClientManagement({
                 <SelectItem value="Suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={clientTypeFilter} onValueChange={setClientTypeFilter}>
+            <Select
+              value={clientTypeFilter}
+              onValueChange={setClientTypeFilter}
+            >
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Client Type" />
               </SelectTrigger>
@@ -1129,12 +1984,27 @@ export default function ClientManagement({
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[200px]">Client</TableHead>
-                  <TableHead className="hidden md:table-cell min-w-[180px]">Contact</TableHead>
-                  <TableHead className="hidden lg:table-cell min-w-[150px]">Address</TableHead>
-                  <TableHead className="text-center min-w-[100px]">Status</TableHead>
-                  <TableHead className="hidden xl:table-cell min-w-[120px]">Type</TableHead>
-                  <TableHead className="hidden 2xl:table-cell min-w-[100px]">Guards</TableHead>
-                  <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                  <TableHead className="hidden md:table-cell min-w-[180px]">
+                    Contact
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell min-w-[150px]">
+                    Address
+                  </TableHead>
+                  <TableHead className="text-center min-w-[100px]">
+                    Status
+                  </TableHead>
+                  <TableHead className="hidden xl:table-cell min-w-[120px]">
+                    Type
+                  </TableHead>
+                  <TableHead className="hidden 2xl:table-cell min-w-[100px]">
+                    Guards
+                  </TableHead>
+                  <TableHead className="2xl:table-cell min-w-[100px]">
+                    Login
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px]">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1156,7 +2026,9 @@ export default function ClientManagement({
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-medium truncate">{client.name}</div>
+                          <div className="font-medium truncate">
+                            {client.name}
+                          </div>
                           <div className="text-sm text-muted-foreground truncate">
                             {client.companyName || "No company"}
                           </div>
@@ -1171,7 +2043,9 @@ export default function ClientManagement({
                         </div>
                         <div className="flex items-center gap-2 text-sm truncate">
                           <Phone className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{client.phone || "N/A"}</span>
+                          <span className="truncate">
+                            {client.phone || "N/A"}
+                          </span>
                         </div>
                       </div>
                     </TableCell>
@@ -1213,11 +2087,62 @@ export default function ClientManagement({
                         <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm font-medium truncate">
-                            {client.assignedGuards?.length || 0} / {client.requiredGuards?.total || 0}
+                            {client.assignedGuards?.length || 0} /{" "}
+                            {client.requiredGuards?.total || 0}
                           </span>
                           <span className="text-xs text-muted-foreground truncate">
                             Assigned / Required
                           </span>
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex items-center justify-end">
+                        <div className="relative">
+                          <div
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer transition-colors duration-200 ${
+                              loadingToggle === client._id
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            } ${
+                              client.status === "Disabled" || !client.isActive
+                                ? "bg-gray-300 hover:bg-gray-400"
+                                : "bg-green-500 hover:bg-green-600"
+                            }`}
+                            onClick={(e) => {
+                              if (loadingToggle === client._id) return;
+                              e.stopPropagation();
+                              toggleClientStatus(client._id, client.status);
+                            }}
+                            title={
+                              client.status === "Disabled" || !client.isActive
+                                ? "Enable Client Login"
+                                : "Disable Client Login"
+                            }
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${
+                                client.status === "Disabled" || !client.isActive
+                                  ? "translate-x-0.5"
+                                  : "translate-x-6"
+                              } ${
+                                loadingToggle === client._id ? "opacity-70" : ""
+                              }`}
+                            />
+                            {/* Loading indicator */}
+                            {loadingToggle === client._id && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Status text */}
+                          <div className="mt-1 text-xs text-center text-muted-foreground">
+                            {client.status === "Disabled" || !client.isActive
+                              ? "Off"
+                              : "On"}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -1226,7 +2151,7 @@ export default function ClientManagement({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0"
+                          className="h-8 cursor-pointer w-8 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleClientRowClick(client._id);
@@ -1235,13 +2160,14 @@ export default function ClientManagement({
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0"
+                          className="h-8 cursor-pointer w-8 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toast.info("Edit functionality coming soon");
+                            handleEditClick(client);
                           }}
                           title="Edit Client"
                         >
@@ -1260,11 +2186,16 @@ export default function ClientManagement({
               {clients.length === 0 ? (
                 <>
                   <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No clients registered yet</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    No clients registered yet
+                  </h3>
                   <p className="text-muted-foreground mb-6">
                     Add your first client using the button above.
                   </p>
-                  <Button onClick={() => setIsDialogOpen(true)}>
+                  <Button
+                    className="cursor-pointer"
+                    onClick={() => setIsDialogOpen(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add First Client
                   </Button>
@@ -1295,7 +2226,10 @@ export default function ClientManagement({
                   </span>
                   <span className="flex items-center gap-2">
                     <Building className="h-3 w-3" />
-                    {clients.filter(c => c.clientType === "Corporate").length} corporate
+                    {
+                      clients.filter((c) => c.clientType === "Corporate").length
+                    }{" "}
+                    corporate
                   </span>
                 </div>
               </div>

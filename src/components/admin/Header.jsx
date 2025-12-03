@@ -113,14 +113,14 @@ export default function Header({
 />
 
 {/* Logout Button */}
-<Button
+{/* <Button
   variant="destructive"
   size="sm"
   onClick={() => console.log("Logout clicked")} // logout function yahan
   className="hidden md:flex items-center gap-2 rounded-lg px-3 py-2"
 >
   <span className="text-sm font-medium">Logout</span>
-</Button>
+</Button> */}
 
 
             {/* Profile */}
