@@ -207,6 +207,29 @@ export async function POST(request) {
     await newDocument.save();
     console.log("✅ Document saved to database:", newDocument._id);
 
+    // ✅ CRITICAL FIX: Update client documents arrays
+    try {
+      // If targetClient is set (single client)
+      if (newDocument.targetClient) {
+        await User.findByIdAndUpdate(newDocument.targetClient, {
+          $addToSet: { documents: newDocument._id }
+        });
+        console.log(`✅ Added document to target client: ${newDocument.targetClient}`);
+      }
+      
+      // If specificClients are set (multiple clients)
+      if (newDocument.specificClients && newDocument.specificClients.length > 0) {
+        await User.updateMany(
+          { _id: { $in: newDocument.specificClients } },
+          { $addToSet: { documents: newDocument._id } }
+        );
+        console.log(`✅ Added document to ${newDocument.specificClients.length} specific clients`);
+      }
+    } catch (clientUpdateError) {
+      console.error("⚠️ Failed to update client documents arrays:", clientUpdateError);
+      // Don't fail the entire operation
+    }
+
     // Populate the created document
     const populatedDoc = await Document.findById(newDocument._id)
       .populate("uploadedBy", "name email")
@@ -310,14 +333,41 @@ export async function DELETE(request) {
       );
     }
 
-    const deletedDocument = await Document.findByIdAndDelete(documentId);
+    // ✅ Find the document first to get client references
+    const document = await Document.findById(documentId);
 
-    if (!deletedDocument) {
+    if (!document) {
       return NextResponse.json(
         { error: "Document not found" },
         { status: 404 }
       );
     }
+
+    // ✅ Remove document from client arrays before deleting
+    try {
+      // Remove from targetClient
+      if (document.targetClient) {
+        await User.findByIdAndUpdate(document.targetClient, {
+          $pull: { documents: documentId }
+        });
+        console.log(`✅ Removed document from target client: ${document.targetClient}`);
+      }
+      
+      // Remove from specificClients
+      if (document.specificClients && document.specificClients.length > 0) {
+        await User.updateMany(
+          { _id: { $in: document.specificClients } },
+          { $pull: { documents: documentId } }
+        );
+        console.log(`✅ Removed document from ${document.specificClients.length} specific clients`);
+      }
+    } catch (clientUpdateError) {
+      console.error("⚠️ Failed to remove document from client arrays:", clientUpdateError);
+      // Don't fail the entire operation
+    }
+
+    // Now delete the document
+    const deletedDocument = await Document.findByIdAndDelete(documentId);
 
     return NextResponse.json({
       success: true,

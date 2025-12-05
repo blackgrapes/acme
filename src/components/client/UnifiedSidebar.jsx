@@ -1,4 +1,4 @@
-// File: src/components/client/UnifiedSidebar.jsx - FIXED NO ROUTE CHANGE
+// File: src/components/client/UnifiedSidebar.jsx - FIXED VERSION
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -20,25 +20,24 @@ import { useAuth } from "@/hooks/useAuth";
 export default function UnifiedSidebar({
   activeTab,
   setActiveTab,
-  documentCategories = [],
-  companyDocumentCategories = [],
+  documentCategories = [], // Should come from parent with actual data
+  companyDocumentCategories = [], // Should come from parent with actual data
   isMobile = false,
   onNavigate = () => {},
 }) {
   const [documentDropdownOpen, setDocumentDropdownOpen] = useState(false);
-  const [companyDocumentDropdownOpen, setCompanyDocumentDropdownOpen] =
-    useState(false);
+  const [companyDocumentDropdownOpen, setCompanyDocumentDropdownOpen] = useState(false);
   const { hasPermission } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  // ✅ OPTIMIZED: Single useEffect
+  // Set dropdown open based on current path
   useEffect(() => {
     setDocumentDropdownOpen(pathname.includes("/documents"));
     setCompanyDocumentDropdownOpen(pathname.includes("/company-documents"));
   }, [pathname]);
 
-  // ✅ FIXED: useCallback for navigation - ONLY FOR MAIN TABS
+  // Handle main navigation
   const handleNavigation = useCallback(
     (tab) => {
       setActiveTab(tab);
@@ -52,7 +51,7 @@ export default function UnifiedSidebar({
     [setActiveTab, router, onNavigate]
   );
 
-  // ✅ FIXED: Handle document category change - NO ROUTE CHANGE
+  // Handle document category change - NO ROUTE CHANGE
   const handleDocumentCategoryChange = useCallback(
     (category) => {
       // Only update active tab internally without route change
@@ -70,7 +69,7 @@ export default function UnifiedSidebar({
     [setActiveTab]
   );
 
-  // ✅ FIXED: Handle company document category change - NO ROUTE CHANGE
+  // Handle company document category change - NO ROUTE CHANGE
   const handleCompanyDocumentCategoryChange = useCallback(
     (category) => {
       // Only update active tab internally without route change
@@ -107,6 +106,7 @@ export default function UnifiedSidebar({
       }`}
     >
       <div className="space-y-1">
+        {/* Overview Button */}
         <Button
           variant={isActive("overview") ? "default" : "ghost"}
           className={`w-full justify-start shadow-sm ${
@@ -120,149 +120,170 @@ export default function UnifiedSidebar({
           Overview
         </Button>
 
-        {/* Documents */}
-        <div className="space-y-1">
-          <Button
-            variant={activeTab.startsWith("documents") ? "default" : "ghost"}
-            className={`w-full justify-start shadow-sm ${
-              activeTab.startsWith("documents")
-                ? "bg-primary text-white"
-                : "text-primary-foreground"
-            }`}
-            onClick={() => {
-              setDocumentDropdownOpen(!documentDropdownOpen);
-              if (!documentDropdownOpen && !pathname.includes("/documents")) {
-                handleNavigation("documents");
-              }
-            }}
-          >
-            <Folder className="h-4 w-4 mr-2" />
-            Documents
-            {documentDropdownOpen ? (
-              <ChevronDown className="h-4 w-4 ml-auto" />
-            ) : (
-              <ChevronRight className="h-4 w-4 ml-auto" />
-            )}
-          </Button>
-
-          {documentDropdownOpen && (
-            <div className="pl-6 space-y-1 pt-1">
-              <Button
-                variant={activeTab === "documents" ? "default" : "ghost"}
-                className={`w-full justify-start text-sm shadow-sm ${
-                  activeTab === "documents"
-                    ? "bg-primary text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={() => {
-                  handleDocumentCategoryChange({
-                    id: "all",
-                    name: "All Documents",
-                  });
-                }}
-              >
-                All Documents
-              </Button>
-
-              {documentCategories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant={
-                    activeTab === `documents-${category.id}`
-                      ? "default"
-                      : "ghost"
-                  }
-                  className={`w-full justify-start text-sm shadow-sm ${
-                    activeTab === `documents-${category.id}`
-                      ? "bg-primary text-white"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => {
-                    handleDocumentCategoryChange(category);
-                  }}
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Company Documents */}
-        <div className="space-y-1">
-          <Button
-            variant={
-              activeTab.startsWith("company-documents") ? "default" : "ghost"
-            }
-            className={`w-full justify-start shadow-sm ${
-              activeTab.startsWith("company-documents")
-                ? "bg-primary text-white"
-                : "text-primary-foreground"
-            }`}
-            onClick={() => {
-              setCompanyDocumentDropdownOpen(!companyDocumentDropdownOpen);
-              if (
-                !companyDocumentDropdownOpen &&
-                !pathname.includes("/company-documents")
-              ) {
-                handleNavigation("company-documents");
-              }
-            }}
-          >
-            <Building className="h-4 w-4 mr-2" />
-            Company Documents
-            {companyDocumentDropdownOpen ? (
-              <ChevronDown className="h-4 w-4 ml-auto" />
-            ) : (
-              <ChevronRight className="h-4 w-4 ml-auto" />
-            )}
-          </Button>
-
-          {companyDocumentDropdownOpen && (
-            <div className="pl-6 space-y-1 pt-1">
-              <Button
-                variant={
-                  activeTab === "company-documents" ? "default" : "ghost"
+        {/* DOCUMENTS SECTION - SHOW ONLY IF CATEGORIES EXIST */}
+        {documentCategories.length > 0 && (
+          <div className="space-y-1">
+            <Button
+              variant={activeTab.startsWith("documents") ? "default" : "ghost"}
+              className={`w-full justify-start shadow-sm ${
+                activeTab.startsWith("documents")
+                  ? "bg-primary text-white"
+                  : "text-primary-foreground"
+              }`}
+              onClick={() => {
+                setDocumentDropdownOpen(!documentDropdownOpen);
+                if (!documentDropdownOpen && !pathname.includes("/documents")) {
+                  handleNavigation("documents");
                 }
-                className={`w-full justify-start text-sm shadow-sm ${
-                  activeTab === "company-documents"
-                    ? "bg-primary text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={() => {
-                  handleCompanyDocumentCategoryChange({
-                    id: "all",
-                    name: "All Company Documents",
-                  });
-                }}
-              >
-                All Company Documents
-              </Button>
+              }}
+            >
+              <Folder className="h-4 w-4 mr-2" />
+              Documents
+              <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                {documentCategories.reduce((sum, cat) => sum + (cat.count || 0), 0)}
+              </span>
+              {documentDropdownOpen ? (
+                <ChevronDown className="h-4 w-4 ml-auto" />
+              ) : (
+                <ChevronRight className="h-4 w-4 ml-auto" />
+              )}
+            </Button>
 
-              {companyDocumentCategories.map((category) => (
+            {documentDropdownOpen && (
+              <div className="pl-6 space-y-1 pt-1">
                 <Button
-                  key={category.id}
-                  variant={
-                    activeTab === `company-documents-${category.id}`
-                      ? "default"
-                      : "ghost"
-                  }
+                  variant={activeTab === "documents" ? "default" : "ghost"}
                   className={`w-full justify-start text-sm shadow-sm ${
-                    activeTab === `company-documents-${category.id}`
+                    activeTab === "documents"
                       ? "bg-primary text-white"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                   onClick={() => {
-                    handleCompanyDocumentCategoryChange(category);
+                    handleDocumentCategoryChange({
+                      id: "all",
+                      name: "All Documents",
+                    });
                   }}
                 >
-                  {category.name}
+                  All Documents
                 </Button>
-              ))}
-            </div>
-          )}
-        </div>
 
+                {documentCategories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={
+                      activeTab === `documents-${category.id}`
+                        ? "default"
+                        : "ghost"
+                    }
+                    className={`w-full justify-start text-sm shadow-sm ${
+                      activeTab === `documents-${category.id}`
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => {
+                      handleDocumentCategoryChange(category);
+                    }}
+                  >
+                    <span className="truncate">{category.name}</span>
+                    {category.count > 0 && (
+                      <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                        {category.count}
+                      </span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* COMPANY DOCUMENTS SECTION - SHOW ONLY IF CATEGORIES EXIST */}
+        {companyDocumentCategories.length > 0 && (
+          <div className="space-y-1">
+            <Button
+              variant={
+                activeTab.startsWith("company-documents") ? "default" : "ghost"
+              }
+              className={`w-full justify-start shadow-sm ${
+                activeTab.startsWith("company-documents")
+                  ? "bg-primary text-white"
+                  : "text-primary-foreground"
+              }`}
+              onClick={() => {
+                setCompanyDocumentDropdownOpen(!companyDocumentDropdownOpen);
+                if (
+                  !companyDocumentDropdownOpen &&
+                  !pathname.includes("/company-documents")
+                ) {
+                  handleNavigation("company-documents");
+                }
+              }}
+            >
+              <Building className="h-4 w-4 mr-2" />
+              Company Documents
+              <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                {companyDocumentCategories.reduce((sum, cat) => sum + (cat.count || 0), 0)}
+              </span>
+              {companyDocumentDropdownOpen ? (
+                <ChevronDown className="h-4 w-4 ml-auto" />
+              ) : (
+                <ChevronRight className="h-4 w-4 ml-auto" />
+              )}
+            </Button>
+
+            {companyDocumentDropdownOpen && (
+              <div className="pl-6 space-y-1 pt-1">
+                <Button
+                  variant={
+                    activeTab === "company-documents" ? "default" : "ghost"
+                  }
+                  className={`w-full justify-start text-sm shadow-sm ${
+                    activeTab === "company-documents"
+                      ? "bg-primary text-white"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    handleCompanyDocumentCategoryChange({
+                      id: "all",
+                      name: "All Company Documents",
+                    });
+                  }}
+                >
+                  All Company Documents
+                </Button>
+
+                {companyDocumentCategories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={
+                      activeTab === `company-documents-${category.id}`
+                        ? "default"
+                        : "ghost"
+                    }
+                    className={`w-full justify-start text-sm shadow-sm ${
+                      activeTab === `company-documents-${category.id}`
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => {
+                      handleCompanyDocumentCategoryChange(category);
+                    }}
+                  >
+                    <span className="truncate">{category.name}</span>
+                    {category.count > 0 && (
+                      <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                        {category.count}
+                      </span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Management Button */}
         <Button
           variant={isActive("management") ? "default" : "ghost"}
           className={`w-full justify-start shadow-sm ${
@@ -277,6 +298,7 @@ export default function UnifiedSidebar({
         </Button>
       </div>
 
+      {/* Logout Button */}
       <div
         className={`mt-auto space-y-1 pt-4 ${
           isMobile ? "border-t border-border/50" : "border-t border-border"
@@ -311,5 +333,3 @@ export default function UnifiedSidebar({
     </aside>
   );
 }
-
-

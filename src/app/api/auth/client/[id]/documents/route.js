@@ -1,4 +1,3 @@
-// File: src/app/api/auth/client/[clientId]/documents/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { User, Document } from "@/lib/db";
@@ -142,6 +141,17 @@ export async function POST(request, { params }) {
 
     await document.save();
 
+    // ✅ CRITICAL FIX: Add document ID to client's documents array
+    try {
+      await User.findByIdAndUpdate(clientId, {
+        $addToSet: { documents: document._id }
+      });
+      console.log("✅ Added document to client's documents array");
+    } catch (clientUpdateError) {
+      console.error("⚠️ Failed to update client documents array:", clientUpdateError);
+      // Don't fail the entire upload if this fails
+    }
+
     // Populate uploadedBy for response
     await document.populate("uploadedBy", "name email role");
 
@@ -184,6 +194,7 @@ export async function POST(request, { params }) {
     );
   }
 }
+
 // DELETE: Delete a specific document for a client (WITH FILE SYSTEM CLEANUP)
 export async function DELETE(request, { params }) {
   try {
@@ -248,6 +259,17 @@ export async function DELETE(request, { params }) {
         { error: "Document not found or does not belong to this client" },
         { status: 404 }
       );
+    }
+
+    // ✅ Remove document from client's array BEFORE deleting
+    try {
+      await User.findByIdAndUpdate(clientId, {
+        $pull: { documents: documentId }
+      });
+      console.log("✅ Removed document from client's documents array");
+    } catch (clientUpdateError) {
+      console.error("⚠️ Failed to remove document from client array:", clientUpdateError);
+      // Continue with deletion anyway
     }
 
     // Delete the physical file from uploads directory

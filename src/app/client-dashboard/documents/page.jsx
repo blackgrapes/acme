@@ -1,73 +1,181 @@
-// File: src/app/client-dashboard/documents/page.jsx - WITH TAB SUPPORT
+// File: src/app/client-dashboard/documents/page.jsx - FIXED VERSION
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import ClientDocuments from "@/components/client/ClientDocuments";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DocumentsPage() {
   const [clientDocuments, setClientDocuments] = useState([]);
-  const [currentCategory, setCurrentCategory] = useState(null);
-  const { user } = useAuth();
+  const [currentCategory, setCurrentCategory] = useState({ 
+    id: "all", 
+    name: "All Documents" 
+  });
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
-  const documentCategories = [
-    { id: "agreement", name: "Agreement" },
-    { id: "attendance", name: "Attendance" },
-    { id: "bills", name: "Bills" },
-    { id: "salary-sheet", name: "Salary Sheet" },
-    { id: "pay-slip", name: "Pay Slip" },
-    { id: "esi", name: "ESI" },
-    { id: "pf", name: "PF" },
-    { id: "employee-details", name: "Employee Details" },
-    { id: "training", name: "Training" },
-    { id: "night-checking", name: "Night Checking" },
-    { id: "paid-gst", name: "Paid GST" },
-  ];
+  // ✅ FIXED: Correct token getter
+  const getToken = () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('authToken') || 
+           sessionStorage.getItem('authToken') ||
+           document.cookie.split('; ').find(row => row.startsWith('authToken='))?.split('=')[1];
+  };
 
-  const fetchClientDocuments = useCallback(async () => {
-    if (!user?.id) return;
+  // ✅ FIXED: Fetch client documents
+  const fetchClientDocuments = async (category = "all") => {
     try {
-      let url = `/api/documents?clientId=${user.id}`;
-      if (currentCategory && currentCategory.id !== "all") {
-        url += `&category=${currentCategory.id}`;
+      setLoading(true);
+      const token = getToken();
+      
+      console.log('Token available:', !!token);
+      
+      if (!token) {
+        console.error('No auth token found');
+        setClientDocuments([]);
+        setLoading(false);
+        return;
       }
 
-      const response = await fetch(url);
+      let url = '/api/client/my-documents';
+      if (category !== "all") {
+        url += `?category=${category}`;
+      }
+
+      console.log('Fetching documents from:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
       if (response.ok) {
         const data = await response.json();
-        setClientDocuments(data.documents || []);
+        console.log('API Response:', {
+          success: data.success,
+          total: data.total,
+          documents: data.documents?.length || 0
+        });
+        
+        if (data.success) {
+          // ✅ Filter out company documents and transform
+          const clientDocs = data.documents
+            .filter(doc => doc.isCompanyDocument === false)
+            .map(doc => ({
+              _id: doc._id || doc.id,
+              name: doc.name || "Unnamed Document",
+              description: doc.description || "",
+              type: doc.type || "unknown",
+              fileUrl: doc.fileUrl,
+              size: doc.size,
+              uploaded: doc.uploaded || doc.uploadDate,
+              uploadedBy: doc.uploadedBy || null,
+              accessLevel: doc.accessLevel || "specific",
+              status: doc.status || "approved",
+              isCompanyDocument: doc.isCompanyDocument || false
+            }));
+          
+          console.log('Filtered client documents:', clientDocs.length);
+          console.log('Sample document:', clientDocs[0]);
+          setClientDocuments(clientDocs);
+        } else {
+          console.error('API error:', data.error);
+          setClientDocuments([]);
+        }
+      } else {
+        console.error('HTTP error:', response.status);
+        setClientDocuments([]);
       }
     } catch (error) {
       console.error("Error fetching client documents:", error);
       setClientDocuments([]);
+    } finally {
+      setLoading(false);
     }
-  }, [user?.id, currentCategory]);
+  };
 
-  // ✅ OPTIMIZED: Handle category change from sidebar - NO ROUTE CHANGE
-  const handleCategoryChange = useCallback((category) => {
+  // ✅ FIXED: Fetch categories
+  const fetchCategories = async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        console.error('No token for fetching categories');
+        return;
+      }
+
+      const response = await fetch('/api/client/documents/categories', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Categories response:', {
+          success: data.success,
+          total: data.totalCategories,
+          categories: data.categories?.length || 0
+        });
+        
+        if (data.success && data.categories) {
+          const clientSpecificTypes = [
+            "agreement", "attendance", "bills", "salary-sheet", "pay-slip",
+            "esi", "pf", "employee-details", "training", "night-checking", "paid-gst"
+          ];
+          
+          const filtered = data.categories
+            .filter(cat => clientSpecificTypes.includes(cat.type))
+            .map(cat => ({
+              id: cat.type,
+              name: cat.name || cat.type,
+              count: cat.count || 0
+            }));
+          
+          console.log('Available categories:', filtered);
+          setAvailableCategories(filtered);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setAvailableCategories([]);
+    }
+  };
+
+  // ✅ Handle category change
+  const handleCategoryChange = (category) => {
+    console.log('Category changed to:', category);
     setCurrentCategory(category);
-  }, []);
+    fetchClientDocuments(category.id);
+  };
 
-  // ✅ SETUP: Global handler for sidebar category changes
+  // ✅ Setup global handler
   useEffect(() => {
     window.handleClientDocumentCategoryChange = handleCategoryChange;
-
     return () => {
       window.handleClientDocumentCategoryChange = null;
     };
-  }, [handleCategoryChange]);
+  }, []);
 
+  // ✅ Initial fetch
   useEffect(() => {
+    console.log('Component mounted, fetching data...');
     fetchClientDocuments();
-  }, [fetchClientDocuments]);
+    fetchCategories();
+  }, []);
 
   return (
     <ClientDocuments
       clientDocuments={clientDocuments}
-      currentCategory={currentCategory || { id: "all", name: "All Documents" }}
+      currentCategory={currentCategory}
       onCategoryChange={handleCategoryChange}
-      clientId={user?.id}
-      onDocumentsUpdate={fetchClientDocuments}
+      clientId={user?._id || user?.id}
+      availableCategories={availableCategories}
+      loading={loading || authLoading}
+      onDocumentsUpdate={() => fetchClientDocuments(currentCategory.id)}
     />
   );
 }

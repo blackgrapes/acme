@@ -191,38 +191,12 @@ const userSchema = new mongoose.Schema(
     },
 
     // Documents - CONDITIONAL FIELD
-    documents: {
-      type: [
-        {
-          name: { type: String, required: true },
-          type: {
-            type: String,
-            enum: [
-              "Contract",
-              "ID Proof",
-              "Address Proof",
-              "License",
-              "Insurance",
-              "Invoice",
-              "Report",
-              "Other",
-            ],
-            required: true,
-          },
-          description: { type: String, default: "" },
-          fileUrl: { type: String, required: true },
-          uploadedDate: { type: Date, default: Date.now },
-          size: { type: String, default: "0 MB" },
-          uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-          status: {
-            type: String,
-            enum: ["Pending", "Approved", "Rejected", "Expired"],
-            default: "Pending",
-          },
-        },
-      ],
-      default: undefined,
-    },
+   documents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Document",
+      }
+    ],
 
     // Notes
     notes: {
@@ -317,7 +291,8 @@ userSchema.pre("save", async function (next) {
         }
       } else {
         // For non-client roles, don't create client-specific fields
-        this.documents = undefined;
+        this.documents = [];
+        // Clear client-specific fields
         this.contractNumber = undefined;
         this.clientType = undefined;
         this.companyName = undefined;
@@ -337,5 +312,5 @@ userSchema.index({ status: 1 });
 userSchema.index({ companyName: 1 });
 userSchema.index({ joinDate: -1 });
 userSchema.index({ contractNumber: 1 }, { sparse: true });
-
+userSchema.index({ documents: 1 });
 export default mongoose.models.User || mongoose.model("User", userSchema);

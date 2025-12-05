@@ -1,4 +1,4 @@
-// File: src/components/client/ClientDocuments.jsx - OPTIMIZED
+// File: src/components/client/ClientDocuments.jsx - COMPLETELY FIXED
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -35,115 +35,135 @@ export default function ClientDocuments({
   currentCategory,
   clientId,
   onDocumentsUpdate,
+  loading = false,
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ✅ OPTIMIZED: ObjectId validation
-  const isValidObjectId = useCallback((id) => {
-    if (!id || id === "undefined" || id === "null" || id === "admin") {
-      return false;
-    }
-    return /^[0-9a-fA-F]{24}$/.test(id);
-  }, []);
+  // ✅ FIXED: Safe array handling
+  const safeDocuments = useMemo(() => {
+    return Array.isArray(clientDocuments) ? clientDocuments : [];
+  }, [clientDocuments]);
 
-  // ✅ OPTIMIZED: Single useEffect for data fetching
-  useEffect(() => {
-    if (isValidObjectId(clientId) && onDocumentsUpdate) {
-      const timer = setTimeout(() => {
-        onDocumentsUpdate();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [clientId, isValidObjectId, onDocumentsUpdate]);
-
-  // ✅ OPTIMIZED: Memoized filtered documents
+  // ✅ FIXED: Filtered documents with category filter
   const filteredDocuments = useMemo(() => {
-    return clientDocuments.filter(
-      (doc) =>
-        doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (doc.description &&
-          doc.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }, [clientDocuments, searchQuery]);
+    let filtered = safeDocuments;
 
-  // ✅ OPTIMIZED: Memoized page title and description
+    // Filter by category if not "all"
+    if (currentCategory && currentCategory.id !== "all") {
+      filtered = filtered.filter(doc => doc.type === currentCategory.id);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(doc =>
+        doc.name?.toLowerCase().includes(query) ||
+        (doc.description || "").toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [safeDocuments, currentCategory, searchQuery]);
+
+  // ✅ FIXED: Page title and description
   const { pageTitle, pageDescription } = useMemo(() => {
-    const title = currentCategory?.name
-      ? `${currentCategory.name} Documents`
-      : "Client Document Repository";
-
-    const description = currentCategory?.name
-      ? `Access your ${currentCategory.name.toLowerCase()} documents with secure viewing and download options.`
-      : "All your personal documents, agreements, and important files organized for easy access.";
-
-    return { pageTitle: title, pageDescription: description };
+    if (currentCategory) {
+      if (currentCategory.id === "all") {
+        return {
+          pageTitle: "Client Document Repository",
+          pageDescription: "All your personal documents, agreements, and important files organized for easy access."
+        };
+      }
+      return {
+        pageTitle: `${currentCategory.name} Documents`,
+        pageDescription: `Access your ${currentCategory.name.toLowerCase()} documents with secure viewing and download options.`
+      };
+    }
+    return {
+      pageTitle: "Client Document Repository",
+      pageDescription: "All your personal documents, agreements, and important files organized for easy access."
+    };
   }, [currentCategory]);
 
-  // ✅ OPTIMIZED: Format date function
+  // ✅ FIXED: Format date
   const formatDate = useCallback((dateString) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      console.error("Date formatting error:", error, dateString);
+      return "Invalid Date";
+    }
   }, []);
 
-  // ✅ OPTIMIZED: Access badge function
+  // ✅ FIXED: Access badge
   const getAccessBadge = useCallback((accessLevel) => {
     const variants = {
       general: {
-        className: "bg-green-500 text-white rounded-full",
+        className: "bg-green-500 text-white rounded-full px-2 py-1 text-xs",
         label: "General Access",
       },
       specific: {
-        className: "bg-blue-500 text-white rounded-full",
+        className: "bg-blue-500 text-white rounded-full px-2 py-1 text-xs",
         label: "Specific Access",
       },
     };
     const config = variants[accessLevel] || {
-      className: "bg-gray-500 text-white rounded-full",
-      label: accessLevel,
+      className: "bg-gray-500 text-white rounded-full px-2 py-1 text-xs",
+      label: accessLevel || "Unknown",
     };
     return <Badge className={config.className}>{config.label}</Badge>;
   }, []);
 
-  // ✅ OPTIMIZED: Document actions
+  // ✅ Document actions
   const handleDownload = useCallback((doc) => {
     if (doc.fileUrl) {
       const link = document.createElement("a");
       link.href = doc.fileUrl;
-      link.download = doc.name;
+      link.download = doc.name || "document";
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+    } else {
+      console.warn("No file URL for document:", doc);
     }
   }, []);
 
   const handleView = useCallback((doc) => {
     if (doc.fileUrl) {
       window.open(doc.fileUrl, "_blank");
+    } else {
+      console.warn("No file URL for document:", doc);
     }
   }, []);
 
   const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
     if (onDocumentsUpdate) {
       onDocumentsUpdate();
+      setTimeout(() => setIsRefreshing(false), 1000);
     }
   }, [onDocumentsUpdate]);
 
-  // ✅ Show loading state
-  if (!isValidObjectId(clientId) && loading) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-16 text-muted-foreground">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-xl font-medium">Loading documents...</p>
-        </div>
-      </div>
-    );
-  }
+  // ✅ Debug: Log document data
+  useEffect(() => {
+    console.log("ClientDocuments component loaded with:", {
+      totalDocuments: safeDocuments.length,
+      filteredCount: filteredDocuments.length,
+      currentCategory,
+      clientId
+    });
+  }, [safeDocuments, filteredDocuments, currentCategory, clientId]);
 
-  return (
+  // File: src/components/client/ClientDocuments.jsx - REMOVE DEBUG SECTION
+// ... keep all previous code ...
+
+return (
     <div className="space-y-6">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
@@ -174,14 +194,44 @@ export default function ClientDocuments({
           <Button
             variant="outline"
             onClick={handleRefresh}
-            disabled={loading || !isValidObjectId(clientId)}
+            disabled={loading || isRefreshing}
             className="rounded-2xl h-10 px-4"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
       </div>
+
+      {/* Stats Bar - Remove or keep based on data */}
+      {safeDocuments.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
+          <Card className="rounded-2xl border-border/30 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardContent className="p-3">
+              <div className="text-2xl font-bold text-primary">
+                {filteredDocuments.length}
+              </div>
+              <div className="text-xs text-muted-foreground">Documents</div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl border-border/30 bg-gradient-to-br from-green-500/5 to-green-500/10">
+            <CardContent className="p-3">
+              <div className="text-2xl font-bold text-green-600">
+                {filteredDocuments.filter(d => d.accessLevel === "general").length}
+              </div>
+              <div className="text-xs text-muted-foreground">Public</div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl border-border/30 bg-gradient-to-br from-blue-500/5 to-blue-500/10">
+            <CardContent className="p-3">
+              <div className="text-2xl font-bold text-blue-600">
+                {filteredDocuments.filter(d => d.accessLevel === "specific").length}
+              </div>
+              <div className="text-xs text-muted-foreground">Restricted</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Content Section */}
       <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-background/80 shadow-2xl overflow-hidden">
@@ -197,7 +247,7 @@ export default function ClientDocuments({
                   {currentCategory?.name
                     ? `${currentCategory.name} • `
                     : "All Documents • "}
-                  {loading ? "Loading..." : `${filteredDocuments.length} items`}
+                  {loading || isRefreshing ? "Loading..." : `${filteredDocuments.length} items`}
                 </CardDescription>
               </div>
             </div>
@@ -227,34 +277,33 @@ export default function ClientDocuments({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
+                {loading || isRefreshing ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                       <p className="text-muted-foreground">
-                        Loading documents...
+                        {isRefreshing ? "Refreshing..." : "Loading documents..."}
                       </p>
                     </TableCell>
                   </TableRow>
                 ) : filteredDocuments.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center py-16 text-muted-foreground"
-                    >
+                    <TableCell colSpan={5} className="text-center py-16 text-muted-foreground">
                       <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
                       <p className="text-xl font-medium">No documents found</p>
                       <p className="text-sm">
                         {searchQuery
                           ? "Try adjusting your search criteria."
-                          : "No documents available yet."}
+                          : safeDocuments.length === 0
+                          ? "No documents available yet."
+                          : "No documents match the current category."}
                       </p>
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredDocuments.map((doc) => (
                     <TableRow
-                      key={doc._id}
+                      key={doc._id || doc.id}
                       className="hover:bg-muted/20 transition-colors border-b border-border/20"
                     >
                       <TableCell className="font-medium">
@@ -264,13 +313,10 @@ export default function ClientDocuments({
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-medium">
-                              {doc.name}
+                              {doc.name || "Unnamed Document"}
                             </div>
-                            <Badge
-                              variant="outline"
-                              className="mt-1 text-xs rounded-full"
-                            >
-                              {doc.type}
+                            <Badge variant="outline" className="mt-1 text-xs rounded-full">
+                              {doc.type || "Unknown"}
                             </Badge>
                           </div>
                         </div>
@@ -278,12 +324,14 @@ export default function ClientDocuments({
                       <TableCell className="hidden md:table-cell max-w-[300px] truncate">
                         {doc.description || "No description"}
                       </TableCell>
-                      <TableCell>{getAccessBadge(doc.accessLevel)}</TableCell>
+                      <TableCell>
+                        {getAccessBadge(doc.accessLevel)}
+                      </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4 flex-shrink-0" />
                           <span className="truncate">
-                            {formatDate(doc.uploaded)}
+                            {formatDate(doc.uploaded || doc.uploadDate)}
                           </span>
                         </div>
                       </TableCell>
@@ -294,6 +342,8 @@ export default function ClientDocuments({
                             size="sm"
                             className="rounded-xl h-9 w-9 p-0"
                             onClick={() => handleView(doc)}
+                            disabled={!doc.fileUrl}
+                            title="View"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -302,6 +352,8 @@ export default function ClientDocuments({
                             size="sm"
                             className="rounded-xl h-9 w-9 p-0"
                             onClick={() => handleDownload(doc)}
+                            disabled={!doc.fileUrl}
+                            title="Download"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -317,4 +369,4 @@ export default function ClientDocuments({
       </Card>
     </div>
   );
-}
+};

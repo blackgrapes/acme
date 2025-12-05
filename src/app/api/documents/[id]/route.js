@@ -1,4 +1,4 @@
-// File: src/app/api/documents/route.js
+// File: src/app/api/documents/[id]/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Document from "@/lib/models/Document";

@@ -1,154 +1,121 @@
-// File: src/app/client-dashboard/layout.jsx - FIXED
+// File: src/app/client-dashboard/layout.jsx - UPDATED
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Header from "@/components/client/Header";
+import { useState, useEffect } from "react";
 import UnifiedSidebar from "@/components/client/UnifiedSidebar";
-import ClientProfileDialog from "@/components/client/ClientProfileDialog";
-import RequestDocumentDialog from "@/components/client/RequestDocumentDialog";
-import ContactSupportDialog from "@/components/client/ContactSupportDialog";
-import { SettingsDialog } from "@/components/SettingsDialog";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-
-const documentCategories = [
-  { id: "agreement", name: "Agreement" },
-  { id: "attendance", name: "Attendance" },
-  { id: "bills", name: "Bills" },
-  { id: "salary-sheet", name: "Salary Sheet" },
-  { id: "pay-slip", name: "Pay Slip" },
-  { id: "esi", name: "ESI" },
-  { id: "pf", name: "PF" },
-  { id: "employee-details", name: "Employee Details" },
-  { id: "training", name: "Training" },
-  { id: "night-checking", name: "Night Checking" },
-  { id: "paid-gst", name: "Paid GST" },
-];
-
-const companyDocumentCategories = [
-  { id: "msme", name: "MSME" },
-  { id: "gst", name: "GST" },
-  { id: "pasara", name: "Pasara" },
-  { id: "pan", name: "PAN" },
-  { id: "profile", name: "Profile" },
-  { id: "bank-details", name: "Bank Details" },
-];
+import { useClientDocuments } from "@/hooks/useClientDocuments";
 
 export default function ClientDashboardLayout({ children }) {
-  const [openProfile, setOpenProfile] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [openRequestDoc, setOpenRequestDoc] = useState(false);
-  const [openContact, setOpenContact] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
-  // ✅ FIXED: Get active tab from current pathname
+  // Use the hook to get actual categories
+  const { categories: allCategories, fetchCategories } = useClientDocuments();
+  const [documentCategories, setDocumentCategories] = useState([]);
+  const [companyDocumentCategories, setCompanyDocumentCategories] = useState([]);
+
+  // Filter categories based on type
   useEffect(() => {
-    let currentTab = "overview";
-    if (
-      pathname === "/client-dashboard" ||
-      pathname.endsWith("client-dashboard")
-    ) {
-      currentTab = "overview";
-    } else {
-      const segments = pathname.split("/");
-      currentTab = segments[segments.length - 1] || "overview";
-
-      // Remove category-specific tabs, keep only main tabs
-      if (currentTab.includes("-")) {
-        const mainTab = currentTab.split("-")[0];
-        if (["documents", "company-documents"].includes(mainTab)) {
-          currentTab = mainTab;
-        }
-      }
+    if (allCategories.length > 0) {
+      const clientSpecificTypes = [
+        "agreement", "attendance", "bills", "salary-sheet", "pay-slip",
+        "esi", "pf", "employee-details", "training", "night-checking", "paid-gst"
+      ];
+      
+      const companyDocTypes = [
+        "msme", "gst", "pasara", "pan", "profile", "bank-details"
+      ];
+      
+      // Client documents with count > 0
+      const clientCats = allCategories
+        .filter(cat => clientSpecificTypes.includes(cat.type) && cat.count > 0)
+        .map(cat => ({
+          id: cat.type,
+          name: cat.name || cat.type,
+          count: cat.count
+        }));
+      
+      // Company documents with count > 0
+      const companyCats = allCategories
+        .filter(cat => companyDocTypes.includes(cat.type) && cat.count > 0)
+        .map(cat => ({
+          id: cat.type,
+          name: cat.name || cat.type,
+          count: cat.count
+        }));
+      
+      setDocumentCategories(clientCats);
+      setCompanyDocumentCategories(companyCats);
     }
+  }, [allCategories]);
 
-    setActiveTab(currentTab);
+  // Set active tab based on pathname
+  useEffect(() => {
+    if (pathname.includes("/documents")) {
+      setActiveTab("documents");
+    } else if (pathname.includes("/company-documents")) {
+      setActiveTab("company-documents");
+    } else if (pathname.includes("/management")) {
+      setActiveTab("management");
+    } else {
+      setActiveTab("overview");
+    }
   }, [pathname]);
 
-  // ✅ FIXED: Handle sidebar navigation
-  const handleSidebarNavigation = useCallback(
-    (tab) => {
-      // Remove category part if present
-      const mainTab = tab.split("-")[0];
-      setActiveTab(mainTab);
-
-      if (mainTab === "overview") {
-        router.push("/client-dashboard");
-      } else {
-        router.push(`/client-dashboard/${mainTab}`);
-      }
-    },
-    [router]
-  );
-
-  // ✅ FIXED: Auth protection
+  // Fetch categories on mount
   useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    if (user.role !== "Client") {
-      localStorage.removeItem("authToken");
-      router.push("/login");
-      return;
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || user.role !== "Client") {
-    return null;
-  }
+    fetchCategories();
+  }, [fetchCategories]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <UnifiedSidebar
         activeTab={activeTab}
-        setActiveTab={handleSidebarNavigation}
+        setActiveTab={setActiveTab}
         documentCategories={documentCategories}
         companyDocumentCategories={companyDocumentCategories}
+        isMobile={false}
+        onNavigate={() => setSidebarOpen(false)}
       />
 
-      <div className="flex flex-1">
+      {/* Mobile Sidebar */}
+      {sidebarOpen && (
         <UnifiedSidebar
           activeTab={activeTab}
-          setActiveTab={setActiveTab} // ✅ Pass setActiveTab directly
+          setActiveTab={setActiveTab}
           documentCategories={documentCategories}
           companyDocumentCategories={companyDocumentCategories}
-          isMobile={false}
+          isMobile={true}
+          onNavigate={() => setSidebarOpen(false)}
         />
+      )}
 
-        <main className="flex-1">
-          <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
-            {children}
-          </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header */}
+        <header className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-md text-gray-600"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="font-semibold">Client Dashboard</div>
+          <div className="w-10"></div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          {children}
         </main>
       </div>
-
-      <ClientProfileDialog
-        open={openProfile}
-        onOpenChange={setOpenProfile}
-        user={user}
-      />
-      <RequestDocumentDialog
-        open={openRequestDoc}
-        onOpenChange={setOpenRequestDoc}
-      />
-      <ContactSupportDialog open={openContact} onOpenChange={setOpenContact} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
