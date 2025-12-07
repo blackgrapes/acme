@@ -1,15 +1,20 @@
 // File: src/app/client-dashboard/layout.jsx - UPDATED
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Header from "@/components/client/Header";
 import UnifiedSidebar from "@/components/client/UnifiedSidebar";
-import { usePathname } from "next/navigation";
+import ClientProfileDialog from "@/components/client/ClientProfileDialog";
+import { SettingsDialog } from "@/components/SettingsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientDocuments } from "@/hooks/useClientDocuments";
 
 export default function ClientDashboardLayout({ children }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [openClientDialog, setOpenClientDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
@@ -71,51 +76,94 @@ export default function ClientDashboardLayout({ children }) {
     fetchCategories();
   }, [fetchCategories]);
 
+  // Navigation handler
+  const handleSidebarNavigation = useCallback((tab) => {
+    setActiveTab(tab);
+    
+    if (tab === "overview") {
+      router.push("/client-dashboard");
+    } else {
+      router.push(`/client-dashboard/${tab}`);
+    }
+  }, [router]);
+
+  // Auth protection - FIXED VERSION
+useEffect(() => {
+  if (loading) {
+    console.log("Still loading auth...");
+    return;
+  }
+
+  console.log("Auth check complete:", { 
+    hasUser: !!user, 
+    role: user?.role,
+    roleLowercase: user?.role?.toLowerCase() 
+  });
+
+  if (!user) {
+    console.log("No user found, redirecting to login");
+    router.push("/login");
+    return;
+  }
+
+  // Check if user is a client (case-insensitive)
+  const userRole = user?.role?.toLowerCase();
+  if (userRole !== "client") {
+    console.log(`Invalid role: "${user?.role}" (normalized: "${userRole}"), redirecting to login`);
+    router.push("/login");
+    return;
+  }
+
+  console.log("User is client, allowing access");
+}, [user, loading, router]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <UnifiedSidebar
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleSidebarNavigation}
         documentCategories={documentCategories}
         companyDocumentCategories={companyDocumentCategories}
-        isMobile={false}
-        onNavigate={() => setSidebarOpen(false)}
+        settingsOpen={settingsOpen}
+        setSettingsOpen={setSettingsOpen}
+        openClientDialog={openClientDialog}
+        setOpenClientDialog={setOpenClientDialog}
       />
 
-      {/* Mobile Sidebar */}
-      {sidebarOpen && (
+      <div className="flex flex-1">
         <UnifiedSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           documentCategories={documentCategories}
           companyDocumentCategories={companyDocumentCategories}
-          isMobile={true}
-          onNavigate={() => setSidebarOpen(false)}
+          isMobile={false}
         />
-      )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Header */}
-        <header className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-md text-gray-600"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="font-semibold">Client Dashboard</div>
-          <div className="w-10"></div>
-        </header>
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children}
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto px-4 py-6">{children}</div>
         </main>
       </div>
+
+      <ClientProfileDialog
+        open={openClientDialog}
+        onOpenChange={setOpenClientDialog}
+        user={user}
+      />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

@@ -39,15 +39,15 @@ export default function Header({
     <header className="border-b border-border/20 bg-card/95 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 w-full">
-          
+
           {/* Left Section - Extreme Left */}
           <div className="flex items-center gap-6 flex-1 justify-start">
             {/* Mobile Menu */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="md:hidden cursor-pointer h-10 w-10"
                 >
                   <Menu className="h-5 w-5" />
@@ -97,30 +97,22 @@ export default function Header({
             </Button>
 
             {/* Theme Icon */}
-<Button
-  variant="ghost"
-  size="icon"
-  onClick={() => setSettingsOpen(true)}
-  permission="settings-read"
-  className="h-10 w-10 cursor-pointer rounded-full hover:bg-muted/50"
->
-  <Palette className="h-5 w-5" />
-</Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              permission="settings-read"
+              className="h-10 w-10 cursor-pointer rounded-full hover:bg-muted/50"
+            >
+              <Palette className="h-5 w-5" />
+            </Button>
 
-<SettingsDialog
-  open={settingsOpen}
-  onOpenChange={setSettingsOpen}
-/>
+            <SettingsDialog
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+            />
 
-{/* Logout Button */}
-{/* <Button
-  variant="destructive"
-  size="sm"
-  onClick={() => console.log("Logout clicked")} // logout function yahan
-  className="hidden md:flex items-center gap-2 rounded-lg px-3 py-2"
->
-  <span className="text-sm font-medium">Logout</span>
-</Button> */}
+
 
 
             {/* Profile */}
@@ -146,7 +138,7 @@ export default function Header({
                 </div>
               </div>
             </div>
-            
+
             <AdminProfileDialog
               open={openAdminDialog}
               onOpenChange={setOpenAdminDialog}
