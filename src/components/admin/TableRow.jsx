@@ -28,6 +28,10 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
   const [togglingVisibility, setTogglingVisibility] = useState(false);
   const [deletingItem, setDeletingItem] = useState(false);
 
+  // Fixed permissions for frontend management
+  const deletePermission = "frontend-delete";
+  const updatePermission = "frontend-update";
+
   const getItemName = () => {
     switch (activeCategory.id) {
       case "weprovide": return item.title || "Untitled Service";
@@ -159,6 +163,8 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
             getItemName={getItemName}
             formatDate={formatDate}
             togglingVisibility={togglingVisibility}
+            deletePermission={deletePermission}
+            updatePermission={updatePermission}
           />
         </div>
 
@@ -169,7 +175,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="flex items-center gap-2">
               <StatusBadge showOnHome={item.showOnHome} />
-              <RequirePermission permission={`${activeCategory?.id || "unknown"}-update`}>
+              <RequirePermission permission={updatePermission}>
                 <VisibilityToggle 
                   item={item}
                   onToggleVisibility={handleToggleVisibility}
@@ -190,6 +196,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
                 onDeleteItem={handleDeleteClick}
                 onEditItem={handleEditClick}
                 togglingVisibility={togglingVisibility}
+                deletePermission={deletePermission}
               />
             </div>
           </div>
@@ -305,25 +312,26 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
                 Cancel
               </Button>
             </DialogClose>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={deletingItem}
-              className="flex-1"
-              permission={`${activeCategory?.id || "unknown"}-delete`}
-            >
-              {deletingItem ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Yes, Delete
-                </>
-              )}
-            </Button>
+            <RequirePermission permission={deletePermission}>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                disabled={deletingItem}
+                className="flex-1"
+              >
+                {deletingItem ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Yes, Delete
+                  </>
+                )}
+              </Button>
+            </RequirePermission>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -782,63 +790,73 @@ const TestimonialsMobileRow = ({ item, onImageClick, getImagesForItem }) => {
 };
 
 // Common Columns Component - Status, Last Updated, Visibility, Actions
-const CommonColumns = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEditItem, getItemName, formatDate, togglingVisibility }) => {
-  const deletePermission = `${activeCategory?.id || "unknown"}-delete`;
-  const updatePermission = `${activeCategory?.id || "unknown"}-update`;
+const CommonColumns = ({ 
+  item, 
+  activeCategory, 
+  onToggleVisibility, 
+  onDeleteItem, 
+  onEditItem, 
+  getItemName, 
+  formatDate, 
+  togglingVisibility,
+  deletePermission,
+  updatePermission 
+}) => {
   return (
-  <>
-    {/* Status - w-24 */}
-    <div className="w-24 px-3 sm:px-4 py-3 sm:py-4 hidden sm:flex items-center flex-shrink-0">
-      <StatusBadge showOnHome={item.showOnHome} />
-    </div>
-
-    {/* Last Updated - w-32 */}
-    <div className="w-32 px-3 sm:px-4 py-3 sm:py-4 hidden md:flex items-center flex-shrink-0">
-      <p className="text-xs text-muted-foreground">
-        {item.updatedAt ? formatDate(item.updatedAt) : formatDate(new Date())}
-      </p>
-    </div>
-
-    {/* Visibility - w-32 */}
-    <div className="w-32 px-3 sm:px-4 py-3 sm:py-4 hidden md:flex items-center flex-shrink-0">
-      <VisibilityToggle 
-        item={item}
-        onToggleVisibility={onToggleVisibility}
-        togglingVisibility={togglingVisibility}
-        permission={updatePermission}
-      />
-    </div>
-
-    {/* Actions - w-20 */}
-    <div className="w-20 px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-end flex-shrink-0">
-      <div className="flex items-center gap-1">
-        {/* <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-8 w-8 p-0 cursor-pointer"
-          onClick={onEditItem}
-          disabled={togglingVisibility}
-        >
-          <Edit className="h-3.5 w-3.5" />
-        </Button> */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 text-destructive cursor-pointer hover:text-destructive"
-          onClick={onDeleteItem}
-          disabled={togglingVisibility}
-          permission={deletePermission}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+    <>
+      {/* Status - w-24 */}
+      <div className="w-24 px-3 sm:px-4 py-3 sm:py-4 hidden sm:flex items-center flex-shrink-0">
+        <StatusBadge showOnHome={item.showOnHome} />
       </div>
-    </div>
-  </>
+
+      {/* Last Updated - w-32 */}
+      <div className="w-32 px-3 sm:px-4 py-3 sm:py-4 hidden md:flex items-center flex-shrink-0">
+        <p className="text-xs text-muted-foreground">
+          {item.updatedAt ? formatDate(item.updatedAt) : formatDate(new Date())}
+        </p>
+      </div>
+
+      {/* Visibility - w-32 */}
+      <div className="w-32 px-3 sm:px-4 py-3 sm:py-4 hidden md:flex items-center flex-shrink-0">
+        <RequirePermission permission={updatePermission}>
+          <VisibilityToggle 
+            item={item}
+            onToggleVisibility={onToggleVisibility}
+            togglingVisibility={togglingVisibility}
+          />
+        </RequirePermission>
+      </div>
+
+      {/* Actions - w-20 */}
+      <div className="w-20 px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-end flex-shrink-0">
+        <div className="flex items-center gap-1">
+          <RequirePermission permission={deletePermission}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive cursor-pointer hover:text-destructive hover:bg-red-50"
+              onClick={onDeleteItem}
+              disabled={togglingVisibility}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </RequirePermission>
+        </div>
+      </div>
+    </>
   );
 };
 
 // Mobile Actions Component
-const MobileActions = ({ item, activeCategory, getItemName, onDeleteItem, onEditItem, togglingVisibility }) => (
+const MobileActions = ({ 
+  item, 
+  activeCategory, 
+  getItemName, 
+  onDeleteItem, 
+  onEditItem, 
+  togglingVisibility,
+  deletePermission 
+}) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 cursor-pointer" disabled={togglingVisibility}>
@@ -846,27 +864,16 @@ const MobileActions = ({ item, activeCategory, getItemName, onDeleteItem, onEdit
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" className="bg-white">
-      {/* <DropdownMenuItem onClick={onEditItem} disabled={togglingVisibility}>
-        <Edit className="h-4 w-4 mr-2" />
-        Edit
-      </DropdownMenuItem> */}
-      {
-        (() => {
-          const deletePermission = `${activeCategory?.id || "unknown"}-delete`;
-          return (
-            <RequirePermission permission={deletePermission}>
-              <DropdownMenuItem 
-                onClick={onDeleteItem}
-                className="text-destructive"
-                disabled={togglingVisibility}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </RequirePermission>
-          );
-        })()
-      }
+      <RequirePermission permission={deletePermission}>
+        <DropdownMenuItem 
+          onClick={onDeleteItem}
+          className="text-destructive focus:text-destructive focus:bg-red-50"
+          disabled={togglingVisibility}
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </RequirePermission>
     </DropdownMenuContent>
   </DropdownMenu>
 );

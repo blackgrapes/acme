@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const denied = await requirePermission(request, "testimonials-update");
+    const denied = await requirePermission(request, "frontend-update");
     if (denied) return denied;
 
     await connectDB();
@@ -51,7 +51,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const denied = await requirePermission(request, "testimonials-delete");
+    const denied = await requirePermission(request, "frontend-delete");
     if (denied) return denied;
 
     await connectDB();

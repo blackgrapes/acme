@@ -155,7 +155,7 @@ export function Footer() {
                     <Lock className="h-4 w-4 text-primary" /> Terms & Conditions
                   </Link>
                 </li> */}
-                <li>
+                {/* <li>
                   <Link
                     href="/admin-dashboard"
                     className="flex items-center gap-2 text-primary hover:text-foreground transition-colors"
@@ -170,7 +170,7 @@ export function Footer() {
                   >
                     <b>Client</b>
                   </Link>
-                </li>
+                </li> */}
               </ul>
             </div>
 

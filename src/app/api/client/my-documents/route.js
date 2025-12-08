@@ -2,13 +2,12 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Document from "@/lib/models/Document";
-import { getCurrentUser, hasRole } from "@/lib/auth"; // आपके auth utilities का उपयोग
+import { getCurrentUser, hasRole } from "@/lib/auth";
 
 export async function GET(request) {
   try {
     await connectDB();
     
-    // Get current user from request using your auth utility
     const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
@@ -17,7 +16,6 @@ export async function GET(request) {
       );
     }
     
-    // Check if user has client role using your hasRole function
     if (!hasRole(user, "Client")) {
       return NextResponse.json(
         { error: "Access denied: Only clients can access this endpoint" },
@@ -32,27 +30,19 @@ export async function GET(request) {
     
     console.log(`📥 Client ${clientId} fetching documents. Category: ${category}, Search: ${search}`);
     
-    // Build query for client's documents
     const query = {
       $or: [
-        // Company documents (visible to all clients)
         { isCompanyDocument: true },
-        // Documents specifically assigned to this client
         { targetClient: clientId },
-        // Documents with multiple clients including this one
         { specificClients: clientId }
       ]
     };
     
-    // Filter by category if specified
     if (category && category !== "all") {
       query.type = category;
     }
     
-    // If search term is provided, add search conditions
     if (search) {
-      // Note: We need to maintain the $or structure, so we'll add search within each condition
-      // Alternatively, we can restructure the query
       query.$and = [
         ...(query.$and || []),
         {
@@ -64,18 +54,17 @@ export async function GET(request) {
       ];
     }
     
-    // Fetch documents with relevant fields only
+    // ✅ CHANGE 1: Add originalName, fileName, documentStartDate, documentEndDate, documentPeriod to select
     const documents = await Document.find(query)
-      .select("name description type fileUrl size uploadDate uploadedBy targetClient specificClients isCompanyDocument status")
+      .select("name description type fileUrl size uploadDate uploadedBy targetClient specificClients isCompanyDocument status originalName fileName documentStartDate documentEndDate documentPeriod")
       .populate("uploadedBy", "name email")
       .populate("targetClient", "name email companyName")
       .populate("specificClients", "name email companyName")
       .sort({ uploadDate: -1 })
-      .lean(); // Use lean for better performance
+      .lean();
     
     console.log(`✅ Client ${clientId} fetched ${documents.length} documents`);
     
-    // Transform documents for client view
     const transformedDocs = documents.map(doc => ({
       _id: doc._id,
       name: doc.name,
@@ -93,7 +82,13 @@ export async function GET(request) {
                   doc.specificClients && doc.specificClients.some(c => c._id.toString() === clientId.toString()) ? "specific" : 
                   "general",
       status: doc.status,
-      isCompanyDocument: doc.isCompanyDocument
+      isCompanyDocument: doc.isCompanyDocument,
+      // ✅ CHANGE 2: Add these new fields to transformed object
+      originalName: doc.originalName,
+      fileName: doc.fileName,
+      documentStartDate: doc.documentStartDate,
+      documentEndDate: doc.documentEndDate,
+      documentPeriod: doc.documentPeriod
     }));
     
     return NextResponse.json({ 

@@ -17,7 +17,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const denied = requirePermission(request, "gallery-create");
+    const denied = requirePermission(request, "frontend-create");
     if (denied) return denied;
 
     await connectDB();

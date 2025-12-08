@@ -35,11 +35,47 @@ export default function Header({
       .slice(0, 2);
   };
 
+  // ✅ UPDATED: PDF Download handler
+  const handleDownloadManual = () => {
+    try {
+      console.log("📥 Downloading Client Guide PDF...");
+
+      // Create a link element
+      const link = document.createElement("a");
+
+      // Set the PDF file path (public folder se)
+      const pdfPath = "/Acme_Super_Admin_Manual.pdf";
+
+      // Set link properties
+      link.href = pdfPath;
+      link.download = "Client_Portal_User_Guide.pdf"; // Downloaded file name
+      link.target = "_blank";
+
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Optional: Show success message
+      console.log("✅ PDF download initiated");
+
+      // Optional: You can add toast notification here
+      // toast({
+      //   title: "Download Started",
+      //   description: "Client Guide PDF is downloading...",
+      // });
+    } catch (error) {
+      console.error("❌ Error downloading PDF:", error);
+
+      // Fallback: Open in new tab if download fails
+      window.open("/client_guide.pdf", "_blank");
+    }
+  };
+
   return (
     <header className="border-b border-border/20 bg-card/95 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 w-full">
-
           {/* Left Section - Extreme Left */}
           <div className="flex items-center gap-6 flex-1 justify-start">
             {/* Mobile Menu */}
@@ -63,12 +99,12 @@ export default function Header({
             </Sheet>
 
             {/* Logo & Brand */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               <Image
                 src="/acme_logo.png"
                 alt="ACME Logo"
-                width={42}
-                height={42}
+                width={50}
+                height={50}
                 className="object-contain"
                 priority
               />
@@ -89,11 +125,11 @@ export default function Header({
             <Button
               variant="ghost"
               size="sm"
-              onClick={onDownloadManual}
-              className="hidden lg:flex cursor-pointer items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+              onClick={handleDownloadManual}
+              className="cursor-pointer items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
             >
               <Download className="h-4 w-4" />
-              <span className="text-sm font-medium">User Manual</span>
+              <span className="text-sm font-medium">User Guide</span>
             </Button>
 
             {/* Theme Icon */}
@@ -112,12 +148,8 @@ export default function Header({
               onOpenChange={setSettingsOpen}
             />
 
-
-
-
-            {/* Profile */}
             <div
-              className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors border border-transparent hover:border-border/20"
+              className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 transition-colors border border-transparent hover:border-border/20"
               onClick={() => setOpenAdminDialog(true)}
             >
               <Avatar className="h-8 w-8 border-2 border-background">
@@ -139,11 +171,11 @@ export default function Header({
               </div>
             </div>
 
-            <AdminProfileDialog
+            {/* <AdminProfileDialog
               open={openAdminDialog}
               onOpenChange={setOpenAdminDialog}
               user={user}
-            />
+            /> */}
           </div>
         </div>
       </div>

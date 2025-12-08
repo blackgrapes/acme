@@ -1,4 +1,4 @@
-// File: src/app/client-dashboard/layout.jsx - UPDATED
+// File: src/app/client-dashboard/layout.jsx - UPDATED PATH CHECK
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -14,6 +14,7 @@ export default function ClientDashboardLayout({ children }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openClientDialog, setOpenClientDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useAuth();
@@ -58,9 +59,11 @@ export default function ClientDashboardLayout({ children }) {
     }
   }, [allCategories]);
 
-  // Set active tab based on pathname
+  // Set active tab based on pathname - UPDATED
   useEffect(() => {
-    if (pathname.includes("/documents")) {
+    if (pathname.includes("/document-requests")) {
+      setActiveTab("document-requests");
+    } else if (pathname.includes("/documents")) {
       setActiveTab("documents");
     } else if (pathname.includes("/company-documents")) {
       setActiveTab("company-documents");
@@ -76,46 +79,60 @@ export default function ClientDashboardLayout({ children }) {
     fetchCategories();
   }, [fetchCategories]);
 
+  // Fetch pending requests count
+  useEffect(() => {
+    const fetchPendingRequests = async () => {
+      try {
+        const response = await fetch('/api/client/document-requests/create?status=pending&limit=1');
+        const data = await response.json();
+        if (data.success) {
+          setPendingRequestsCount(data.pagination?.totalItems || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching pending requests:', error);
+      }
+    };
+
+    fetchPendingRequests();
+  }, []);
+
   // Navigation handler
   const handleSidebarNavigation = useCallback((tab) => {
     setActiveTab(tab);
     
     if (tab === "overview") {
       router.push("/client-dashboard");
+    } else if (tab === "document-requests") {
+      router.push("/client-dashboard/document-requests"); // Direct route
     } else {
       router.push(`/client-dashboard/${tab}`);
     }
   }, [router]);
 
-  // Auth protection - FIXED VERSION
-useEffect(() => {
-  if (loading) {
-    console.log("Still loading auth...");
-    return;
-  }
+  // Auth protection
+  useEffect(() => {
+    if (loading) {
+      console.log("Still loading auth...");
+      return;
+    }
 
-  console.log("Auth check complete:", { 
-    hasUser: !!user, 
-    role: user?.role,
-    roleLowercase: user?.role?.toLowerCase() 
-  });
+    if (!user) {
+      console.log("No user found, redirecting to login");
+      router.push("/login");
+      return;
+    }
 
-  if (!user) {
-    console.log("No user found, redirecting to login");
-    router.push("/login");
-    return;
-  }
+    // Check if user is a client (case-insensitive)
+    const userRole = user?.role?.toLowerCase();
+    if (userRole !== "client") {
+      console.log(`Invalid role: "${user?.role}" (normalized: "${userRole}"), redirecting to login`);
+      router.push("/login");
+      return;
+    }
 
-  // Check if user is a client (case-insensitive)
-  const userRole = user?.role?.toLowerCase();
-  if (userRole !== "client") {
-    console.log(`Invalid role: "${user?.role}" (normalized: "${userRole}"), redirecting to login`);
-    router.push("/login");
-    return;
-  }
+    console.log("User is client, allowing access");
+  }, [user, loading, router]);
 
-  console.log("User is client, allowing access");
-}, [user, loading, router]);
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -142,6 +159,7 @@ useEffect(() => {
         setSettingsOpen={setSettingsOpen}
         openClientDialog={openClientDialog}
         setOpenClientDialog={setOpenClientDialog}
+        pendingRequestsCount={pendingRequestsCount} // Pass count
       />
 
       <div className="flex flex-1">
@@ -150,6 +168,7 @@ useEffect(() => {
           setActiveTab={setActiveTab}
           documentCategories={documentCategories}
           companyDocumentCategories={companyDocumentCategories}
+          pendingRequestsCount={pendingRequestsCount} // Pass count
           isMobile={false}
         />
 

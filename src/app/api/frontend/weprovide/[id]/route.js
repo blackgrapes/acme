@@ -20,7 +20,7 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const denied = requirePermission(request, "weprovide-update");
+    const denied = requirePermission(request, "frontend-update");
     if (denied) return denied;
 
     await connectDB();
@@ -43,7 +43,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const denied = requirePermission(request, "weprovide-delete");
+    const denied = requirePermission(request, "frontend-delete");
     if (denied) return denied;
 
     await connectDB();

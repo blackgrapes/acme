@@ -3,13 +3,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -273,7 +266,7 @@ const tabPermissions = [
     ],
   },
   {
-    id: "settings", // ✅ KEEP ONLY SETTINGS - FRONTEND IS INSIDE THIS
+    id: "settings", // KEEP ONLY SETTINGS - FRONTEND IS INSIDE THIS
     name: "Settings",
     description: "System configurations including Frontend Management",
     actions: [
@@ -375,7 +368,7 @@ export default function RoleManagement() {
          password: formData.password,
          phone: formData.phone,
          roleName: formData.roleName,
-         // ✅ Add permissions to create custom role
+         // Add permissions to create custom role
          permissions: selectedPermissions,
        }),
      });
@@ -495,16 +488,8 @@ export default function RoleManagement() {
         </div>
         <div className="flex gap-2">
           <Button
-            variant="outline"
-            className="border-primary/20 hover:bg-primary/5"
-            permission="roles-read"
-          >
-            <Download className="h-4 w-4 mr-2 text-primary" />
-            Export
-          </Button>
-          <Button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center gap-2"
+            className="bg-primary cursor-pointer hover:bg-primary/90 text-white shadow-sm flex items-center gap-2"
             permission="roles-create"
           >
             <UserPlus className="h-4 w-4" />
@@ -536,7 +521,7 @@ export default function RoleManagement() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowCreateForm(false)}
-                className="text-foreground hover:bg-primary/10 rounded-xl"
+                className="text-foreground cursor-pointer hover:bg-primary/10 rounded-xl"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -765,7 +750,7 @@ export default function RoleManagement() {
                   type="button"
                   variant="outline"
                   onClick={() => setShowCreateForm(false)}
-                  className="rounded-xl flex-1"
+                  className="rounded-xl cursor-pointer flex-1"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Cancel
@@ -773,7 +758,7 @@ export default function RoleManagement() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex-1 flex items-center justify-center gap-2"
+                  className="rounded-xl cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex-1 flex items-center justify-center gap-2"
                   permission="roles-create"
                 >
                   {loading ? (
@@ -794,13 +779,13 @@ export default function RoleManagement() {
         <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 bg-gradient-to-r from-muted/50 to-muted/30 rounded-2xl p-1 shadow-lg">
           <TabsTrigger
             value="roles"
-            className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-xl cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
             Roles ({roles.length})
           </TabsTrigger>
           <TabsTrigger
             value="users"
-            className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-xl cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
             Users ({users.length})
           </TabsTrigger>
@@ -827,7 +812,7 @@ export default function RoleManagement() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-xl"
+                    className="rounded-xl cursor-pointer"
                     onClick={fetchRoles}
                     permission="roles-read"
                   >
@@ -856,9 +841,9 @@ export default function RoleManagement() {
                     <TableHead className="text-right font-semibold text-foreground">
                       Status
                     </TableHead>
-                    <TableHead className="text-right font-semibold text-foreground">
+                    {/* <TableHead className="text-right font-semibold text-foreground">
                       Actions
-                    </TableHead>
+                    </TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -892,7 +877,7 @@ export default function RoleManagement() {
                           {getStatusBadge(role.status)}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -919,7 +904,7 @@ export default function RoleManagement() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -997,9 +982,9 @@ export default function RoleManagement() {
                     <TableHead className="text-left font-semibold text-foreground hidden xl:table-cell">
                       Last Login
                     </TableHead>
-                    <TableHead className="text-right font-semibold text-foreground">
+                    {/* <TableHead className="text-right font-semibold text-foreground">
                       Actions
-                    </TableHead>
+                    </TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1050,7 +1035,7 @@ export default function RoleManagement() {
                             : "Never"}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -1078,7 +1063,7 @@ export default function RoleManagement() {
                             <Key className="h-4 w-4" />
                           </Button>
                         </div>
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))}
                 </TableBody>

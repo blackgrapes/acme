@@ -1,6 +1,5 @@
-// File: src/components/client/ClientDocuments.jsx - COMPLETELY FIXED
+// File: src/components/client/ClientDocuments.jsx
 "use client";
-
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Table,
@@ -18,8 +17,14 @@ import {
   Download,
   Calendar,
   Search,
-  Folder,
   RefreshCw,
+  Filter,
+  User,
+  ExternalLink,
+  X,
+  Image as ImageIcon,
+  FilePdf,
+  File,
 } from "lucide-react";
 import {
   Card,
@@ -29,64 +34,110 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import Link from "next/link";
 
 export default function ClientDocuments({
   clientDocuments = [],
   currentCategory,
-  clientId,
+
+  availableCategories = [],
+
   onDocumentsUpdate,
   loading = false,
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ✅ FIXED: Safe array handling
   const safeDocuments = useMemo(() => {
     return Array.isArray(clientDocuments) ? clientDocuments : [];
   }, [clientDocuments]);
 
-  // ✅ FIXED: Filtered documents with category filter
+  const enhancedCategories = useMemo(() => {
+    const baseCategories = [
+      { id: "all", name: "All Documents", count: safeDocuments.length },
+    ];
+
+    const otherCategories = availableCategories.map((cat) => {
+      const count = safeDocuments.filter((doc) => doc.type === cat.id).length;
+      return { ...cat, count };
+    });
+
+    return [...baseCategories, ...otherCategories];
+  }, [availableCategories, safeDocuments]);
+
   const filteredDocuments = useMemo(() => {
     let filtered = safeDocuments;
 
-    // Filter by category if not "all"
     if (currentCategory && currentCategory.id !== "all") {
-      filtered = filtered.filter(doc => doc.type === currentCategory.id);
+      filtered = filtered.filter((doc) => doc.type === currentCategory.id);
     }
 
-    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(doc =>
-        doc.name?.toLowerCase().includes(query) ||
-        (doc.description || "").toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (doc) =>
+          doc.name?.toLowerCase().includes(query) ||
+          (doc.description || "").toLowerCase().includes(query)
       );
     }
 
-    return filtered;
-  }, [safeDocuments, currentCategory, searchQuery]);
+    if (documentTypeFilter !== "all") {
+      filtered = filtered.filter((doc) => doc.type === documentTypeFilter);
+    }
 
-  // ✅ FIXED: Page title and description
+    if (periodFilter.trim()) {
+      filtered = filtered.filter((doc) => {
+        const uploadDate = doc.uploaded || doc.uploadDate;
+        if (!uploadDate) return false;
+
+        const date = new Date(uploadDate);
+        const monthYear = date.toLocaleDateString("en-IN", {
+          month: "long",
+          year: "numeric",
+        });
+        return monthYear.toLowerCase().includes(periodFilter.toLowerCase());
+      });
+    }
+
+    return filtered;
+  }, [
+    safeDocuments,
+    currentCategory,
+    searchQuery,
+    documentTypeFilter,
+    periodFilter,
+  ]);
+
   const { pageTitle, pageDescription } = useMemo(() => {
     if (currentCategory) {
       if (currentCategory.id === "all") {
         return {
           pageTitle: "Client Document Repository",
-          pageDescription: "All your personal documents, agreements, and important files organized for easy access."
+          pageDescription:
+            "All your personal documents, agreements, and important files organized for easy access.",
         };
       }
       return {
         pageTitle: `${currentCategory.name} Documents`,
-        pageDescription: `Access your ${currentCategory.name.toLowerCase()} documents with secure viewing and download options.`
+        pageDescription: `Access your ${currentCategory.name.toLowerCase()} documents with secure viewing and download options.`,
       };
     }
     return {
       pageTitle: "Client Document Repository",
-      pageDescription: "All your personal documents, agreements, and important files organized for easy access."
+      pageDescription:
+        "All your personal documents, agreements, and important files organized for easy access.",
     };
   }, [currentCategory]);
 
-  // ✅ FIXED: Format date
   const formatDate = useCallback((dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -96,51 +147,142 @@ export default function ClientDocuments({
         year: "numeric",
       });
     } catch (error) {
-      console.error("Date formatting error:", error, dateString);
-      return "Invalid Date";
+      return "N/A";
     }
   }, []);
 
-  // ✅ FIXED: Access badge
-  const getAccessBadge = useCallback((accessLevel) => {
-    const variants = {
-      general: {
-        className: "bg-green-500 text-white rounded-full px-2 py-1 text-xs",
-        label: "General Access",
-      },
-      specific: {
-        className: "bg-blue-500 text-white rounded-full px-2 py-1 text-xs",
-        label: "Specific Access",
-      },
-    };
-    const config = variants[accessLevel] || {
-      className: "bg-gray-500 text-white rounded-full px-2 py-1 text-xs",
-      label: accessLevel || "Unknown",
-    };
-    return <Badge className={config.className}>{config.label}</Badge>;
+  const formatDateOnly = useCallback((dateString) => {
+    if (!dateString) return "Not set";
+    try {
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      return "Not set";
+    }
   }, []);
 
-  // ✅ Document actions
-  const handleDownload = useCallback((doc) => {
+  //  CHANGE 1: FIXED getDocumentPeriod function
+  const getDocumentPeriod = useCallback(
+    (doc) => {
+      if (doc.documentPeriod && doc.documentPeriod.trim() !== "") {
+        return doc.documentPeriod;
+      }
+
+      if (doc.documentStartDate && doc.documentEndDate) {
+        const start = formatDateOnly(doc.documentStartDate);
+        const end = formatDateOnly(doc.documentEndDate);
+        return `${start} - ${end}`;
+      } else if (doc.documentStartDate) {
+        return `From ${formatDateOnly(doc.documentStartDate)}`;
+      }
+
+      return "-";
+    },
+    [formatDateOnly]
+  );
+
+  const getDocumentTypeName = useCallback(
+    (typeId) => {
+      const category = enhancedCategories.find((cat) => cat.id === typeId);
+      return category ? category.name : typeId;
+    },
+    [enhancedCategories]
+  );
+
+  //  CHANGE 2: FIXED formatFileSize function
+  const formatFileSize = useCallback((bytes) => {
+    if (!bytes || bytes === 0 || bytes === "0") return "0 KB";
+
+    if (typeof bytes === "string" && bytes.includes("KB")) {
+      return bytes;
+    }
+
+    const numBytes = Number(bytes);
+    if (isNaN(numBytes)) return "Unknown";
+
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(numBytes) / Math.log(k));
+    return parseFloat((numBytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }, []);
+
+  // CHANGE 3: FIXED getFileExtension function - MULTIPLE SOURCES
+  const getFileExtension = useCallback((doc) => {
+    // Priority 1: originalName
+    if (doc.originalName) {
+      const parts = doc.originalName.split(".");
+      if (parts.length > 1) return parts.pop().toLowerCase();
+    }
+
+    // Priority 2: fileName
+    if (doc.fileName) {
+      const parts = doc.fileName.split(".");
+      if (parts.length > 1) return parts.pop().toLowerCase();
+    }
+
+    // Priority 3: name
+    if (doc.name) {
+      const parts = doc.name.split(".");
+      if (parts.length > 1) return parts.pop().toLowerCase();
+    }
+
+    // Priority 4: fileUrl
     if (doc.fileUrl) {
-      const link = document.createElement("a");
-      link.href = doc.fileUrl;
-      link.download = doc.name || "document";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      console.warn("No file URL for document:", doc);
+      const urlParts = doc.fileUrl.split(".");
+      if (urlParts.length > 1) {
+        const extension = urlParts.pop().toLowerCase();
+        return extension.split("?")[0];
+      }
     }
+
+    return "unknown";
   }, []);
 
-  const handleView = useCallback((doc) => {
+  const getFileType = useCallback(
+    (doc) => {
+      const ext = getFileExtension(doc);
+      const imageTypes = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
+      const docTypes = ["pdf", "doc", "docx", "txt"];
+
+      if (imageTypes.includes(ext)) return "image";
+      if (docTypes.includes(ext)) return "document";
+      return "other";
+    },
+    [getFileExtension]
+  );
+
+  // CHANGE 4: FIXED handleDownload function
+  const handleDownload = useCallback(
+    (doc) => {
+      if (doc.fileUrl) {
+        const link = document.createElement("a");
+        link.href = doc.fileUrl;
+
+        // Use originalName if available, otherwise use name
+        const fileName =
+          doc.originalName ||
+          doc.fileName ||
+          `${doc.name || "document"}.${getFileExtension(doc)}`;
+
+        link.download = fileName;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    },
+    [getFileExtension]
+  );
+
+  const handleViewExternal = useCallback((doc) => {
     if (doc.fileUrl) {
       window.open(doc.fileUrl, "_blank");
-    } else {
-      console.warn("No file URL for document:", doc);
     }
   }, []);
+
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -150,128 +292,188 @@ export default function ClientDocuments({
     }
   }, [onDocumentsUpdate]);
 
-  // ✅ Debug: Log document data
-  useEffect(() => {
-    console.log("ClientDocuments component loaded with:", {
-      totalDocuments: safeDocuments.length,
-      filteredCount: filteredDocuments.length,
-      currentCategory,
-      clientId
-    });
-  }, [safeDocuments, filteredDocuments, currentCategory, clientId]);
+  const clearFilters = useCallback(() => {
+    setDocumentTypeFilter("all");
+    setPeriodFilter("");
+    setSearchQuery("");
+  }, []);
 
-  // File: src/components/client/ClientDocuments.jsx - REMOVE DEBUG SECTION
-// ... keep all previous code ...
+  const isFilterActive = useMemo(() => {
+    return documentTypeFilter !== "all" || periodFilter !== "";
+  }, [documentTypeFilter, periodFilter]);
 
-return (
-    <div className="space-y-6">
-      {/* Header Section */}
+  const getFileIcon = useCallback(
+    (doc) => {
+      const fileType = getFileType(doc);
+      const ext = getFileExtension(doc);
+
+      if (fileType === "image") return <ImageIcon className="h-4 w-4" />;
+      if (ext === "pdf") return <File className="h-4 w-4" />;
+      return <FileText className="h-4 w-4" />;
+    },
+    [getFileType, getFileExtension]
+  );
+
+  return (
+    <div className="space-y-7">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-        <div className="space-y-2 flex-1 min-w-0">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-            {pageTitle}
-          </h2>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-3xl">
-            {pageDescription}
-          </p>
+        <div className="space-y-2 flex-1">
+          <h1 className="text-3xl font-bold text-foreground">{pageTitle}</h1>
+          <p className="text-muted-foreground">{pageDescription}</p>
         </div>
-      </div>
 
-      {/* Search Section */}
-      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-        <div className="flex flex-1 gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search your documents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="rounded-2xl h-10 pl-10 w-full"
-              />
-            </div>
-          </div>
+        <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={loading || isRefreshing}
-            className="rounded-2xl h-10 px-4"
+            className="cursor-pointer rounded-lg"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${
+                isRefreshing || loading ? "animate-spin" : ""
+              }`}
+            />
             Refresh
           </Button>
+
+          {/* <Link href="/client-dashboard">
+            <Button className="rounded-lg cursor-pointer bg-primary shadow-lg gap-2">
+              <FileText className="h-4 w-4" />
+              Request Document
+            </Button>
+          </Link> */}
         </div>
       </div>
 
-      {/* Stats Bar - Remove or keep based on data */}
-      {safeDocuments.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
-          <Card className="rounded-2xl border-border/30 bg-gradient-to-br from-primary/5 to-primary/10">
-            <CardContent className="p-3">
-              <div className="text-2xl font-bold text-primary">
-                {filteredDocuments.length}
-              </div>
-              <div className="text-xs text-muted-foreground">Documents</div>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl border-border/30 bg-gradient-to-br from-green-500/5 to-green-500/10">
-            <CardContent className="p-3">
-              <div className="text-2xl font-bold text-green-600">
-                {filteredDocuments.filter(d => d.accessLevel === "general").length}
-              </div>
-              <div className="text-xs text-muted-foreground">Public</div>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl border-border/30 bg-gradient-to-br from-blue-500/5 to-blue-500/10">
-            <CardContent className="p-3">
-              <div className="text-2xl font-bold text-blue-600">
-                {filteredDocuments.filter(d => d.accessLevel === "specific").length}
-              </div>
-              <div className="text-xs text-muted-foreground">Restricted</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label
+                htmlFor="type-filter"
+                className="text-sm font-medium block"
+              >
+                Document Type
+              </label>
+              <Select
+                value={documentTypeFilter}
+                onValueChange={setDocumentTypeFilter}
+              >
+                <SelectTrigger id="type-filter" className="w-full rounded-lg">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {enhancedCategories
+                    .filter((cat) => cat.id !== "all")
+                    .map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      {/* Content Section */}
-      <Card className="rounded-3xl border-border/70 bg-gradient-to-br from-card to-background/80 shadow-2xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Folder className="h-6 w-6 sm:h-7 sm:w-7 text-primary flex-shrink-0" />
-              <div>
-                <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">
-                  Client Document Library
-                </CardTitle>
-                <CardDescription className="text-muted-foreground text-xs sm:text-sm">
-                  {currentCategory?.name
-                    ? `${currentCategory.name} • `
-                    : "All Documents • "}
-                  {loading || isRefreshing ? "Loading..." : `${filteredDocuments.length} items`}
-                </CardDescription>
-              </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="period-filter"
+                className="text-sm font-medium block"
+              >
+                Period/Month
+              </label>
+              <Input
+                id="period-filter"
+                placeholder="e.g. December, Q1 2024"
+                value={periodFilter}
+                onChange={(e) => setPeriodFilter(e.target.value)}
+                className="w-full rounded-lg"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="w-full cursor-pointer rounded-lg"
+                disabled={!isFilterActive && !searchQuery}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by document name, description, or type..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 rounded-lg w-full"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-lg cursor-pointer"
+              onClick={clearFilters}
+              disabled={!isFilterActive && !searchQuery}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Document Library
+              </CardTitle>
+              <CardDescription>
+                {loading
+                  ? "Loading..."
+                  : `${filteredDocuments.length} ${
+                      filteredDocuments.length === 1 ? "item" : "items"
+                    } found`}
+                {isFilterActive && " (filtered)"}
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
-
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="border-b border-border/50">
+              <TableHeader>
                 <TableRow>
-                  <TableHead className="font-semibold text-primary w-[300px]">
+                  <TableHead className="font-semibold text-primary w-[200px] min-w-[200px]">
                     Document Name
                   </TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-primary">
-                    Description
+                  <TableHead className="font-semibold text-primary w-[120px] min-w-[120px]">
+                    Type
                   </TableHead>
-                  <TableHead className="font-semibold text-primary">
-                    Access
+                  <TableHead className="font-semibold text-primary w-[120px] min-w-[120px]">
+                    Start Date
                   </TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-primary">
+                  <TableHead className="font-semibold text-primary w-[120px] min-w-[120px]">
+                    End Date
+                  </TableHead>
+                  <TableHead className="font-semibold text-primary w-[120px] min-w-[120px]">
+                    Period
+                  </TableHead>
+                  <TableHead className="font-semibold text-primary w-[140px] min-w-[140px]">
                     Uploaded
                   </TableHead>
-                  <TableHead className="text-right font-semibold text-primary">
+                  <TableHead className="font-semibold text-primary w-[80px] min-w-[80px]">
+                    Size
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-primary w-[120px] min-w-[120px]">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -279,24 +481,29 @@ return (
               <TableBody>
                 {loading || isRefreshing ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                      <p className="text-muted-foreground">
-                        {isRefreshing ? "Refreshing..." : "Loading documents..."}
-                      </p>
+                    <TableCell colSpan={9} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-3">
+                        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-muted-foreground">
+                          {isRefreshing
+                            ? "Refreshing..."
+                            : "Loading documents..."}
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : filteredDocuments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-16 text-muted-foreground">
+                    <TableCell
+                      colSpan={9}
+                      className="text-center py-12 text-muted-foreground"
+                    >
                       <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
                       <p className="text-xl font-medium">No documents found</p>
                       <p className="text-sm">
-                        {searchQuery
-                          ? "Try adjusting your search criteria."
-                          : safeDocuments.length === 0
-                          ? "No documents available yet."
-                          : "No documents match the current category."}
+                        {searchQuery || isFilterActive
+                          ? "Try adjusting your search criteria or clear filters."
+                          : "No documents available in this category."}
                       </p>
                     </TableCell>
                   </TableRow>
@@ -304,58 +511,165 @@ return (
                   filteredDocuments.map((doc) => (
                     <TableRow
                       key={doc._id || doc.id}
-                      className="hover:bg-muted/20 transition-colors border-b border-border/20"
+                      className="hover:bg-muted/50"
                     >
-                      <TableCell className="font-medium">
+                      {/* Document Name - with tooltip */}
+                      <TableCell className="font-medium w-[150px] min-w-[150px]">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
-                            <FileText className="h-4 w-4 text-primary" />
+                          <div
+                            className={`p-2 rounded-xl shrink-0 ${
+                              getFileType(doc) === "image"
+                                ? "bg-green-100"
+                                : getFileExtension(doc) === "pdf"
+                                ? "bg-red-100"
+                                : "bg-primary/10"
+                            }`}
+                          >
+                            {getFileIcon(doc)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="truncate font-medium">
+                            {/* Document Name with tooltip */}
+                            <div
+                              className="font-semibold truncate"
+                              title={doc.name || "Unnamed Document"}
+                            >
                               {doc.name || "Unnamed Document"}
                             </div>
-                            <Badge variant="outline" className="mt-1 text-xs rounded-full">
-                              {doc.type || "Unknown"}
-                            </Badge>
+
+                            {/* Description with tooltip if available */}
+                            {doc.description && (
+                              <div
+                                className="text-sm text-muted-foreground truncate mt-1"
+                                title={doc.description}
+                              >
+                                {doc.description}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell max-w-[300px] truncate">
-                        {doc.description || "No description"}
+
+                      {/* Type */}
+                      <TableCell className="w-[120px] min-w-[120px]">
+                        <div title={getDocumentTypeName(doc.type)}>
+                          <Badge
+                            variant="outline"
+                            className="rounded-full truncate max-w-full"
+                          >
+                            <span className="truncate block">
+                              {getDocumentTypeName(doc.type)}
+                            </span>
+                          </Badge>
+                        </div>
                       </TableCell>
-                      <TableCell>
-                        {getAccessBadge(doc.accessLevel)}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">
-                            {formatDate(doc.uploaded || doc.uploadDate)}
+
+                      {/* Start Date */}
+                      <TableCell className="w-[120px] min-w-[120px]">
+                        <div
+                          className="flex items-center gap-2"
+                          title={
+                            doc.documentStartDate
+                              ? formatDateOnly(doc.documentStartDate)
+                              : "Not set"
+                          }
+                        >
+                          <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="text-sm truncate">
+                            {doc.documentStartDate
+                              ? formatDateOnly(doc.documentStartDate)
+                              : "Not set"}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+
+                      {/* End Date */}
+                      <TableCell className="w-[120px] min-w-[120px]">
+                        <div
+                          className="flex items-center gap-2"
+                          title={
+                            doc.documentEndDate
+                              ? formatDateOnly(doc.documentEndDate)
+                              : "Not set"
+                          }
+                        >
+                          <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="text-sm truncate">
+                            {doc.documentEndDate
+                              ? formatDateOnly(doc.documentEndDate)
+                              : "Not set"}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      {/* Period */}
+                      <TableCell className="w-[100px] min-w-[100px]">
+                        <div
+                          className="text-sm truncate"
+                          title={getDocumentPeriod(doc)}
+                        >
+                          {getDocumentPeriod(doc)}
+                        </div>
+                      </TableCell>
+
+                      {/* Uploaded */}
+                      <TableCell className="w-[140px] min-w-[140px]">
+                        <div
+                          className="text-sm"
+                          title={formatDate(doc.uploaded || doc.uploadDate)}
+                        >
+                          <div className="truncate">
+                            {formatDate(doc.uploaded || doc.uploadDate)}
+                          </div>
+                          
+                        </div>
+                      </TableCell>
+
+                      {/* Size */}
+                      <TableCell className="w-[80px] min-w-[80px]">
+                        <div className="text-sm text-muted-foreground">
+                          <div
+                            title={formatFileSize(doc.size)}
+                            className="truncate"
+                          >
+                            {formatFileSize(doc.size)}
+                          </div>
+                          <div
+                            className="text-xs flex items-center gap-1 mt-1"
+                            title={`File type: ${getFileExtension(
+                              doc
+                            ).toUpperCase()}`}
+                          >
+                            {getFileIcon(doc)}
+                            <span className="truncate">
+                              {getFileExtension(doc).toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell className="text-right w-[120px] min-w-[120px]">
                         <div className="flex gap-2 justify-end">
+                          
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="rounded-xl h-9 w-9 p-0"
-                            onClick={() => handleView(doc)}
+                            onClick={() => handleDownload(doc)}
                             disabled={!doc.fileUrl}
-                            title="View"
+                            className="h-8 cursor-pointer w-8 p-0 rounded-lg shrink-0"
+                            title="Download document"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Download className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="rounded-xl h-9 w-9 p-0"
-                            onClick={() => handleDownload(doc)}
+                            onClick={() => handleViewExternal(doc)}
                             disabled={!doc.fileUrl}
-                            title="Download"
+                            className="h-8 cursor-pointer w-8 p-0 rounded-lg shrink-0"
+                            title="Open in new tab"
                           >
-                            <Download className="h-4 w-4" />
+                            <ExternalLink className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -369,4 +683,4 @@ return (
       </Card>
     </div>
   );
-};
+}

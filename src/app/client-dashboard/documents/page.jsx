@@ -1,4 +1,4 @@
-// File: src/app/client-dashboard/documents/page.jsx - FIXED VERSION
+// File: src/app/client-dashboard/documents/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,7 +15,6 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(false);
   const { user, loading: authLoading } = useAuth();
 
-  // ✅ FIXED: Correct token getter
   const getToken = () => {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('authToken') || 
@@ -23,7 +22,6 @@ export default function DocumentsPage() {
            document.cookie.split('; ').find(row => row.startsWith('authToken='))?.split('=')[1];
   };
 
-  // ✅ FIXED: Fetch client documents
   const fetchClientDocuments = async (category = "all") => {
     try {
       setLoading(true);
@@ -61,7 +59,6 @@ export default function DocumentsPage() {
         });
         
         if (data.success) {
-          // ✅ Filter out company documents and transform
           const clientDocs = data.documents
             .filter(doc => doc.isCompanyDocument === false)
             .map(doc => ({
@@ -75,7 +72,13 @@ export default function DocumentsPage() {
               uploadedBy: doc.uploadedBy || null,
               accessLevel: doc.accessLevel || "specific",
               status: doc.status || "approved",
-              isCompanyDocument: doc.isCompanyDocument || false
+              isCompanyDocument: doc.isCompanyDocument || false,
+              // ✅ CHANGE: Add these new fields
+              originalName: doc.originalName,
+              fileName: doc.fileName,
+              documentStartDate: doc.documentStartDate,
+              documentEndDate: doc.documentEndDate,
+              documentPeriod: doc.documentPeriod
             }));
           
           console.log('Filtered client documents:', clientDocs.length);
@@ -97,7 +100,6 @@ export default function DocumentsPage() {
     }
   };
 
-  // ✅ FIXED: Fetch categories
   const fetchCategories = async () => {
     try {
       const token = getToken();
@@ -145,14 +147,12 @@ export default function DocumentsPage() {
     }
   };
 
-  // ✅ Handle category change
   const handleCategoryChange = (category) => {
     console.log('Category changed to:', category);
     setCurrentCategory(category);
     fetchClientDocuments(category.id);
   };
 
-  // ✅ Setup global handler
   useEffect(() => {
     window.handleClientDocumentCategoryChange = handleCategoryChange;
     return () => {
@@ -160,7 +160,6 @@ export default function DocumentsPage() {
     };
   }, []);
 
-  // ✅ Initial fetch
   useEffect(() => {
     console.log('Component mounted, fetching data...');
     fetchClientDocuments();

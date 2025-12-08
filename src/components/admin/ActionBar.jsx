@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import RequirePermission from "@/components/RequirePermission";
 
 const ActionBar = ({
   searchQuery,
@@ -25,7 +26,7 @@ const ActionBar = ({
           <Input
             ref={searchInputRef}
             type="text"
-            placeholder="Search by name..."
+            placeholder={`Search ${activeCategory.name.toLowerCase()}...`}
             className="pl-10 w-full"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -35,16 +36,17 @@ const ActionBar = ({
 
       <div className="flex items-center gap-2 w-full lg:w-auto">
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
-          <DialogTrigger asChild>
-            <Button
-              size="sm"
-              className="bg-primary cursor-pointer text-primary-foreground flex-1 lg:flex-none"
-              permission={`${activeCategory?.id || "unknown"}-create`}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add {activeCategory.name}
-            </Button>
-          </DialogTrigger>
+          <RequirePermission permission="frontend-create">
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                className="bg-primary cursor-pointer text-primary-foreground flex-1 lg:flex-none"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add {activeCategory.name}
+              </Button>
+            </DialogTrigger>
+          </RequirePermission>
           {renderDialogContent()}
         </Dialog>
       </div>

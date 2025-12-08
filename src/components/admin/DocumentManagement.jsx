@@ -297,12 +297,13 @@ export default function DocumentManagement({
             size="sm"
             onClick={onRefresh}
             disabled={loading}
+            className="cursor-pointer"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button 
-            className="rounded-2xl px-6 bg-primary shadow-lg"
+            className="rounded-2xl cursor-pointer px-6 bg-primary shadow-lg"
             onClick={() => setUploadDialogOpen(true)}
             permission="documents-create"
           >
@@ -387,7 +388,7 @@ export default function DocumentManagement({
               <Button
                 variant="outline"
                 onClick={clearFilters}
-                className="w-full"
+                className="w-full cursor-pointer"
                 disabled={!isFilterActive && !searchQuery}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -538,6 +539,7 @@ export default function DocumentManagement({
                             onClick={() => handleView(doc)}
                             permission="documents-read"
                             title="View"
+                            className="cursor-pointer"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -547,6 +549,7 @@ export default function DocumentManagement({
                             onClick={() => handleDownload(doc)}
                             permission="documents-read"
                             title="Download"
+                            className="cursor-pointer"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -556,7 +559,7 @@ export default function DocumentManagement({
                             onClick={() => handleDelete(doc)}
                             permission="documents-delete"
                             title="Delete"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="text-destructive cursor-pointer hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

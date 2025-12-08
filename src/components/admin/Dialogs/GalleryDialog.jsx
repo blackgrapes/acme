@@ -387,7 +387,7 @@ const GalleryDialog = ({ onSuccess, onError, uploadFile }) => {
           onClick={handleSubmit}
           disabled={!isFormValid}
           className="flex-1 cursor-pointer bg-primary hover:bg-primary/90"
-          permission="gallery-create"
+          permission="frontend-create"
         >
           {submitting ? (
             <>

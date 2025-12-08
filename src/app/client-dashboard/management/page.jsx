@@ -1,65 +1,99 @@
-// File: src/app/client-dashboard/management/page.jsx
+// File: src/app/client-dashboard/service-overview/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import ClientManagement from "@/components/client/ClientManagement";
+import ServiceOverview from "@/components/client/ServiceOverview";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function ManagementPage() {
-  const [assignedGuards, setAssignedGuards] = useState([]);
-  const [clientDocuments, setClientDocuments] = useState([]);
-  const router = useRouter();
+export default function ServiceOverviewPage() {
+  const [serviceData, setServiceData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { user } = useAuth();
 
-  const handleGuardClick = (guardId) => {
-    router.push(`/client-dashboard/guard-details/${guardId}`);
-  };
-
-  const fetchClientData = async () => {
-    if (!user?._id) return;
+  const fetchServiceOverview = async () => {
     try {
-      const [clientResponse, docsResponse] = await Promise.all([
-        fetch(`/api/auth/client/${user._id}`),
-        fetch(`/api/auth/client/${user._id}/documents`),
-      ]);
-
-      if (clientResponse.ok) {
-        const clientData = await clientResponse.json();
-
-        // Fetch assigned guards
-        if (clientData.client.assignedGuards?.length > 0) {
-          const guardsPromises = clientData.client.assignedGuards.map(
-            (guardId) =>
-              fetch(`/api/auth/guard/${guardId}`).then((res) => res.json())
-          );
-          const guardsResults = await Promise.all(guardsPromises);
-          const validGuards = guardsResults
-            .filter((result) => result.guard)
-            .map((result) => result.guard);
-          setAssignedGuards(validGuards);
-        }
+      setLoading(true);
+      setError(null);
+      
+      // Get auth token
+      const getToken = () => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem('authToken') || 
+               sessionStorage.getItem('authToken');
+      };
+      
+      const token = getToken();
+      
+      if (!token) {
+        setError("Authentication required");
+        setLoading(false);
+        return;
       }
 
-      if (docsResponse.ok) {
-        const docsData = await docsResponse.json();
-        setClientDocuments(docsData.documents || []);
+      const response = await fetch('/api/client/service-overview', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setServiceData(data.data);
+        } else {
+          setError(data.error || "Failed to fetch service overview");
+        }
+      } else {
+        setError(`HTTP Error: ${response.status}`);
       }
     } catch (error) {
-      console.error("Error fetching client data:", error);
+      console.error("Error fetching service overview:", error);
+      setError("Failed to load service overview");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchClientData();
-  }, [user?._id]);
+    if (user) {
+      fetchServiceOverview();
+    }
+  }, [user]);
+
+  const handleRefresh = () => {
+    fetchServiceOverview();
+  };
 
   return (
-    <ClientManagement
-      dummyGuards={assignedGuards}
-      dummyRequests={[]}
-      dummyDocuments={clientDocuments}
-      handleGuardClick={handleGuardClick}
-    />
+    <div className="container mx-auto px-4 py-6">
+      <ServiceOverview 
+        serviceData={serviceData} 
+        loading={loading}
+      />
+      
+      {error && !loading && (
+        <div className="mt-6 p-4 border border-red-200 bg-red-50 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-red-100">
+              <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-red-800">Error loading service overview</p>
+              <p className="text-sm text-red-600">{error}</p>
+              <button 
+                onClick={handleRefresh}
+                className="mt-2 text-sm font-medium text-red-700 hover:text-red-800"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

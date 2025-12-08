@@ -451,12 +451,7 @@ export default function SecurityDashboard() {
                     {stat.changeValue}
                   </span>
                 </div>
-                <div className="mt-3">
-                  <Progress
-                    value={parseInt(stat.value) * 10}
-                    className="h-2 bg-gray-200"
-                  />
-                </div>
+                
               </CardContent>
             </Card>
           );
@@ -465,298 +460,146 @@ export default function SecurityDashboard() {
 
       {/* ======== Main Content Grid ======== */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Recent Documents Table */}
-          <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                  <FileText className="h-5 w-5 text-primary" /> Recent Documents
-                </CardTitle>
-                <CardDescription className="text-sm">
-                  Latest documents shared with clients
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Link href="/admin-dashboard/documents">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 rounded-lg cursor-pointer"
-                  >
-                    <Filter className="h-4 w-4" /> View All
-                  </Button>
-                </Link>
-                <Link href="/admin-dashboard/documents">
-                  <Button size="sm" className="gap-2 cursor-pointer rounded-lg bg-primary">
-                    <Upload className="h-4 w-4" /> Upload New
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {dashboardData.documents.length > 0 ? (
-                  dashboardData.documents.map((doc, index) => {
-                    const clientName =
-                      doc.targetClient?.name ||
-                      doc.specificClients?.[0]?.name ||
-                      (doc.isCompanyDocument
-                        ? "All Clients"
-                        : "Unknown Client");
+         <div className="lg:col-span-2 space-y-6">
+    {/* Recent Documents Table - LIMIT TO 5 DOCUMENTS */}
+    <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <FileText className="h-5 w-5 text-primary" /> Recent Documents
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Latest 6 documents shared with clients
+          </CardDescription>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/admin-dashboard/documents">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 rounded-lg cursor-pointer"
+            >
+              <Filter className="h-4 w-4" /> View All
+            </Button>
+          </Link>
+          <Link href="/admin-dashboard/documents">
+            <Button size="sm" className="gap-2 cursor-pointer rounded-lg bg-primary">
+              <Upload className="h-4 w-4" /> Upload New
+            </Button>
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {dashboardData.documents.length > 0 ? (
+           
+            dashboardData.documents.slice(0, 6).map((doc, index) => {
+              const clientName =
+                doc.targetClient?.name ||
+                doc.specificClients?.[0]?.name ||
+                (doc.isCompanyDocument
+                  ? "All Clients"
+                  : "Unknown Client");
 
-                    return (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`p-3 rounded-xl ${
-                              doc.status === "approved"
-                                ? "bg-green-100"
-                                : doc.status === "pending"
-                                ? "bg-amber-100"
-                                : "bg-gray-100"
-                            }`}
-                          >
-                            <FileText
-                              className={`h-5 w-5 ${
-                                doc.status === "approved"
-                                  ? "text-green-600"
-                                  : doc.status === "pending"
-                                  ? "text-amber-600"
-                                  : "text-gray-600"
-                              }`}
-                            />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-foreground">
-                              {doc.name || "Unnamed Document"}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              {doc.isCompanyDocument
-                                ? "Company Document • "
-                                : "Client Document • "}
-                              Shared with: {clientName} •{" "}
-                              {new Date(
-                                doc.uploadDate || doc.createdAt
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge
-                            className={`rounded-full ${
-                              doc.status === "approved"
-                                ? "bg-green-100 text-green-600"
-                                : doc.status === "pending"
-                                ? "bg-amber-100 text-amber-600"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {doc.status?.charAt(0).toUpperCase() +
-                              doc.status?.slice(1)}
-                          </Badge>
-                          <div className="flex gap-1">
-                            {doc.fileUrl && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 cursor-pointer"
-                                onClick={() =>
-                                  window.open(doc.fileUrl, "_blank")
-                                }
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No documents found</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Upload your first document to get started
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Performance + Client Distribution */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Document Status Distribution */}
-            <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                    <BarChart3 className="h-4 w-4" /> Document Status
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    Approval and pending distribution
-                  </p>
-                </div>
-                <Badge className="rounded-full bg-primary/15 text-primary">
-                  {dashboardData.stats.approvedDocuments} Approved
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="relative h-40 rounded-2xl bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
-                  <div className="flex h-full w-full items-end gap-3">
-                    {[
-                      {
-                        label: "Approved",
-                        value: dashboardData.stats.approvedDocuments,
-                        color: "bg-green-500",
-                      },
-                      {
-                        label: "Pending",
-                        value: dashboardData.stats.pendingDocuments,
-                        color: "bg-amber-500",
-                      },
-                      {
-                        label: "Other",
-                        value: Math.max(
-                          0,
-                          dashboardData.stats.totalDocuments -
-                            dashboardData.stats.approvedDocuments -
-                            dashboardData.stats.pendingDocuments
-                        ),
-                        color: "bg-gray-400",
-                      },
-                    ].map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex-1 flex flex-col items-center"
-                      >
-                        <div
-                          className={`w-full rounded-t-2xl transition-all hover:opacity-80 ${item.color}`}
-                          style={{
-                            height: `${
-                              (item.value /
-                                Math.max(
-                                  1,
-                                  dashboardData.stats.totalDocuments
-                                )) *
-                              100
-                            }%`,
-                          }}
-                        />
-                        <span className="mt-2 text-xs text-muted-foreground">
-                          {item.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-green-500" />{" "}
-                    Approved
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-amber-500" />{" "}
-                    Pending Review
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-gray-400" /> Other
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Client Distribution */}
-            <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                    <Users className="h-4 w-4" /> Client Distribution
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    Active vs inactive clients
-                  </p>
-                </div>
-                <Badge className="rounded-full bg-primary/15 px-3 py-1 text-primary">
-                  {dashboardData.stats.activeClients} Active
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {[
-                  {
-                    label: "Active Clients",
-                    value: dashboardData.stats.activeClients,
-                    total: dashboardData.stats.totalClients,
-                    trend: "+12%",
-                    color: "bg-primary",
-                  },
-                  {
-                    label: "Document Access",
-                    value: Math.round(
-                      (dashboardData.stats.activeClients /
-                        Math.max(1, dashboardData.stats.totalClients)) *
-                        100
-                    ),
-                    total: 100,
-                    trend: "+8.2%",
-                    color: "bg-success",
-                  },
-                  {
-                    label: "Inactive Clients",
-                    value: Math.max(
-                      0,
-                      dashboardData.stats.totalClients -
-                        dashboardData.stats.activeClients
-                    ),
-                    total: dashboardData.stats.totalClients,
-                    trend: "-3.1%",
-                    color: "bg-warning",
-                  },
-                ].map((item, index) => (
-                  <div key={index}>
-                    <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{item.label}</span>
-                      <span className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">
-                          {item.value}/{item.total}
-                        </span>
-                        <span
-                          className={
-                            item.trend.startsWith("+")
-                              ? "text-success"
-                              : "text-warning"
-                          }
-                        >
-                          {item.trend}
-                        </span>
-                      </span>
-                    </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-muted/40">
-                      <div
-                        className={`h-full rounded-full ${item.color}`}
-                        style={{
-                          width: `${
-                            (item.value / Math.max(1, item.total)) * 100
-                          }%`,
-                        }}
+              return (
+                <div
+                  key={index}
+                  className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`p-3 rounded-xl ${
+                        doc.status === "approved"
+                          ? "bg-green-100"
+                          : doc.status === "pending"
+                          ? "bg-amber-100"
+                          : "bg-gray-100"
+                      }`}
+                    >
+                      <FileText
+                        className={`h-5 w-5 ${
+                          doc.status === "approved"
+                            ? "text-green-600"
+                            : doc.status === "pending"
+                            ? "text-amber-600"
+                            : "text-gray-600"
+                        }`}
                       />
                     </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">
+                        {doc.name || "Unnamed Document"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {doc.isCompanyDocument
+                          ? "Company Document • "
+                          : "Client Document • "}
+                        Shared with: {clientName} •{" "}
+                        {new Date(
+                          doc.uploadDate || doc.createdAt
+                        ).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                ))}
-                <div className="rounded-2xl bg-muted/40 p-4 text-xs text-muted-foreground">
-                  {dashboardData.stats.activeClients} out of{" "}
-                  {dashboardData.stats.totalClients} clients have access to
-                  documents.
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      className={`rounded-full ${
+                        doc.status === "approved"
+                          ? "bg-green-100 text-green-600"
+                          : doc.status === "pending"
+                          ? "bg-amber-100 text-amber-600"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {doc.status?.charAt(0).toUpperCase() +
+                        doc.status?.slice(1)}
+                    </Badge>
+                    <div className="flex gap-1">
+                      {doc.fileUrl && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 cursor-pointer"
+                          onClick={() =>
+                            window.open(doc.fileUrl, "_blank")
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No documents found</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Upload your first document to get started
+              </p>
+            </div>
+          )}
+          
+          {/* Additional message if there are more than 5 documents */}
+          {dashboardData.documents.length > 5 && (
+            <div className="text-center pt-2">
+              <p className="text-sm text-muted-foreground">
+                Showing 6 of {dashboardData.documents.length} documents •{" "}
+                <Link 
+                  href="/admin-dashboard/documents" 
+                  className="text-primary hover:underline cursor-pointer"
+                >
+                  View all documents
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
+      </CardContent>
+    </Card>
+  </div>
 
         {/* Right Column: Document Requests & Quick Actions */}
         <div className="space-y-6">

@@ -10,7 +10,7 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-// Metadata को अलग रखें (viewport निकाल दें)
+
 export const metadata = {
   title: "Accent Art Security Services",
   description: "Professional security service provider in India",
@@ -26,7 +26,7 @@ export const metadata = {
   },
 };
 
-// viewport को अलग export करें
+
 export const viewport = {
   width: "device-width",
   initialScale: 1,
