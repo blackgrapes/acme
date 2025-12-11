@@ -15,9 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Trash2, Plus, Search, FileText, Eye, Calendar, User, RefreshCw } from "lucide-react";
+import { Download, Trash2, Plus, Search, FileText, Eye, Calendar, User, RefreshCw, Edit, Building } from "lucide-react";
 import { UploadDocumentDialog } from "./UploadDocumentDialog";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function DocumentManagement({
   documents = [],
@@ -34,7 +42,16 @@ export default function DocumentManagement({
   const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
- 
+
+  // Client View Dialog
+  const [viewClientsDialogOpen, setViewClientsDialogOpen] = useState(false);
+  const [selectedDocumentForClients, setSelectedDocumentForClients] = useState(null);
+
+  const handleEditClients = (doc) => {
+    setSelectedDocumentForClients(doc);
+    setViewClientsDialogOpen(true);
+  };
+
   // Filter documents based on search and filters
   const filteredDocuments = useMemo(() => {
     let filtered = documents;
@@ -108,10 +125,10 @@ export default function DocumentManagement({
       if (doc.fileUrl) {
         // Extract file extension
         const fileExtension = doc.originalName?.split(".").pop() || "pdf";
-        
+
         // Get document type name
         const docTypeName = getDocumentTypeName(doc.type);
-        
+
         // Format date for filename
         let dateForFilename = "";
         if (doc.documentStartDate) {
@@ -145,7 +162,7 @@ export default function DocumentManagement({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         toast.success(`Downloading: ${fileName}`);
       } else {
         toast.error("No file URL available for download");
@@ -160,7 +177,7 @@ export default function DocumentManagement({
     if (!confirm(`Are you sure you want to delete "${doc.name}"?`)) return;
 
     try {
-      const response = await fetch(`/api/documents/${doc.id}`, {
+      const response = await fetch(`/api/documents/${doc._id}`, {
         method: "DELETE",
       });
 
@@ -230,7 +247,7 @@ export default function DocumentManagement({
     if (doc.isCompanyDocument) {
       return <Badge variant="secondary">Company</Badge>;
     }
-    
+
     if (doc.specificClients && doc.specificClients.length > 0) {
       if (doc.specificClients.length === 1) {
         return <span className="text-sm">{doc.specificClients[0].name}</span>;
@@ -245,11 +262,24 @@ export default function DocumentManagement({
         );
       }
     }
-    
+
+    if (doc.relatedGuard) {
+      if (doc.relatedGuard.currentAssignment?.clientName) {
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm">{doc.relatedGuard.currentAssignment.clientName}</span>
+            <span className="text-xs text-muted-foreground">(via Guard)</span>
+          </div>
+        )
+      } else {
+        return <span className="text-sm text-muted-foreground">Guard Unassigned</span>;
+      }
+    }
+
     if (doc.targetClient) {
       return <span className="text-sm">{doc.targetClient.name}</span>;
     }
-    
+
     return <span className="text-sm text-muted-foreground">Not assigned</span>;
   };
 
@@ -290,9 +320,9 @@ export default function DocumentManagement({
             Manage encrypted documents with role-based access control
           </p>
         </div>
-        
+
         <div className="flex gap-2">
-          <Button 
+          <Button
             variant="outline"
             size="sm"
             onClick={onRefresh}
@@ -302,7 +332,7 @@ export default function DocumentManagement({
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button 
+          <Button
             className="rounded-2xl cursor-pointer px-6 bg-primary shadow-lg"
             onClick={() => setUploadDialogOpen(true)}
             permission="documents-create"
@@ -323,6 +353,84 @@ export default function DocumentManagement({
         allClients={allClients}
         currentCategory={currentCategory}
       />
+
+      {/* View Clients Dialog */}
+      <Dialog open={viewClientsDialogOpen} onOpenChange={setViewClientsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Document Access List</DialogTitle>
+            <DialogDescription>
+              Clients who can view "{selectedDocumentForClients?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedDocumentForClients?.isCompanyDocument ? (
+              <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg text-center">
+                <Building className="h-12 w-12 text-primary mb-2 opacity-50" />
+                <h3 className="font-semibold text-lg">Company Document</h3>
+                <p className="text-sm text-muted-foreground mt-1">This document is visible to ALL clients.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                {selectedDocumentForClients?.specificClients?.length > 0 ? (
+                  selectedDocumentForClients.specificClients.map((client, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{client.name}</p>
+                          {client.email && <p className="text-xs text-muted-foreground">{client.email}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : selectedDocumentForClients?.targetClient ? (
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{selectedDocumentForClients.targetClient.name}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : selectedDocumentForClients?.relatedGuard ? (
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
+                        <User className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <div>
+                        {selectedDocumentForClients.relatedGuard.currentAssignment?.clientName ? (
+                          <>
+                            <p className="font-medium text-sm">{selectedDocumentForClients.relatedGuard.currentAssignment.clientName}</p>
+                            <p className="text-xs text-muted-foreground">Via Guard: {selectedDocumentForClients.relatedGuard.name}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-medium text-sm text-muted-foreground">Unassigned</p>
+                            <p className="text-xs text-muted-foreground">Guard: {selectedDocumentForClients.relatedGuard.name} is not assigned</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">No clients assigned to this document.</p>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setViewClientsDialogOpen(false)} className="w-full">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Filters Section */}
       <Card>
@@ -396,7 +504,7 @@ export default function DocumentManagement({
               </Button>
             </div>
           </div>
-          
+
           {/* Search Bar */}
           <div className="mt-4 flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -480,7 +588,9 @@ export default function DocumentManagement({
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getClientDisplay(doc)}
+                        <div className="flex items-center gap-2">
+                          {getClientDisplay(doc)}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
@@ -552,6 +662,16 @@ export default function DocumentManagement({
                             className="cursor-pointer"
                           >
                             <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditClients(doc)}
+                            permission="documents-update"
+                            title="Edit Clients"
+                            className="cursor-pointer text-primary/70 hover:text-primary"
+                          >
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"

@@ -31,7 +31,7 @@ export async function GET(request) {
       if (category && category !== "all") {
         query.type = category;
       }
-      
+
       const documents = await Document.find(query)
         .populate("uploadedBy", "name email")
         .sort({ uploadDate: -1 });
@@ -44,9 +44,9 @@ export async function GET(request) {
     if (admin) {
       const denied = requirePermission(request, "documents-read");
       if (denied) return denied;
-      
+
       let query = { isCompanyDocument: false }; // Only client docs for admin
-      
+
       if (category && category !== "all") {
         query.type = category;
       }
@@ -110,6 +110,42 @@ export async function GET(request) {
     console.error("Error fetching documents:", error);
     return NextResponse.json(
       { error: "Failed to fetch documents: " + error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    await connectDB();
+    const { id } = await params;
+
+    // Check permission - assumes helper handles authorization or check user role here
+    const denied = requirePermission(request, "documents-delete");
+    if (denied) return denied;
+
+    const document = await Document.findById(id);
+
+    if (!document) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete the document
+    await Document.findByIdAndDelete(id);
+
+    console.log(`✅ Document deleted: ${id}`);
+    return NextResponse.json({
+      success: true,
+      message: "Document deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("Delete error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete document: " + error.message },
       { status: 500 }
     );
   }

@@ -9,7 +9,7 @@ import { requirePermission, getCurrentUser } from "@/lib/auth";
 
 // Development vs Production paths
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
-const UPLOAD_BASE_PATH = IS_DEVELOPMENT 
+const UPLOAD_BASE_PATH = IS_DEVELOPMENT
   ? path.join(process.cwd(), "public", "uploads")
   : "/var/www/acme/uploads";
 
@@ -40,6 +40,7 @@ const ALLOWED_MIME_TYPES = {
   'application/zip': '.zip',
   'text/plain': '.txt',
   'text/csv': '.csv',
+  'application/json': '.json', // Added to support JSON uploads
 };
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -48,48 +49,48 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 async function checkUploadPermissions(request, requiredPermission) {
   try {
     const user = await getCurrentUser(request);
-    
+
     if (!user) {
-      return { 
-        success: false, 
-        error: "Unauthorized", 
-        status: 401 
+      return {
+        success: false,
+        error: "Unauthorized",
+        status: 401
       };
     }
 
     // Admin always has access
-    if (user.role === "admin") {
-      return { 
-        success: true, 
-        user 
+    if (user.role?.name === "admin") {
+      return {
+        success: true,
+        user
       };
     }
 
     // Check if user has the required permission
     // Note: Your auth.js mein requirePermission function ko update karna hoga
     // agar wo user object return karta hai toh
-    
+
     // Temporary check - use requirePermission directly
     const permissionResult = requirePermission(request, requiredPermission);
     if (permissionResult) {
       // permissionResult is a NextResponse if permission is denied
-      return { 
-        success: false, 
-        error: "Insufficient permissions", 
-        status: 403 
+      return {
+        success: false,
+        error: "Insufficient permissions",
+        status: 403
       };
     }
 
-    return { 
-      success: true, 
-      user 
+    return {
+      success: true,
+      user
     };
   } catch (error) {
     console.error("Permission check error:", error);
-    return { 
-      success: false, 
-      error: "Internal server error", 
-      status: 500 
+    return {
+      success: false,
+      error: "Internal server error",
+      status: 500
     };
   }
 }
@@ -108,12 +109,12 @@ export async function POST(request) {
     }
 
     await ensureUploadDir();
-    
+
     const formData = await request.formData();
     const file = formData.get("file");
     const clientId = formData.get("clientId") || null;
     const context = formData.get("context") || "general"; // frontend, document, profile, etc.
-    
+
     if (!file) {
       return NextResponse.json(
         { error: "No file uploaded" },
@@ -195,15 +196,15 @@ export async function GET(request) {
     }
 
     await ensureUploadDir();
-    
+
     // Optional query parameters for filtering
     const { searchParams } = new URL(request.url);
     const context = searchParams.get("context");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = parseInt(searchParams.get("skip") || "0");
-    
+
     const files = await fs.readdir(UPLOAD_BASE_PATH);
-    
+
     // Get file stats and filter if needed
     const fileStats = await Promise.all(
       files.slice(skip, skip + limit).map(async (file) => {
@@ -265,7 +266,7 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const fileName = searchParams.get("fileName");
-    
+
     if (!fileName) {
       return NextResponse.json(
         { error: "File name is required" },

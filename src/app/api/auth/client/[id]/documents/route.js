@@ -1,6 +1,8 @@
+//FILE: src\app\api\auth\client\[id]\documents\route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { User, Document } from "@/lib/db";
+import Guard from "@/lib/models/Guard";
 import { getCurrentUser } from "@/lib/auth"; // Use central auth helper
 import fs from 'fs/promises';
 import path from 'path';
@@ -21,13 +23,31 @@ export async function GET(request, { params }) {
     }
 
     // Fetch ONLY client-specific documents (NOT company documents)
-    const documents = await Document.find({
+    const query = {
       $or: [
         { targetClient: clientId },
         { specificClients: clientId }
       ],
       isCompanyDocument: false // ONLY non-company documents
-    })
+    };
+
+    // ✅ Dynamic Guard Visibility: Include documents for guards assigned to this client
+    try {
+      const assignedGuards = await Guard.find({
+        "currentAssignment.clientId": clientId,
+        status: { $in: ["Assigned", "Active"] }
+      }).select("_id");
+
+      if (assignedGuards.length > 0) {
+        const guardIds = assignedGuards.map(g => g._id);
+        query.$or.push({ relatedGuard: { $in: guardIds } });
+        console.log(`✅ Client ${clientId} including documents for ${guardIds.length} assigned guards (Admin View)`);
+      }
+    } catch (err) {
+      console.error("Error finding assigned guards for client:", err);
+    }
+
+    const documents = await Document.find(query)
       .populate("uploadedBy", "name email role")
       .sort({ uploadDate: -1 })
       .lean();
@@ -47,11 +67,11 @@ export async function GET(request, { params }) {
       uploaded: doc.uploadDate,
       uploadedBy: doc.uploadedBy
         ? {
-            id: doc.uploadedBy._id,
-            name: doc.uploadedBy.name,
-            email: doc.uploadedBy.email,
-            role: doc.uploadedBy.role?.name || "User",
-          }
+          id: doc.uploadedBy._id,
+          name: doc.uploadedBy.name,
+          email: doc.uploadedBy.email,
+          role: doc.uploadedBy.role?.name || "User",
+        }
         : null,
       status: doc.status,
       isCompanyDocument: doc.isCompanyDocument,
@@ -199,15 +219,15 @@ export async function POST(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     console.log("🗑️ DELETE request received");
-    
+
     await connectDB();
-    
+
     // Get documentId from URL search params
     const url = new URL(request.url);
     const documentId = url.searchParams.get("documentId");
-    
+
     console.log("Document ID from params:", documentId);
-    
+
     if (!documentId) {
       return NextResponse.json(
         { error: "Document ID is required" },
@@ -222,7 +242,7 @@ export async function DELETE(request, { params }) {
     // Get current user from central auth helper
     const currentUser = await getCurrentUser(request);
     console.log("Current user from getCurrentUser:", currentUser ? currentUser.email : "No user");
-    
+
     if (!currentUser) {
       return NextResponse.json(
         { error: "Unauthorized. Please login again." },
@@ -233,10 +253,10 @@ export async function DELETE(request, { params }) {
     // Check if user has 'documents-delete' permission
     const userPermissions = currentUser.role?.permissions || [];
     const canDeleteDocuments = userPermissions.includes('documents-delete');
-    
+
     console.log("User permissions:", userPermissions);
     console.log("Can delete documents:", canDeleteDocuments);
-    
+
     if (!canDeleteDocuments) {
       console.log("User lacks 'documents-delete' permission");
       return NextResponse.json(
@@ -274,7 +294,7 @@ export async function DELETE(request, { params }) {
 
     // Delete the physical file from uploads directory
     const fileDeleted = await deletePhysicalFile(document.fileUrl, document.fileName);
-    
+
     if (!fileDeleted) {
       console.warn("⚠️ Physical file not found, but deleting database record anyway");
     }
@@ -308,13 +328,13 @@ async function deletePhysicalFile(fileUrl, fileName) {
   try {
     // Development vs Production paths (same as upload route)
     const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
-    const UPLOAD_BASE_PATH = IS_DEVELOPMENT 
+    const UPLOAD_BASE_PATH = IS_DEVELOPMENT
       ? path.join(process.cwd(), "public", "uploads")
       : "/var/www/acme/uploads";
-    
+
     // Extract filename from fileUrl or use fileName
     let actualFileName;
-    
+
     if (fileUrl) {
       // Extract filename from URL (handles both /uploads/filename and full URL)
       const urlParts = fileUrl.split('/');
@@ -325,23 +345,23 @@ async function deletePhysicalFile(fileUrl, fileName) {
       console.warn("No filename available for deletion");
       return false;
     }
-    
+
     const filePath = path.join(UPLOAD_BASE_PATH, actualFileName);
-    
+
     // Check if file exists
     if (!existsSync(filePath)) {
       console.warn(`File not found: ${filePath}`);
       return false;
     }
-    
+
     // Delete the file
     await fs.unlink(filePath);
     console.log(`✅ Physical file deleted: ${filePath}`);
-    
+
     return true;
   } catch (error) {
     console.error("❌ Error deleting physical file:", error);
-    
+
     // Don't throw error, just return false
     // We'll still delete the database record
     return false;

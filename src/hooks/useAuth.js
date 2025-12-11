@@ -8,9 +8,11 @@ export function useAuth() {
 
   useEffect(() => {
     if (verifiedRef.current || typeof window === "undefined") {
+      console.log("useAuth: already verified or server-side");
       setLoading(false);
       return;
     }
+    console.log("useAuth: starting verification");
 
     const verifyAuth = async () => {
       try {

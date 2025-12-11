@@ -41,14 +41,14 @@ export async function GET(request, { params }) {
     const formatAddress = (address) => {
       if (!address) return "Address not provided";
       if (typeof address === 'string') return address;
-      
+
       const parts = [];
       if (address.street) parts.push(address.street);
       if (address.city) parts.push(address.city);
       if (address.state) parts.push(address.state);
       if (address.postalCode) parts.push(address.postalCode);
       if (address.country && address.country !== "India") parts.push(address.country);
-      
+
       return parts.join(", ") || "Address incomplete";
     };
 
@@ -60,39 +60,39 @@ export async function GET(request, { params }) {
       email: client.email || "",
       phone: client.phone || "Not provided",
       alternatePhone: client.alternatePhone || "",
-      
+
       // Company info
       company: client.companyName || "No company",
       designation: client.designation || "",
       clientType: client.clientType || "Corporate",
-      
+
       // Address
       address: formatAddress(client.address),
       addressObject: client.address || {},
-      
+
       // Service info
       securityPlan: client.securityPlan || "Standard",
       serviceType: client.serviceType || [],
       equipmentRequired: client.equipmentRequired || [],
-      
+
       // Contract info
       contractNumber: client.contractNumber || "No contract",
       contractStartDate: client.contractStartDate,
       contractEndDate: client.contractEndDate,
       contractValue: client.contractValue || 0,
-      
+
       // Sites
       sites: client.sites || [],
-      
+
       // Emergency contacts
       emergencyContacts: client.emergencyContacts || [],
-      
+
       // Guard requirements
       requiredGuards: client.requiredGuards || { male: 0, female: 0, total: 0 },
-      
+
       // Assigned guards (IDs)
       assignedGuards: client.assignedGuards || [],
-      
+
       // 📌 YEH NAYA PROPERTY ADD KARO: Assigned guards with details
       assignedGuardsData: clientGuards.map(g => ({
         id: g._id,
@@ -100,35 +100,35 @@ export async function GET(request, { params }) {
         email: g.email,
         status: g.status
       })),
-      
+
       // Status
       status: client.status || "Active",
-      
+
       // Dates
       joinDate: client.joinDate,
-      joined: client.joinDate ? 
+      joined: client.joinDate ?
         new Date(client.joinDate).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
           day: 'numeric'
         }) : "Unknown",
-      
+
       // Performance metrics (calculated)
       activeGuards: client.assignedGuards?.length || 0,
-      monthlyRevenue: client.contractValue ? 
+      monthlyRevenue: client.contractValue ?
         `₹${Math.round(client.contractValue / 12).toLocaleString('en-IN')}` : "₹0",
       satisfaction: 95, // Default value
-      
+
       // Notes
       notes: client.notes || "",
-      
+
       // Documents count
       documentsCount: client.documents?.length || 0
     };
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       client: formattedClient,
-      message: "Client fetched successfully" 
+      message: "Client fetched successfully"
     });
   } catch (error) {
     console.error("❌ Error fetching client:", error);
@@ -154,22 +154,65 @@ export async function PUT(request, { params }) {
 
     // Update client
     const updatedClient = await User.findByIdAndUpdate(
-      id, 
-      updateData, 
+      id,
+      updateData,
       { new: true, runValidators: true }
     )
       .populate("role", "name permissions")
       .select("-password")
       .lean();
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       client: updatedClient,
-      message: "Client updated successfully" 
+      message: "Client updated successfully"
     });
   } catch (error) {
     console.error("❌ Error updating client:", error);
     return NextResponse.json(
       { error: "Failed to update client", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    await connectDB();
+    const { id } = params;
+
+    console.log("🗑️ Deleting client:", id);
+
+    // Find client
+    const client = await User.findById(id);
+    if (!client) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    // Optional: Check if client has active contracts or guards? 
+    // For now, proceed with delete but maybe clean up relationships?
+    // Mongoose middleware often handles cascading deletes if configured, 
+    // but here we might want to ensure we don't leave orphaned references.
+
+    // Unassign all guards from this client
+    await Guard.updateMany(
+      { _id: { $in: client.assignedGuards } },
+      {
+        $set: { status: 'Available', currentAssignment: null },
+      }
+    );
+
+    // Delete the client
+    await User.findByIdAndDelete(id);
+
+    return NextResponse.json({
+      success: true,
+      message: "Client deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("❌ Error deleting client:", error);
+    return NextResponse.json(
+      { error: "Failed to delete client", details: error.message },
       { status: 500 }
     );
   }

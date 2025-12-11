@@ -17,6 +17,7 @@ const ActionBar = ({
   dialogOpen,
   onDialogChange,
   renderDialogContent,
+  canCreate,
 }) => (
   <div className="bg-card border border-border rounded-lg p-4 mb-6 shadow-sm">
     <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
@@ -36,7 +37,7 @@ const ActionBar = ({
 
       <div className="flex items-center gap-2 w-full lg:w-auto">
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
-          <RequirePermission permission="frontend-create">
+          {canCreate && (
             <DialogTrigger asChild>
               <Button
                 size="sm"
@@ -46,7 +47,12 @@ const ActionBar = ({
                 Add {activeCategory.name}
               </Button>
             </DialogTrigger>
-          </RequirePermission>
+          )}
+          {/* Note: Original code had RequirePermission. I will replace it with simple conditional but I need to make sure I am essentially doing:
+             {canCreate && ( <DialogTrigger...> ... </DialogTrigger> )} 
+             Wait, I should stick to the structure.
+          */}
+
           {renderDialogContent()}
         </Dialog>
       </div>

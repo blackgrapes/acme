@@ -1,8 +1,10 @@
+// FILE: src/app/api/documents/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Document from "@/lib/models/Document";
 import { User } from "@/lib/db";
-import { requirePermission } from "@/lib/auth";
+import Guard from "@/lib/models/Guard";
+import { requirePermission, getCurrentUser } from "@/lib/auth";
 
 export async function GET(request) {
   try {
@@ -30,7 +32,7 @@ export async function GET(request) {
       if (category && category !== "all") {
         query.type = category;
       }
-      
+
       const documents = await Document.find(query)
         .populate("uploadedBy", "name email")
         .sort({ uploadDate: -1 });
@@ -39,13 +41,18 @@ export async function GET(request) {
       return NextResponse.json({ documents, success: true });
     }
 
-    // If admin requesting all documents
     if (admin) {
-      const denied = requirePermission(request, "documents-read");
-      if (denied) return denied;
-      
+      // Allow access if user is Admin OR has permission
+      const user = await getCurrentUser(request);
+      const isAdminRole = user?.role?.name === "admin";
+
+      if (!isAdminRole) {
+        const denied = requirePermission(request, "documents-read");
+        if (denied) return denied;
+      }
+
       let query = { isCompanyDocument: false }; // Only client docs for admin
-      
+
       if (category && category !== "all") {
         query.type = category;
       }
@@ -54,6 +61,7 @@ export async function GET(request) {
         .populate("uploadedBy", "name email")
         .populate("targetClient", "name email companyName")
         .populate("specificClients", "name email companyName")
+        .populate("relatedGuard", "name guardId currentAssignment") // ✅ Populate guard with assignment
         .sort({ uploadDate: -1 });
 
       console.log(`✅ Admin fetched ${documents.length} client documents`);
@@ -83,14 +91,38 @@ export async function GET(request) {
     // Build query: Get documents for this client AND company documents
     const query = {
       $or: [
-        // Company documents (visible to all clients)
         { isCompanyDocument: true },
-        // Documents specifically assigned to this client
         { targetClient: clientId },
-        // Documents with multiple clients including this one
         { specificClients: clientId }
       ]
     };
+
+    // ✅ Dynamic Guard Visibility: Include documents for guards assigned to this client
+
+    // ✅ Dynamic Guard Visibility: Include documents for guards assigned to this client
+    try {
+      const assignedGuards = await Guard.find({
+        "currentAssignment.clientId": clientId,
+        status: { $in: ["Assigned", "Active"] } // Check both statuses just in case
+      }).select("_id");
+
+      if (assignedGuards.length > 0) {
+        const guardIds = assignedGuards.map(g => g._id);
+
+        // Add to query using $or
+        // We need to keep the existing $or conditions and add this new one
+        if (query.$or) {
+          query.$or.push({ relatedGuard: { $in: guardIds } });
+        } else {
+          // Should not happen given previous code, but for safety
+          query.$or = [{ relatedGuard: { $in: guardIds } }];
+        }
+
+        console.log(`✅ Including documents for ${guardIds.length} assigned guards`);
+      }
+    } catch (err) {
+      console.error("Error finding assigned guards:", err);
+    }
 
     // Optional: Filter by category
     if (category && category !== "all") {
@@ -98,11 +130,12 @@ export async function GET(request) {
     }
 
     const documents = await Document.find(query)
-      .populate("uploadedBy", "name email")
+      .populate("uploadedBy", "name email role")
       .populate("targetClient", "name email companyName")
       .populate("specificClients", "name email companyName")
-      .sort({ uploadDate: -1 });
-
+      .populate("relatedGuard", "name guardId currentAssignment") // ✅ Populate guard with currentAssignment
+      .sort({ uploadDate: -1 })
+      .lean();
     console.log(`✅ Client ${clientId} fetched ${documents.length} documents`);
     return NextResponse.json({ documents, success: true });
   } catch (error) {
@@ -118,8 +151,14 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     // Check permission for document creation
-    const denied = requirePermission(request, "documents-create");
-    if (denied) return denied;
+    // Allow if user is Admin OR has permission
+    const user = await getCurrentUser(request);
+    const isAdminRole = user?.role?.name === "admin";
+
+    if (!isAdminRole) {
+      const denied = requirePermission(request, "documents-create");
+      if (denied) return denied;
+    }
 
     await connectDB();
 
@@ -134,22 +173,9 @@ export async function POST(request) {
       );
     }
 
-    // Get user from token
-    const token = request.headers.get("authorization")?.replace("Bearer ", "");
-    let uploadedBy = null;
-    
-    if (token) {
-      try {
-        // ✅ FIX: Use dynamic import for ES modules
-        const { verify } = await import('jsonwebtoken');
-        const decoded = verify(token, process.env.JWT_SECRET);
-        uploadedBy = decoded.userId;
-        console.log("✅ Token decoded, uploadedBy:", uploadedBy);
-      } catch (err) {
-        console.log("❌ Token decode error:", err.message);
-        // Continue without uploadedBy if token decode fails
-      }
-    }
+    // Use user from earlier getCurrentUser call
+    const uploadedBy = user?._id;
+    console.log("✅ Uploaded by:", uploadedBy);
 
     // ✅ Validate that specificClients are valid ObjectIds
     let validSpecificClients = [];
@@ -201,7 +227,9 @@ export async function POST(request) {
       uploadedBy: uploadedBy,
       uploadDate: new Date(),
       targetClient: validTargetClient,
+      targetClient: validTargetClient,
       specificClients: validSpecificClients,
+      relatedGuard: body.relatedGuard || null, // ✅ Save related guard if provided
     });
 
     await newDocument.save();
@@ -216,7 +244,7 @@ export async function POST(request) {
         });
         console.log(`✅ Added document to target client: ${newDocument.targetClient}`);
       }
-      
+
       // If specificClients are set (multiple clients)
       if (newDocument.specificClients && newDocument.specificClients.length > 0) {
         await User.updateMany(
@@ -247,14 +275,14 @@ export async function POST(request) {
   } catch (error) {
     console.error("❌ Error creating document:", error);
     console.error("❌ Error stack:", error.stack);
-    
+
     if (error.name === 'ValidationError') {
       return NextResponse.json(
         { error: `Validation error: ${error.message}` },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
       { error: "Failed to create document: " + error.message },
       { status: 500 }
@@ -269,7 +297,7 @@ export async function PUT(request) {
     if (denied) return denied;
 
     await connectDB();
-    
+
     const body = await request.json();
     const { documentId, status, name, description } = body;
 
@@ -322,7 +350,7 @@ export async function DELETE(request) {
     if (denied) return denied;
 
     await connectDB();
-    
+
     const { searchParams } = new URL(request.url);
     const documentId = searchParams.get("id");
 
@@ -352,7 +380,7 @@ export async function DELETE(request) {
         });
         console.log(`✅ Removed document from target client: ${document.targetClient}`);
       }
-      
+
       // Remove from specificClients
       if (document.specificClients && document.specificClients.length > 0) {
         await User.updateMany(

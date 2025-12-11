@@ -1,3 +1,4 @@
+//file: src/app/admin-dashboard/guard-details/[id]
 "use client";
 
 import { useState, useEffect } from "react";
@@ -86,26 +87,7 @@ import {
   Shield as ShieldIcon,
   TrendingUpIcon,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
-
-// Dummy data for categories to fix undefined error
-const dummyDocumentCategories = [
-  { id: "1", name: "Agreements", children: ["Service Agreement", "NDA"] },
-  { id: "2", name: "Attendance", children: [] },
-  { id: "3", name: "Bills", children: [] },
-  { id: "4", name: "Salary Slips", children: [] },
-  { id: "5", name: "Compliance", children: ["PF", "ESI"] },
-  { id: "6", name: "GST", children: [] },
-  { id: "7", name: "Guard Documents", children: ["KYC", "Aadhar", "PAN"] },
-];
-
-const dummyFrontendCategories = [
-  { id: "weprovide", name: "We Provide Services" },
-  { id: "gallery", name: "Gallery" },
-  { id: "clients", name: "Clients" },
-  { id: "testimonials", name: "Testimonials" },
-];
 
 export default function GuardDetails() {
   const params = useParams();
@@ -113,10 +95,10 @@ export default function GuardDetails() {
   const [guard, setGuard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [showSpecificAccess, setShowSpecificAccess] = useState(false);
-  const [openAdminDialog, setOpenAdminDialog] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [customDocumentName, setCustomDocumentName] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const router = useRouter();
@@ -151,86 +133,192 @@ export default function GuardDetails() {
         description: "Failed to fetch guard details",
         variant: "destructive",
       });
-      setGuard({
-        _id: "default-guard-id",
-        name: "John Doe",
-        email: "john@security.com",
-        phone: "+91 9876543210",
-        address: "Mumbai, India",
-        status: "Active",
-        joined: "15 Jan 2024",
-        rating: 4.7,
-        performance: {
-          totalAssignments: 25,
-          successRate: 95,
-          clientSatisfaction: 92,
-        },
-        currentAssignment: {
-          clientName: "Default Client",
-          startDate: "2025-10-01",
-          endDate: "2025-12-31",
-        },
-        assignmentHistory: [
-          {
-            clientName: "Client A",
-            startDate: "2025-09-01",
-            endDate: "2025-09-30",
-            status: "Completed",
-            rating: 4.8,
-          },
-          {
-            clientName: "Client B",
-            startDate: "2025-08-01",
-            endDate: "2025-08-31",
-            status: "Completed",
-            rating: 4.5,
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        lastActive: new Date(Date.now() - 86400000).toISOString(),
-      });
-      setEditFormData({
-        _id: "default-guard-id",
-        name: "John Doe",
-        email: "john@security.com",
-        phone: "+91 9876543210",
-        address: "Mumbai, India",
-        status: "Active",
-        joined: "15 Jan 2024",
-        rating: 4.7,
-        performance: {
-          totalAssignments: 25,
-          successRate: 95,
-          clientSatisfaction: 92,
-        },
-        currentAssignment: {
-          clientName: "Default Client",
-          startDate: "2025-10-01",
-          endDate: "2025-12-31",
-        },
-        assignmentHistory: [
-          {
-            clientName: "Client A",
-            startDate: "2025-09-01",
-            endDate: "2025-09-30",
-            status: "Completed",
-            rating: 4.8,
-          },
-          {
-            clientName: "Client B",
-            startDate: "2025-08-01",
-            endDate: "2025-08-31",
-            status: "Completed",
-            rating: 4.5,
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        lastActive: new Date(Date.now() - 86400000).toISOString(),
-      });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleUploadDocument = async (e) => {
+    e.preventDefault();
+    setUploadingDocument(true);
+
+    const fileInput = document.getElementById("document-file");
+    if (!fileInput.files[0]) {
+      toast({
+        title: "Error",
+        description: "Please select a file",
+        variant: "destructive",
+      });
+      setUploadingDocument(false);
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("guardId", guardId);
+    formData.append("context", "guard-document");
+    formData.append("customName", customDocumentName); // Add custom name to form data if basic upload API supported it (it might not)
+
+    try {
+      // Step 1: Upload file
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("File upload failed");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      // Step 2: Create guard document
+      const documentData = {
+        name: customDocumentName || file.name.replace(/\.[^/.]+$/, ""), // Use custom name or fallback
+        type: "employee-details",
+        fileId: uploadData.fileId,
+        fileName: uploadData.fileName,
+        originalName: file.name,
+        fileUrl: uploadData.fileUrl,
+        size: uploadData.size,
+        mimeType: uploadData.mimeType,
+        uploaded: new Date().toISOString(),
+        category: "guard",
+        uploadedBy: guard.guardId, // CRITICAL: Set uploadedBy to Guard ID so it follows the guard
+      };
+
+      // Update guard with new document
+      const updatedGuard = {
+        ...guard,
+        documents: [...(guard.documents || []), documentData],
+      };
+
+      const updateResponse = await fetch(`/api/auth/guard/${guardId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ documents: updatedGuard.documents }),
+      });
+
+      if (updateResponse.ok) {
+        const result = await updateResponse.json();
+        setGuard(result.guard);
+
+        // ✅ Create document in global collection linked to Guard (Dynamic Visibility)
+        await createGlobalGuardDocument(documentData);
+
+        toast({
+          title: "Success",
+          description: "Document uploaded successfully!",
+        });
+
+        setDocumentDialogOpen(false);
+        setCustomDocumentName(""); // Reset custom name
+        fileInput.value = ""; // Clear file input
+      }
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload document",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
+
+  const createGlobalGuardDocument = async (documentData) => {
+    try {
+      const globalDocData = {
+        ...documentData,
+        name: documentData.name, // Keep original name
+        description: `Employee document for ${guard.name}`,
+        // targetClient: clientId, // ❌ REMOVED: Don't link properly to client, rely on relatedGuard
+        relatedGuard: guardId, // ✅ ADDED: Link to guard for dynamic visibility
+        isCompanyDocument: false,
+        category: "guard", // Changed to guard category
+        type: "employee-details",
+      };
+
+      await fetch("/api/documents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(globalDocData),
+      });
+      console.log("✅ Created global guard document");
+    } catch (error) {
+      console.error("Error creating global guard document:", error);
+    }
+  };
+
+  const handleDownloadDocument = async (doc) => {
+    if (doc.fileUrl) {
+      const link = document.createElement("a");
+      link.href = doc.fileUrl;
+      link.download = doc.originalName || doc.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleDeleteDocument = async (doc, index) => {
+    if (!confirm("Are you sure you want to delete this document?")) {
+      return;
+    }
+
+    try {
+      // ✅ STEP 1: Delete from Document collection if it has an _id
+      if (doc._id || doc.fileId) {
+        const docId = doc._id || doc.fileId;
+        const deleteResponse = await fetch(`/api/documents?id=${docId}`, {
+          method: "DELETE",
+        });
+
+        if (!deleteResponse.ok) {
+          console.error("Failed to delete from Document collection");
+        } else {
+          console.log("✅ Deleted from Document collection");
+        }
+      }
+
+      // ✅ STEP 2: Remove from guard's embedded documents array
+      const updatedDocuments = guard.documents.filter((_, i) => i !== index);
+
+      const updateResponse = await fetch(`/api/auth/guard/${guardId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ documents: updatedDocuments }),
+      });
+
+      if (updateResponse.ok) {
+        // ✅ STEP 3: Refresh guard data to get updated state
+        await fetchGuardDetails();
+
+        toast({
+          title: "Success",
+          description: "Document deleted successfully!",
+        });
+      } else {
+        throw new Error("Failed to update guard documents");
+      }
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete document",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const handleUpdateGuard = async (e) => {
     e.preventDefault();
@@ -379,39 +467,37 @@ export default function GuardDetails() {
             Inactive
           </Badge>
         );
-      default:
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Profile Header with Avatar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src="/placeholder.svg" alt={guard.name} />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-background text-xl">
-              {guard.name?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{guard.name}</h1>
-            <p className="text-muted-foreground">Guard ID: {guardId}</p>
-          </div>
-        </div>
-        {getStatusBadge(guard.status)}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
       </div>
-
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
         className="space-y-6"
       >
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="overview" className="text-xl">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="text-xl">
+            Documents
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-xl">
+            History
+          </TabsTrigger>
         </TabsList>
 
         {/* Enhanced Overview Tab */}
@@ -504,6 +590,16 @@ export default function GuardDetails() {
                             }
                           />
                         </div>
+                        <div>
+                          <Label htmlFor="address">Address</Label>
+                          <Input
+                            id="address"
+                            value={editFormData.address || ""}
+                            onChange={(e) =>
+                              handleInputChange("address", e.target.value)
+                            }
+                          />
+                        </div>
                         <div className="flex justify-end gap-2">
                           <Button
                             type="button"
@@ -528,70 +624,6 @@ export default function GuardDetails() {
                     </Button>
                   )}
                 </div>
-              </div>
-
-              {/* Enhanced Quick Stats with Icons and Progress */}
-              <div className="grid md:grid-cols-4 gap-6">
-                <Card className="rounded-2xl border-primary/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <Star className="h-6 w-6 text-primary mr-2" />
-                      <div className="text-3xl font-bold text-primary">
-                        {guard.rating}
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Overall Rating
-                    </p>
-                    <div className="flex items-center justify-center gap-1 mt-2">
-                      <Star className="h-4 w-4 fill-current text-yellow-500" />
-                      <span className="text-sm">/ 5</span>
-                    </div>
-                    <Progress value={guard.rating * 20} className="mt-2 h-1" />
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl border-success/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <ShieldIcon className="h-6 w-6 text-success mr-2" />
-                      <div className="text-3xl font-bold text-success">
-                        {guard.performance?.totalAssignments || 0}
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Total Assignments
-                    </p>
-                    <Progress value={80} className="mt-2 h-1" />
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl border-secondary/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <TrendingUpIcon className="h-6 w-6 text-secondary mr-2" />
-                      <div className="text-3xl font-bold text-secondary">
-                        {guard.performance?.successRate || 0}%
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Success Rate
-                    </p>
-                    <Progress
-                      value={guard.performance?.successRate || 0}
-                      className="mt-2 h-1"
-                    />
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl border-destructive/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center mb-3">
-                      <Clock className="h-6 w-6 text-destructive mr-2" />
-                      <div className="text-3xl font-bold text-destructive">
-                        {guard.joined ? "1+ year" : "New"}
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Experience</p>
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Enhanced Current Assignment */}
@@ -696,132 +728,152 @@ export default function GuardDetails() {
           </Card>
         </TabsContent>
 
-        {/* Enhanced Performance Tab */}
-        <TabsContent value="performance" className="space-y-6">
+        {/* Enhanced Documents Tab */}
+        <TabsContent value="documents" className="space-y-6">
           <Card className="rounded-3xl border-border/70 shadow-xl">
             <CardHeader className="p-6">
               <CardTitle className="flex items-center gap-2">
-                <Award className="h-6 w-6" />
-                Performance Analytics
+                <FileText className="h-6 w-6" />
+                Guard Documents
               </CardTitle>
               <CardDescription>
-                Detailed performance tracking and trends for {guard.name}.
+                Upload and manage documents for {guard.name}.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-              {/* Enhanced Key Metrics with Icons */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <Card className="rounded-2xl border-success/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                          <ShieldIcon className="h-4 w-4" />
-                          Assignment Success
-                        </span>
-                        <span className="text-2xl font-bold">
-                          {guard.performance?.successRate || 0}%
-                        </span>
+              {/* Upload Document Button */}
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => setDocumentDialogOpen(true)}
+                  permission="documents-create"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
+                <Dialog open={documentDialogOpen} onOpenChange={setDocumentDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Upload Guard Document</DialogTitle>
+                      <DialogDescription>
+                        Select a file to upload for this guard.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleUploadDocument} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="custom-doc-name">Document Name</Label>
+                        <Input
+                          id="custom-doc-name"
+                          placeholder="e.g. Aadhar Card, Police Verification"
+                          value={customDocumentName}
+                          onChange={(e) => setCustomDocumentName(e.target.value)}
+                        />
                       </div>
-                      <Progress
-                        value={guard.performance?.successRate || 0}
-                        className="h-2"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl border-primary/20 hover:shadow-lg transition-all">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                          <Star className="h-4 w-4" />
-                          Client Satisfaction
-                        </span>
-                        <span className="text-2xl font-bold">
-                          {guard.performance?.clientSatisfaction || 0}%
-                        </span>
+                      <div className="space-y-2">
+                        <Label htmlFor="document-file">Select File</Label>
+                        <Input id="document-file" type="file" required />
                       </div>
-                      <Progress
-                        value={guard.performance?.clientSatisfaction || 0}
-                        className="h-2"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                      <DialogFooter>
+                        <Button type="submit" disabled={uploadingDocument}>
+                          {uploadingDocument ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            "Upload"
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
 
-              {/* Enhanced Monthly Performance Chart */}
-              <Card className="rounded-2xl border-border/50 hover:shadow-md transition-all">
-                <CardContent className="p-6">
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-secondary" />
-                    Monthly Performance Trend
-                  </h4>
-                  <div className="space-y-3">
-                    {[
-                      {
-                        month: "Jan",
-                        rating: guard.rating || 0,
-                        assignments: guard.performance?.totalAssignments || 0,
-                      },
-                      {
-                        month: "Feb",
-                        rating: (guard.rating || 0) - 0.1,
-                        assignments: Math.max(
-                          0,
-                          (guard.performance?.totalAssignments || 0) - 1
-                        ),
-                      },
-                      {
-                        month: "Mar",
-                        rating: (guard.rating || 0) + 0.2,
-                        assignments:
-                          (guard.performance?.totalAssignments || 0) + 1,
-                      },
-                      {
-                        month: "Apr",
-                        rating: (guard.rating || 0) - 0.1,
-                        assignments: Math.max(
-                          0,
-                          (guard.performance?.totalAssignments || 0) - 1
-                        ),
-                      },
-                      {
-                        month: "May",
-                        rating: guard.rating || 0,
-                        assignments: guard.performance?.totalAssignments || 0,
-                      },
-                    ].map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 rounded-xl bg-muted/20 hover:bg-muted/30 transition-all"
-                      >
-                        <span className="text-sm font-medium text-foreground w-12">
-                          {item.month}
-                        </span>
-                        <div className="flex-1 mx-4">
-                          <Progress
-                            value={item.rating * 20}
-                            className="h-2 rounded-full"
-                          />
-                        </div>
-                        <div className="flex items-center gap-4 w-24 justify-end">
-                          <span className="text-sm text-muted-foreground">
-                            {item.rating}/5
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="text-xs rounded-full"
-                          >
-                            {item.assignments}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Documents Table */}
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Document Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Uploaded</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {guard.documents && guard.documents.length > 0 ? (
+                      guard.documents.map((doc, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <FileIcon className="h-4 w-4 text-primary" />
+                              {doc.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {doc.type || "employee-details"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(doc.uploaded || doc.uploadDate)}
+                          </TableCell>
+                          <TableCell>
+                            {doc.size
+                              ? `${(doc.size / 1024).toFixed(1)} KB`
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  window.open(doc.fileUrl, "_blank")
+                                }
+                                className="cursor-pointer"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownloadDocument(doc)}
+                                className="cursor-pointer"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteDocument(doc, index)}
+                                className="text-destructive cursor-pointer hover:text-destructive"
+                                permission="documents-delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No documents uploaded yet</p>
+                          <p className="text-sm mt-2">
+                            Upload documents to appear here
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -937,6 +989,7 @@ export default function GuardDetails() {
           </Card>
         </TabsContent>
       </Tabs>
+
     </div>
   );
 }

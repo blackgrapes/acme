@@ -17,7 +17,7 @@ const documentSchema = new mongoose.Schema({
       "msme", "gst", "pasara", "pan", "profile", "bank-details" // Added company categories
     ]
   },
-  
+
   // File Details
   fileId: {
     type: String,
@@ -35,11 +35,10 @@ const documentSchema = new mongoose.Schema({
   },
   size: Number,
   mimeType: String,
-  
-  // Access Control
+
+  // Access Control - Can be User ID (ObjectId) or Guard Code (String)
   uploadedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    type: mongoose.Schema.Types.Mixed,
     required: false
   },
 
@@ -49,7 +48,7 @@ const documentSchema = new mongoose.Schema({
   documentEndDate: {
     type: Date
   },
-  
+
   // Document validity/period description
   documentPeriod: {
     type: String
@@ -58,39 +57,46 @@ const documentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  
+
+  // Guard Relation (New)
+  relatedGuard: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Guard"
+  },
+
+
   // Document Category
   category: {
     type: String,
-    enum: ["client", "company"],
+    enum: ["client", "company", "guard"], // ✅ Added "guard" for guard documents
     default: "client"
   },
-  
+
   // For Client-specific documents
   targetClient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   },
-  
+
   // For Multi-client documents (from Document Management)
   specificClients: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   }],
-  
+
   // For Company documents (visible to all clients)
   isCompanyDocument: {
     type: Boolean,
     default: false
   },
-  
+
   // Metadata
   status: {
     type: String,
     enum: ["pending", "approved", "rejected"],
     default: "approved"
   },
-  
+
   // System
   createdAt: {
     type: Date,

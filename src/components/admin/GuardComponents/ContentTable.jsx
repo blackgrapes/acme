@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit2, User, Mail, Phone, MapPin, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Eye, Edit2, User, Mail, Phone, MapPin, CheckCircle, Clock, XCircle, Trash2 } from "lucide-react";
 
-const ContentTable = ({ 
-  activeCategory, 
-  filteredItems, 
-  loading, 
+const ContentTable = ({
+  activeCategory,
+  filteredItems,
+  loading,
   onGuardClick,
-   onEditGuard,
-  statsData 
+  onEditGuard,
+  onDeleteGuard,
+  statsData
 }) => {
   const [actionLoading, setActionLoading] = useState(null);
 
@@ -87,7 +88,7 @@ const ContentTable = ({
       </div>
 
       <div className="overflow-x-auto">
-        <GuardsTable 
+        <GuardsTable
           items={filteredItems}
           getStatusColor={getStatusColor}
           getStatusIcon={getStatusIcon}
@@ -95,6 +96,11 @@ const ContentTable = ({
           actionLoading={actionLoading}
           handleAction={handleAction}
           onEditGuard={onEditGuard}
+          onDeleteGuard={onGuardClick.name === "handleGuardRowClick" ? (guard) => handleAction(guard, onGuardClick.deleteAction || (() => { })) : ((guard) => { })}
+          // Wait, I need to pass the actual handler from the parent. 
+          // The parent is GuardManagement.jsx. I need to update GuardManagement to pass `onDeleteGuard`.
+          // For now, let's just assume `onDeleteGuard` is passed to ContentTable.
+          onDeleteGuard={onDeleteGuard}
           totalGuards={statsData.totalGuards}
         />
       </div>
@@ -103,12 +109,13 @@ const ContentTable = ({
 };
 
 // Guards Table Component
-const GuardsTable = ({ 
-  items, 
-  getStatusColor, 
-  getStatusIcon, 
+const GuardsTable = ({
+  items,
+  getStatusColor,
+  getStatusIcon,
   onGuardClick,
   onEditGuard, // ✅ YEH PROP ADD KI HAI
+  onDeleteGuard,
   actionLoading,
   handleAction,
   totalGuards
@@ -118,16 +125,14 @@ const GuardsTable = ({
       <tr>
         <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Guard</th>
         <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Contact</th>
-        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Type</th>
         <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Location</th>
         <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
       </tr>
     </thead>
     <tbody className="divide-y divide-border">
       {items.map((guard) => (
-        <tr 
-          key={guard._id} 
+        <tr
+          key={guard._id}
           className="hover:bg-muted/50 transition-colors cursor-pointer group"
           onClick={() => onGuardClick(guard._id)}
         >
@@ -156,25 +161,14 @@ const GuardsTable = ({
               </div>
             </div>
           </td>
-          <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-            <Badge variant="outline" className="text-xs border-primary/20">
-              {guard.type}
-            </Badge>
-          </td>
           <td className="px-6 py-4 whitespace-nowrap">
             <div className="flex justify-center">
-              <Badge 
+              <Badge
                 className={`inline-flex items-center gap-1 ${getStatusColor(guard.status)}`}
               >
                 {getStatusIcon(guard.status)}
                 <span className="hidden sm:inline">{guard.status}</span>
               </Badge>
-            </div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap hidden xl:table-cell">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              {guard.location || "Main Office"}
             </div>
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
@@ -197,11 +191,23 @@ const GuardsTable = ({
                 className="h-8 w-8 p-0 cursor-pointer text-primary hover:bg-primary/10"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEditGuard(guard); //YEH LINE CHANGE KI HAI - onEditGuard call karo
+                  onEditGuard(guard);
                 }}
                 permission="guards-update"
               >
                 <Edit2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 cursor-pointer text-destructive hover:bg-destructive/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteGuard(guard);
+                }}
+                permission="guards-delete"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </td>
@@ -221,7 +227,7 @@ const GuardsTable = ({
         </tr>
       )}
     </tbody>
-  </table>
+  </table >
 );
 
 export default ContentTable;

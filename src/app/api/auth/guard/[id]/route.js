@@ -51,6 +51,29 @@ export async function PUT(request, { params }) {
 
     let guard;
 
+    if (updateData.codeNumber) {
+      updateData.guardId = updateData.codeNumber;
+    }
+
+    // Check availability if changing ID/Email/Phone
+    if (updateData.guardId || updateData.email || updateData.phone) {
+      const existingConflict = await Guard.findOne({
+        _id: { $ne: id }, // Exclude current guard
+        $or: [
+          updateData.email ? { email: updateData.email } : null,
+          updateData.phone ? { phone: updateData.phone } : null,
+          updateData.guardId ? { guardId: updateData.guardId } : null
+        ].filter(Boolean)
+      });
+
+      if (existingConflict) {
+        return NextResponse.json(
+          { error: "Guard with this Email, Phone, or Code Number already exists" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if ID is MongoDB ObjectId or guardId
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
       guard = await Guard.findByIdAndUpdate(

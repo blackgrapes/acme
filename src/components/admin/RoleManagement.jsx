@@ -121,38 +121,26 @@ const tabPermissions = [
       },
     ],
   },
-  // Frontend content permissions added for newly introduced modules
   {
-    id: "gallery",
-    name: "Gallery",
-    description: "Manage gallery media and captions",
+    id: "frontend",
+    name: "Frontend Management",
+    description: "Manage content for Gallery, Services, Testimonials, etc.",
     actions: [
-      { id: "create", name: "Create", icon: Plus, description: "Add gallery items" },
-      { id: "read", name: "Read", icon: Eye, description: "View gallery items" },
-      { id: "update", name: "Update", icon: Edit2, description: "Edit gallery items" },
-      { id: "delete", name: "Delete", icon: Trash2, description: "Delete gallery items" },
+      { id: "create", name: "Create", icon: Plus, description: "Add frontend content" },
+      { id: "read", name: "Read", icon: Eye, description: "View frontend content" },
+      { id: "update", name: "Update", icon: Edit2, description: "Edit frontend content" },
+      { id: "delete", name: "Delete", icon: Trash2, description: "Delete frontend content" },
     ],
   },
   {
-    id: "weprovide",
-    name: "Services (WeProvide)",
-    description: "Manage services shown on the frontend",
+    id: "support",
+    name: "Support Management",
+    description: "Manage support contacts",
     actions: [
-      { id: "create", name: "Create", icon: Plus, description: "Add services" },
-      { id: "read", name: "Read", icon: Eye, description: "View services" },
-      { id: "update", name: "Update", icon: Edit2, description: "Edit services" },
-      { id: "delete", name: "Delete", icon: Trash2, description: "Delete services" },
-    ],
-  },
-  {
-    id: "testimonials",
-    name: "Testimonials",
-    description: "Manage client testimonials",
-    actions: [
-      { id: "create", name: "Create", icon: Plus, description: "Add testimonials" },
-      { id: "read", name: "Read", icon: Eye, description: "View testimonials" },
-      { id: "update", name: "Update", icon: Edit2, description: "Edit testimonials" },
-      { id: "delete", name: "Delete", icon: Trash2, description: "Delete testimonials" },
+      { id: "create", name: "Create", icon: Plus, description: "Add support contacts" },
+      { id: "read", name: "Read", icon: Eye, description: "View support contacts" },
+      { id: "update", name: "Update", icon: Edit2, description: "Edit support contacts" },
+      { id: "delete", name: "Delete", icon: Trash2, description: "Delete support contacts" },
     ],
   },
   {
@@ -290,6 +278,7 @@ export default function RoleManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedPassword, setCopiedPassword] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [editingRole, setEditingRole] = useState(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     roleName: "",
@@ -349,69 +338,118 @@ export default function RoleManagement() {
     );
   };
 
+  const handleEditRole = (role) => {
+    console.log("handleEditRole called with:", role);
+    setEditingRole(role);
+    setFormData({
+      ...formData,
+      roleName: role.name,
+      roleDescription: role.description || "",
+      // Maintain other fields blank or as is
+      name: "",
+      email: "",
+      password: "",
+      phone: "",
+    });
+    setSelectedPermissions(role.permissions || []);
+    setShowCreateForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteRole = async (roleId) => {
+    if (!confirm("Are you sure you want to delete this role?")) return;
+    try {
+      const res = await fetch(`/api/auth/roles/${roleId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast({ title: "Success", description: "Role deleted" });
+        fetchRoles();
+      } else {
+        toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error", description: "Delete failed", variant: "destructive" });
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
- const handleSubmit = async (e) => {
-   e.preventDefault();
-   setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-   try {
-     const res = await fetch("/api/auth/register", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({
-         name: formData.name, // ✅ Correct field mapping
-         email: formData.email,
-         password: formData.password,
-         phone: formData.phone,
-         roleName: formData.roleName,
-         // Add permissions to create custom role
-         permissions: selectedPermissions,
-       }),
-     });
+    try {
+      let res;
+      if (editingRole) {
+        // Update existing role
+        res = await fetch(`/api/auth/roles/${editingRole._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.roleName,
+            description: formData.roleDescription,
+            permissions: selectedPermissions,
+          }),
+        });
+      } else {
+        // Create new role & user (Reference existing logic)
+        res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name, // Only for new user creation flow
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone,
+            roleName: formData.roleName,
+            roleDescription: formData.roleDescription,
+            permissions: selectedPermissions,
+          }),
+        });
+      }
 
-     const data = await res.json();
+      const data = await res.json();
 
-     if (!res.ok) {
-       toast({
-         title: "Error",
-         description: data.error || "Failed to create role and user",
-         variant: "destructive",
-       });
-       return;
-     }
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create role and user",
+          variant: "destructive",
+        });
+        return;
+      }
 
-     toast({
-       title: "Success",
-       description: "Role and user created successfully!",
-     });
-     fetchRoles();
-     fetchUsers();
-     // Reset form
-     setFormData({
-       roleName: "",
-       roleDescription: "",
-       name: "",
-       email: "",
-       phone: "",
-       password: "",
-     });
-     setSelectedPermissions([]);
-     setShowCreateForm(false);
-   } catch (error) {
-     console.error("Submit error:", error);
-     toast({
-       title: "Error",
-       description: "Failed to create role and user",
-       variant: "destructive",
-     });
-   } finally {
-     setLoading(false);
-   }
- };
+      toast({
+        title: "Success",
+        description: "Role and user created successfully!",
+      });
+      fetchRoles();
+      fetchUsers();
+      // Reset form
+      setFormData({
+        roleName: "",
+        roleDescription: "",
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+      });
+      setSelectedPermissions([]);
+      setShowCreateForm(false);
+    } catch (error) {
+      console.error("Submit error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create role and user",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const copyToClipboard = (text) => {
@@ -839,11 +877,8 @@ export default function RoleManagement() {
                       Users
                     </TableHead>
                     <TableHead className="text-right font-semibold text-foreground">
-                      Status
-                    </TableHead>
-                    {/* <TableHead className="text-right font-semibold text-foreground">
                       Actions
-                    </TableHead> */}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -877,34 +912,36 @@ export default function RoleManagement() {
                           {getStatusBadge(role.status)}
                         </div>
                       </TableCell>
-                      {/* <TableCell>
+                      <TableCell>
                         <div className="flex items-center justify-end gap-1">
+                          {/* 
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            permission="roles-read"
+                            // permission="roles-read"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                           */}
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0"
-                            permission="roles-update"
+                            className="h-8 w-8 p-0 cursor-pointer"
+                            onClick={() => handleEditRole(role)}
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0"
-                            permission="roles-delete"
+                            className="h-8 w-8 p-0 cursor-pointer hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleDeleteRole(role._id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </TableCell> */}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

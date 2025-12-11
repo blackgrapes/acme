@@ -214,32 +214,12 @@ export default function ClientDetails() {
     }
   };
 
-  // Handle guard assignment
-  const handleGuardAssign = async (guardId) => {
-    try {
-      setRefreshing(true);
-
-      const response = await fetch(`/api/auth/client/${clientId}/guards`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guardId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success("Guard assigned successfully!");
-        // Refresh data
-        await fetchClientData();
-      } else {
-        toast.error(data.error || "Failed to assign guard");
-      }
-    } catch (error) {
-      console.error("Error assigning guard:", error);
-      toast.error("Error assigning guard");
-    } finally {
-      setRefreshing(false);
-    }
+  // Handle guard assignment (Callback from Dialog)
+  const handleGuardAssign = async (guards) => {
+    // Just refresh data, API call is handled in Dialog
+    toast.success("Guard assigned successfully!");
+    await fetchClientData();
+    setAssignGuardOpen(false); // Close dialog
   };
 
   const handleDocumentUpload = async () => {
@@ -253,9 +233,9 @@ export default function ClientDetails() {
       if (docsResponse.ok) {
         const docsData = await docsResponse.json();
 
-        // Filter out any company documents (just in case)
+        // ✅ Show all non-company documents (includes both client docs AND guard docs)
         const clientSpecificDocs = docsData.documents.filter(
-          (doc) => !doc.isCompanyDocument && doc.category === "client"
+          (doc) => !doc.isCompanyDocument
         );
 
         setClientDocuments(clientSpecificDocs || []);
@@ -500,33 +480,33 @@ export default function ClientDetails() {
     periodFilter !== "" ||
     statusFilter !== "all";
 
-  
-const filteredDocuments = useMemo(() => {
-  // First, filter out company documents
-  let filtered = clientDocuments.filter(doc => 
-    !doc.isCompanyDocument && doc.category === "client"
-  );
-  
-  // Then apply other filters
-  if (documentTypeFilter !== "all") {
-    filtered = filtered.filter(doc => doc.type === documentTypeFilter);
-  }
-  
-  if (periodFilter && periodFilter.trim()) {
-    const query = periodFilter.toLowerCase();
-    filtered = filtered.filter(doc => 
-      (doc.documentPeriod && doc.documentPeriod.toLowerCase().includes(query)) ||
-      (doc.documentStartDate && formatDateOnly(doc.documentStartDate).toLowerCase().includes(query)) ||
-      (doc.documentEndDate && formatDateOnly(doc.documentEndDate).toLowerCase().includes(query))
+
+  const filteredDocuments = useMemo(() => {
+    // ✅ Filter out company documents only (keep both client AND guard documents)
+    let filtered = clientDocuments.filter(doc =>
+      !doc.isCompanyDocument
     );
-  }
-  
-  if (statusFilter !== "all") {
-    filtered = filtered.filter(doc => doc.status === statusFilter);
-  }
-  
-  return filtered;
-}, [clientDocuments, documentTypeFilter, periodFilter, statusFilter]);
+
+    // Then apply other filters
+    if (documentTypeFilter !== "all") {
+      filtered = filtered.filter(doc => doc.type === documentTypeFilter);
+    }
+
+    if (periodFilter && periodFilter.trim()) {
+      const query = periodFilter.toLowerCase();
+      filtered = filtered.filter(doc =>
+        (doc.documentPeriod && doc.documentPeriod.toLowerCase().includes(query)) ||
+        (doc.documentStartDate && formatDateOnly(doc.documentStartDate).toLowerCase().includes(query)) ||
+        (doc.documentEndDate && formatDateOnly(doc.documentEndDate).toLowerCase().includes(query))
+      );
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(doc => doc.status === statusFilter);
+    }
+
+    return filtered;
+  }, [clientDocuments, documentTypeFilter, periodFilter, statusFilter]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -594,9 +574,21 @@ const filteredDocuments = useMemo(() => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Client Details</h1>
-            <p className="text-muted-foreground">
-              Manage {client.name}'s information
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+              <span>Manage {client.name}'s information</span>
+              {client.email && (
+                <span className="flex items-center gap-1">
+                  <Mail className="h-3 w-3" />
+                  {client.email}
+                </span>
+              )}
+              {client.phone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  {client.phone}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -661,7 +653,7 @@ const filteredDocuments = useMemo(() => {
           </div>
         </div>
 
-        <div className="text-right">
+        {/* <div className="text-right">
           <p className="text-sm text-muted-foreground">Contract Number</p>
           <p className="text-lg font-semibold">
             {client.contractNumber || "No contract"}
@@ -681,7 +673,7 @@ const filteredDocuments = useMemo(() => {
               <span className="ml-1">({getRemainingDays()} days)</span>
             )}
           </Badge>
-        </div>
+        </div> */}
       </div>
 
       {/* Tabs */}
@@ -690,13 +682,13 @@ const filteredDocuments = useMemo(() => {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger className="cursor-pointer" value="overview">
             Overview
           </TabsTrigger>
-          <TabsTrigger className="cursor-pointer" value="details">
+          {/* <TabsTrigger className="cursor-pointer" value="details">
             Details
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger className="cursor-pointer" value="guards">
             Guards ({assignedGuards.length})
           </TabsTrigger>
@@ -707,8 +699,8 @@ const filteredDocuments = useMemo(() => {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Stats Cards */}
+          {/* Stats Cards */}
+          {/* <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -804,7 +796,7 @@ const filteredDocuments = useMemo(() => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
           {/* Contact Information */}
           <Card>
@@ -894,7 +886,7 @@ const filteredDocuments = useMemo(() => {
           </Card>
 
           {/* Contract Information */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileSignature className="h-5 w-5" />
@@ -938,10 +930,10 @@ const filteredDocuments = useMemo(() => {
                     </span>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
-              {/* Service Details */}
-              {client.serviceType && client.serviceType.length > 0 && (
+          {/* Service Details */}
+          {/* {client.serviceType && client.serviceType.length > 0 && (
                 <div className="mt-6">
                   <Label className="text-sm text-muted-foreground">
                     Service Types
@@ -954,10 +946,10 @@ const filteredDocuments = useMemo(() => {
                     ))}
                   </div>
                 </div>
-              )}
+              )} */}
 
-              {/* Equipment Required */}
-              {client.equipmentRequired &&
+          {/* Equipment Required */}
+          {/* {client.equipmentRequired &&
                 client.equipmentRequired.length > 0 && (
                   <div className="mt-6">
                     <Label className="text-sm text-muted-foreground">
@@ -973,14 +965,14 @@ const filteredDocuments = useMemo(() => {
                   </div>
                 )}
             </CardContent>
-          </Card>
+          </Card>*/}
         </TabsContent>
 
         {/* Details Tab */}
-        <TabsContent value="details" className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Sites Information */}
-            <Card>
+        {/* <TabsContent value="details" className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6"> */}
+        {/* Sites Information */}
+        {/* <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Home className="h-5 w-5" />
@@ -1027,10 +1019,10 @@ const filteredDocuments = useMemo(() => {
                   </div>
                 )}
               </CardContent>
-            </Card>
+            </Card> */}
 
-            {/* Emergency Contacts */}
-            <Card>
+        {/* Emergency Contacts */}
+        {/* <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
@@ -1070,10 +1062,10 @@ const filteredDocuments = useMemo(() => {
                 )}
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
-          {/* Notes */}
-          <Card>
+        {/* Notes */}
+        {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -1089,8 +1081,8 @@ const filteredDocuments = useMemo(() => {
                 <p className="text-muted-foreground">No additional notes</p>
               )}
             </CardContent>
-          </Card>
-        </TabsContent>
+          </Card> */}
+        {/* </TabsContent> */}
 
         {/* Guards Tab */}
         <TabsContent value="guards" className="space-y-6">
@@ -1125,10 +1117,10 @@ const filteredDocuments = useMemo(() => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Guard</TableHead>
+                      <TableHead>Code No.</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Join Date</TableHead>
-                      <TableHead>Rating</TableHead>
+                      <TableHead>Assign Date</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1151,6 +1143,11 @@ const filteredDocuments = useMemo(() => {
                           </div>
                         </TableCell>
                         <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {guard.guardId || "No Code"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <div className="space-y-1">
                             <div className="text-sm">{guard.email}</div>
                             <div className="text-sm text-muted-foreground">
@@ -1161,7 +1158,7 @@ const filteredDocuments = useMemo(() => {
                         <TableCell>
                           <Badge
                             variant={
-                              guard.status === "Active"
+                              guard.status === "Active" || guard.status === "Assigned"
                                 ? "default"
                                 : "secondary"
                             }
@@ -1169,12 +1166,10 @@ const filteredDocuments = useMemo(() => {
                             {guard.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{guard.joinDate}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-current text-yellow-500" />
-                            <span>{guard.rating}</span>
-                          </div>
+                          {guard.currentAssignment?.startDate
+                            ? formatDate(guard.currentAssignment.startDate)
+                            : "N/A"}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -1345,7 +1340,6 @@ const filteredDocuments = useMemo(() => {
                     onClick={clearFilters}
                     className="w-full cursor-pointer"
                     disabled={!isFilterActive}
-                    
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Clear Filters
@@ -1467,16 +1461,16 @@ const filteredDocuments = useMemo(() => {
                             doc.status === "approved"
                               ? "default"
                               : doc.status === "pending"
-                              ? "secondary"
-                              : doc.status === "rejected"
-                              ? "destructive"
-                              : "outline"
+                                ? "secondary"
+                                : doc.status === "rejected"
+                                  ? "destructive"
+                                  : "outline"
                           }
                           className="font-medium"
                         >
                           {doc.status
                             ? doc.status.charAt(0).toUpperCase() +
-                              doc.status.slice(1)
+                            doc.status.slice(1)
                             : "Pending"}
                         </Badge>
                       </TableCell>
@@ -1537,7 +1531,11 @@ const filteredDocuments = useMemo(() => {
                   Upload First Document
                 </Button>
                 {isFilterActive && (
-                  <Button className="cursor-pointer" variant="outline" onClick={clearFilters}>
+                  <Button
+                    className="cursor-pointer"
+                    variant="outline"
+                    onClick={clearFilters}
+                  >
                     Clear Filters
                   </Button>
                 )}

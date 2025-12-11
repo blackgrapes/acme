@@ -47,11 +47,13 @@ import {
   MapPin,
   Users,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function ClientManagement({
   guardSearch,
@@ -60,6 +62,7 @@ export default function ClientManagement({
   toggleGuardSelection,
   handleClientRowClick,
 }) {
+  const { hasPermission } = useAuth(); // Import auth hook
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -178,13 +181,13 @@ export default function ClientManagement({
           sites.length > 0
             ? sites
             : [
-                {
-                  siteName: "",
-                  address: "",
-                  contactPerson: "",
-                  contactNumber: "",
-                },
-              ],
+              {
+                siteName: "",
+                address: "",
+                contactPerson: "",
+                contactNumber: "",
+              },
+            ],
 
         // Security Requirements
         requiredGuards: requiredGuards,
@@ -197,12 +200,12 @@ export default function ClientManagement({
           emergencyContacts.length > 0
             ? emergencyContacts
             : [
-                {
-                  name: "",
-                  relationship: "",
-                  phone: "",
-                },
-              ],
+              {
+                name: "",
+                relationship: "",
+                phone: "",
+              },
+            ],
 
         // Notes
         notes: client.notes || "",
@@ -270,6 +273,29 @@ export default function ClientManagement({
       toast.error("Error updating client");
     } finally {
       setIsEditSubmitting(false);
+    }
+  };
+
+  // ✅ DELETE CLIENT HANDLER
+  const handleDeleteClient = async (client) => {
+    if (!confirm(`Are you sure you want to delete ${client.name}? This will also unassign their guards.`)) return;
+
+    try {
+      const response = await fetch(`/api/auth/client/${client._id}`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message || "Client deleted successfully");
+        fetchClients(); // Refresh list
+      } else {
+        toast.error(result.error || "Failed to delete client");
+      }
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast.error("Error deleting client");
     }
   };
   // Service types options
@@ -728,595 +754,207 @@ export default function ClientManagement({
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary cursor-pointer hover:bg-primary/90 text-primary-foreground">
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Client</DialogTitle>
-                <DialogDescription>
-                  Create a new client account with complete security setup
-                </DialogDescription>
-              </DialogHeader>
+          {hasPermission("clients-create") && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary cursor-pointer hover:bg-primary/90 text-primary-foreground">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Client
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Client</DialogTitle>
+                  <DialogDescription>
+                    Create a new client account with complete security setup
+                  </DialogDescription>
+                </DialogHeader>
 
-              {/* FORM START - USING SIMPLIFIED HANDLERS */}
-              <form onSubmit={handleClientSubmit} className="grid gap-6 py-4">
-                {/* Basic Information */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="John Smith"
-                      required
-                      disabled={isSubmitting}
-                    />
+                {/* FORM START - USING SIMPLIFIED HANDLERS */}
+                <form onSubmit={handleClientSubmit} className="grid gap-6 py-4">
+                  {/* Basic Information */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name *</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder="John Smith"
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="john@example.com"
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="••••••••"
+                        required
+                        minLength="6"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        placeholder="••••••••"
+                        required
+                        minLength="6"
+                        disabled={isSubmitting}
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="john@example.com"
-                      required
-                      disabled={isSubmitting}
-                    />
+                  {/* Contact Information */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number *</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="+91 9876543210"
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="alternatePhone">Alternate Phone (Optional)</Label>
+                      <Input
+                        id="alternatePhone"
+                        name="alternatePhone"
+                        value={formData.alternatePhone}
+                        onChange={handleInputChange}
+                        placeholder="+91 9876543211"
+                        disabled={isSubmitting}
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="••••••••"
-                      required
-                      minLength="6"
-                      disabled={isSubmitting}
-                    />
+                  {/* Address Information */}
+                  <div className="grid gap-4">
+                    <h3 className="text-lg font-semibold">Address Information</h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="address.street">Full Address *</Label>
+                        <Textarea
+                          id="address.street"
+                          name="address.street"
+                          value={formData.address.street}
+                          onChange={(e) =>
+                            handleSimpleNestedChange(
+                              "address.street",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Street, Building, Area..."
+                          required
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="address.city">City *</Label>
+                        <Input
+                          id="address.city"
+                          name="address.city"
+                          value={formData.address.city}
+                          onChange={(e) =>
+                            handleSimpleNestedChange(
+                              "address.city",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Mumbai"
+                          required
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="address.postalCode">Pin Code (Optional)</Label>
+                        <Input
+                          id="address.postalCode"
+                          name="address.postalCode"
+                          value={formData.address.postalCode}
+                          onChange={(e) =>
+                            handleSimpleNestedChange(
+                              "address.postalCode",
+                              e.target.value
+                            )
+                          }
+                          placeholder="400001"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      placeholder="••••••••"
-                      required
-                      minLength="6"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                {/* Contact Information */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="+91 9876543210"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="alternatePhone">Alternate Phone</Label>
-                    <Input
-                      id="alternatePhone"
-                      name="alternatePhone"
-                      value={formData.alternatePhone}
-                      onChange={handleInputChange}
-                      placeholder="+91 9876543211"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                {/* Client Information */}
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="clientType">Client Type</Label>
-                    <Select
-                      value={formData.clientType}
-                      onValueChange={(value) =>
-                        handleSelectChange("clientType", value)
-                      }
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsDialogOpen(false);
+                        resetForm();
+                      }}
+                      className="cursor-pointer"
                       disabled={isSubmitting}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Individual">Individual</SelectItem>
-                        <SelectItem value="Corporate">Corporate</SelectItem>
-                        <SelectItem value="Government">Government</SelectItem>
-                        <SelectItem value="Residential">Residential</SelectItem>
-                        <SelectItem value="Commercial">Commercial</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">Company Name</Label>
-                    <Input
-                      id="companyName"
-                      name="companyName"
-                      value={formData.companyName}
-                      onChange={handleInputChange}
-                      placeholder="ABC Corporation"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="designation">Designation</Label>
-                    <Input
-                      id="designation"
-                      name="designation"
-                      value={formData.designation}
-                      onChange={handleInputChange}
-                      placeholder="Security Manager"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                {/* Address Information - FIXED */}
-                <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">Address Information</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="address.street">Street Address</Label>
-                      <Input
-                        id="address.street"
-                        name="address.street"
-                        value={formData.address.street}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "address.street",
-                            e.target.value
-                          )
-                        }
-                        placeholder="123 Main Street"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address.city">City</Label>
-                      <Input
-                        id="address.city"
-                        name="address.city"
-                        value={formData.address.city}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "address.city",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Mumbai"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address.state">State</Label>
-                      <Input
-                        id="address.state"
-                        name="address.state"
-                        value={formData.address.state}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "address.state",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Maharashtra"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address.postalCode">Postal Code</Label>
-                      <Input
-                        id="address.postalCode"
-                        name="address.postalCode"
-                        value={formData.address.postalCode}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "address.postalCode",
-                            e.target.value
-                          )
-                        }
-                        placeholder="400001"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Service Information */}
-                <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">Service Information</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="securityPlan">Security Plan</Label>
-                      <Select
-                        value={formData.securityPlan}
-                        onValueChange={(value) =>
-                          handleSelectChange("securityPlan", value)
-                        }
-                        disabled={isSubmitting}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select plan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Basic">Basic</SelectItem>
-                          <SelectItem value="Standard">Standard</SelectItem>
-                          <SelectItem value="Premium">Premium</SelectItem>
-                          <SelectItem value="Enterprise">Enterprise</SelectItem>
-                          <SelectItem value="Custom">Custom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Service Type</Label>
-                      <Select
-                        value={formData.serviceType}
-                        onValueChange={(value) =>
-                          handleSelectChange("serviceType", value)
-                        }
-                        disabled={isSubmitting}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select service type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {serviceTypeOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contract Information */}
-                <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">
-                    Contract Information
-                  </h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="contractStartDate">Start Date</Label>
-                      <Input
-                        id="contractStartDate"
-                        name="contractStartDate"
-                        type="date"
-                        value={formData.contractStartDate}
-                        onChange={handleInputChange}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="contractEndDate">End Date</Label>
-                      <Input
-                        id="contractEndDate"
-                        name="contractEndDate"
-                        type="date"
-                        value={formData.contractEndDate}
-                        onChange={handleInputChange}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="contractValue">Contract Value (₹)</Label>
-                      <Input
-                        id="contractValue"
-                        name="contractValue"
-                        type="number"
-                        value={formData.contractValue}
-                        onChange={handleInputChange}
-                        placeholder="50000"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Site Information - FIXED */}
-                <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">Site Information</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="siteName">Site Name</Label>
-                      <Input
-                        id="siteName"
-                        name="sites.0.siteName"
-                        value={formData.sites[0]?.siteName || ""}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "sites.0.siteName",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Head Office"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="siteAddress">Site Address</Label>
-                      <Input
-                        id="siteAddress"
-                        name="sites.0.address"
-                        value={formData.sites[0]?.address || ""}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "sites.0.address",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Site full address"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="siteContactPerson">Contact Person</Label>
-                      <Input
-                        id="siteContactPerson"
-                        name="sites.0.contactPerson"
-                        value={formData.sites[0]?.contactPerson || ""}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "sites.0.contactPerson",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Site Manager"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="siteContactNumber">Contact Number</Label>
-                      <Input
-                        id="siteContactNumber"
-                        name="sites.0.contactNumber"
-                        value={formData.sites[0]?.contactNumber || ""}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "sites.0.contactNumber",
-                            e.target.value
-                          )
-                        }
-                        placeholder="+91 9876543212"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Security Requirements - FIXED */}
-                <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">
-                    Security Requirements
-                  </h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="maleGuards">Male Guards</Label>
-                      <Input
-                        id="maleGuards"
-                        name="requiredGuards.male"
-                        type="number"
-                        min="0"
-                        value={formData.requiredGuards.male}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "requiredGuards.male",
-                            e.target.value
-                          )
-                        }
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="femaleGuards">Female Guards</Label>
-                      <Input
-                        id="femaleGuards"
-                        name="requiredGuards.female"
-                        type="number"
-                        min="0"
-                        value={formData.requiredGuards.female}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "requiredGuards.female",
-                            e.target.value
-                          )
-                        }
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="totalGuards">Total Guards</Label>
-                      <Input
-                        id="totalGuards"
-                        name="requiredGuards.total"
-                        type="number"
-                        min="0"
-                        value={formData.requiredGuards.total}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "requiredGuards.total",
-                            e.target.value
-                          )
-                        }
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Equipment Required</Label>
-                    <Select
-                      value={formData.equipmentRequired}
-                      onValueChange={(value) =>
-                        handleSelectChange("equipmentRequired", value)
-                      }
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="cursor-pointer"
                       disabled={isSubmitting}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select equipment" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {equipmentOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Emergency Contact - FIXED */}
-                <div className="grid gap-4">
-                  <h3 className="text-lg font-semibold">Emergency Contact</h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyName">Contact Name</Label>
-                      <Input
-                        id="emergencyName"
-                        name="emergencyContacts.0.name"
-                        value={formData.emergencyContacts[0]?.name || ""}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "emergencyContacts.0.name",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Emergency Contact"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyRelationship">
-                        Relationship
-                      </Label>
-                      <Input
-                        id="emergencyRelationship"
-                        name="emergencyContacts.0.relationship"
-                        value={
-                          formData.emergencyContacts[0]?.relationship || ""
-                        }
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "emergencyContacts.0.relationship",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Spouse/Manager"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyPhone">Contact Phone</Label>
-                      <Input
-                        id="emergencyPhone"
-                        name="emergencyContacts.0.phone"
-                        value={formData.emergencyContacts[0]?.phone || ""}
-                        onChange={(e) =>
-                          handleSimpleNestedChange(
-                            "emergencyContacts.0.phone",
-                            e.target.value
-                          )
-                        }
-                        placeholder="+91 9876543213"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Additional Notes</Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleInputChange}
-                    placeholder="Any special instructions or notes..."
-                    rows={3}
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsDialogOpen(false);
-                      resetForm();
-                    }}
-                    className="cursor-pointer"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="cursor-pointer"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Client Account
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Client Account
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -1362,19 +1000,20 @@ export default function ClientManagement({
               {/* Contact Information */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-phone">Phone Number</Label>
+                  <Label htmlFor="edit-phone">Phone Number *</Label>
                   <Input
                     id="edit-phone"
                     name="phone"
                     value={editFormData?.phone || ""}
                     onChange={handleEditInputChange}
                     placeholder="+91 9876543210"
+                    required
                     disabled={isEditSubmitting}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-alternatePhone">Alternate Phone</Label>
+                  <Label htmlFor="edit-alternatePhone">Alternate Phone (Optional)</Label>
                   <Input
                     id="edit-alternatePhone"
                     name="alternatePhone"
@@ -1386,102 +1025,48 @@ export default function ClientManagement({
                 </div>
               </div>
 
-              {/* Client Information */}
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-clientType">Client Type</Label>
-                  <Select
-                    value={editFormData?.clientType || "Corporate"}
-                    onValueChange={(value) =>
-                      handleEditSelectChange("clientType", value)
-                    }
-                    disabled={isEditSubmitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Individual">Individual</SelectItem>
-                      <SelectItem value="Corporate">Corporate</SelectItem>
-                      <SelectItem value="Government">Government</SelectItem>
-                      <SelectItem value="Residential">Residential</SelectItem>
-                      <SelectItem value="Commercial">Commercial</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-companyName">Company Name</Label>
-                  <Input
-                    id="edit-companyName"
-                    name="companyName"
-                    value={editFormData?.companyName || ""}
-                    onChange={handleEditInputChange}
-                    placeholder="ABC Corporation"
-                    disabled={isEditSubmitting}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-designation">Designation</Label>
-                  <Input
-                    id="edit-designation"
-                    name="designation"
-                    value={editFormData?.designation || ""}
-                    onChange={handleEditInputChange}
-                    placeholder="Security Manager"
-                    disabled={isEditSubmitting}
-                  />
-                </div>
-              </div>
-
               {/* Address Information */}
               <div className="grid gap-4">
                 <h3 className="text-lg font-semibold">Address Information</h3>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-address-street">Street Address</Label>
-                    <Input
-                      id="edit-address-street"
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="edit-address.street">Full Address *</Label>
+                    <Textarea
+                      id="edit-address.street"
                       value={editFormData?.address?.street || ""}
                       onChange={(e) =>
-                        handleEditNestedChange("address.street", e.target.value)
+                        handleEditNestedChange(
+                          "address.street",
+                          e.target.value
+                        )
                       }
-                      placeholder="123 Main Street"
+                      placeholder="Street, Building, Area..."
+                      required
                       disabled={isEditSubmitting}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="edit-address-city">City</Label>
+                    <Label htmlFor="edit-address.city">City *</Label>
                     <Input
-                      id="edit-address-city"
+                      id="edit-address.city"
                       value={editFormData?.address?.city || ""}
                       onChange={(e) =>
-                        handleEditNestedChange("address.city", e.target.value)
+                        handleEditNestedChange(
+                          "address.city",
+                          e.target.value
+                        )
                       }
                       placeholder="Mumbai"
+                      required
                       disabled={isEditSubmitting}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="edit-address-state">State</Label>
+                    <Label htmlFor="edit-address.postalCode">Pin Code (Optional)</Label>
                     <Input
-                      id="edit-address-state"
-                      value={editFormData?.address?.state || ""}
-                      onChange={(e) =>
-                        handleEditNestedChange("address.state", e.target.value)
-                      }
-                      placeholder="Maharashtra"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-address-postalCode">Postal Code</Label>
-                    <Input
-                      id="edit-address-postalCode"
+                      id="edit-address.postalCode"
                       value={editFormData?.address?.postalCode || ""}
                       onChange={(e) =>
                         handleEditNestedChange(
@@ -1494,326 +1079,6 @@ export default function ClientManagement({
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* Service Information */}
-              <div className="grid gap-4">
-                <h3 className="text-lg font-semibold">Service Information</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-securityPlan">Security Plan</Label>
-                    <Select
-                      value={editFormData?.securityPlan || "Standard"}
-                      onValueChange={(value) =>
-                        handleEditSelectChange("securityPlan", value)
-                      }
-                      disabled={isEditSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select plan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Basic">Basic</SelectItem>
-                        <SelectItem value="Standard">Standard</SelectItem>
-                        <SelectItem value="Premium">Premium</SelectItem>
-                        <SelectItem value="Enterprise">Enterprise</SelectItem>
-                        <SelectItem value="Custom">Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Service Type</Label>
-                    <Select
-                      value={editFormData?.serviceType || ""}
-                      onValueChange={(value) =>
-                        handleEditSelectChange("serviceType", value)
-                      }
-                      disabled={isEditSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select service type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {serviceTypeOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contract Information */}
-              <div className="grid gap-4">
-                <h3 className="text-lg font-semibold">Contract Information</h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-contractStartDate">Start Date</Label>
-                    <Input
-                      id="edit-contractStartDate"
-                      name="contractStartDate"
-                      type="date"
-                      value={editFormData?.contractStartDate || ""}
-                      onChange={handleEditInputChange}
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-contractEndDate">End Date</Label>
-                    <Input
-                      id="edit-contractEndDate"
-                      name="contractEndDate"
-                      type="date"
-                      value={editFormData?.contractEndDate || ""}
-                      onChange={handleEditInputChange}
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-contractValue">
-                      Contract Value (₹)
-                    </Label>
-                    <Input
-                      id="edit-contractValue"
-                      name="contractValue"
-                      type="number"
-                      value={editFormData?.contractValue || 0}
-                      onChange={handleEditInputChange}
-                      placeholder="50000"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Site Information */}
-              <div className="grid gap-4">
-                <h3 className="text-lg font-semibold">Site Information</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-siteName">Site Name</Label>
-                    <Input
-                      id="edit-siteName"
-                      value={editFormData?.sites?.[0]?.siteName || ""}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "sites.0.siteName",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Head Office"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-siteAddress">Site Address</Label>
-                    <Input
-                      id="edit-siteAddress"
-                      value={editFormData?.sites?.[0]?.address || ""}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "sites.0.address",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Site full address"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-siteContactPerson">
-                      Contact Person
-                    </Label>
-                    <Input
-                      id="edit-siteContactPerson"
-                      value={editFormData?.sites?.[0]?.contactPerson || ""}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "sites.0.contactPerson",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Site Manager"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-siteContactNumber">
-                      Contact Number
-                    </Label>
-                    <Input
-                      id="edit-siteContactNumber"
-                      value={editFormData?.sites?.[0]?.contactNumber || ""}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "sites.0.contactNumber",
-                          e.target.value
-                        )
-                      }
-                      placeholder="+91 9876543212"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Security Requirements */}
-              <div className="grid gap-4">
-                <h3 className="text-lg font-semibold">Security Requirements</h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-maleGuards">Male Guards</Label>
-                    <Input
-                      id="edit-maleGuards"
-                      type="number"
-                      min="0"
-                      value={editFormData?.requiredGuards?.male || 0}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "requiredGuards.male",
-                          e.target.value
-                        )
-                      }
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-femaleGuards">Female Guards</Label>
-                    <Input
-                      id="edit-femaleGuards"
-                      type="number"
-                      min="0"
-                      value={editFormData?.requiredGuards?.female || 0}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "requiredGuards.female",
-                          e.target.value
-                        )
-                      }
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-totalGuards">Total Guards</Label>
-                    <Input
-                      id="edit-totalGuards"
-                      type="number"
-                      min="0"
-                      value={editFormData?.requiredGuards?.total || 0}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "requiredGuards.total",
-                          e.target.value
-                        )
-                      }
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Equipment Required</Label>
-                  <Select
-                    value={editFormData?.equipmentRequired || ""}
-                    onValueChange={(value) =>
-                      handleEditSelectChange("equipmentRequired", value)
-                    }
-                    disabled={isEditSubmitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select equipment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {equipmentOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Emergency Contact */}
-              <div className="grid gap-4">
-                <h3 className="text-lg font-semibold">Emergency Contact</h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-emergencyName">Contact Name</Label>
-                    <Input
-                      id="edit-emergencyName"
-                      value={editFormData?.emergencyContacts?.[0]?.name || ""}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "emergencyContacts.0.name",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Emergency Contact"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-emergencyRelationship">
-                      Relationship
-                    </Label>
-                    <Input
-                      id="edit-emergencyRelationship"
-                      value={
-                        editFormData?.emergencyContacts?.[0]?.relationship || ""
-                      }
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "emergencyContacts.0.relationship",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Spouse/Manager"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-emergencyPhone">Contact Phone</Label>
-                    <Input
-                      id="edit-emergencyPhone"
-                      value={editFormData?.emergencyContacts?.[0]?.phone || ""}
-                      onChange={(e) =>
-                        handleEditNestedChange(
-                          "emergencyContacts.0.phone",
-                          e.target.value
-                        )
-                      }
-                      placeholder="+91 9876543213"
-                      disabled={isEditSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-notes">Additional Notes</Label>
-                <Textarea
-                  id="edit-notes"
-                  name="notes"
-                  value={editFormData?.notes || ""}
-                  onChange={handleEditInputChange}
-                  placeholder="Any special instructions or notes..."
-                  rows={3}
-                  disabled={isEditSubmitting}
-                />
               </div>
 
               <DialogFooter>
@@ -1960,22 +1225,7 @@ export default function ClientManagement({
                 <SelectItem value="Suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
-            <Select
-              value={clientTypeFilter}
-              onValueChange={setClientTypeFilter}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Client Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Corporate">Corporate</SelectItem>
-                <SelectItem value="Individual">Individual</SelectItem>
-                <SelectItem value="Government">Government</SelectItem>
-                <SelectItem value="Residential">Residential</SelectItem>
-                <SelectItem value="Commercial">Commercial</SelectItem>
-              </SelectContent>
-            </Select>
+
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -1993,12 +1243,7 @@ export default function ClientManagement({
                   <TableHead className="text-center min-w-[100px]">
                     Status
                   </TableHead>
-                  <TableHead className="hidden xl:table-cell min-w-[120px]">
-                    Type
-                  </TableHead>
-                  <TableHead className="hidden 2xl:table-cell min-w-[100px]">
-                    Guards
-                  </TableHead>
+
                   <TableHead className="2xl:table-cell min-w-[100px]">
                     Login
                   </TableHead>
@@ -2068,48 +1313,19 @@ export default function ClientManagement({
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">
-                      <div className="flex items-center gap-2">
-                        {client.clientType === "Corporate" ? (
-                          <Building className="h-3 w-3 text-muted-foreground" />
-                        ) : client.clientType === "Individual" ? (
-                          <User className="h-3 w-3 text-muted-foreground" />
-                        ) : (
-                          <Briefcase className="h-3 w-3 text-muted-foreground" />
-                        )}
-                        <span className="text-sm truncate">
-                          {client.clientType || "Corporate"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden 2xl:table-cell">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-sm font-medium truncate">
-                            {client.assignedGuards?.length || 0} /{" "}
-                            {client.requiredGuards?.total || 0}
-                          </span>
-                          <span className="text-xs text-muted-foreground truncate">
-                            Assigned / Required
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
+
 
                     <TableCell>
                       <div className="flex items-center justify-end">
                         <div className="relative">
                           <div
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer transition-colors duration-200 ${
-                              loadingToggle === client._id
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                            } ${
-                              client.status === "Disabled" || !client.isActive
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer transition-colors duration-200 ${loadingToggle === client._id
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                              } ${client.status === "Disabled" || !client.isActive
                                 ? "bg-gray-300 hover:bg-gray-400"
                                 : "bg-green-500 hover:bg-green-600"
-                            }`}
+                              }`}
                             onClick={(e) => {
                               if (loadingToggle === client._id) return;
                               e.stopPropagation();
@@ -2122,13 +1338,11 @@ export default function ClientManagement({
                             }
                           >
                             <span
-                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${
-                                client.status === "Disabled" || !client.isActive
-                                  ? "translate-x-0.5"
-                                  : "translate-x-6"
-                              } ${
-                                loadingToggle === client._id ? "opacity-70" : ""
-                              }`}
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${client.status === "Disabled" || !client.isActive
+                                ? "translate-x-0.5"
+                                : "translate-x-6"
+                                } ${loadingToggle === client._id ? "opacity-70" : ""
+                                }`}
                             />
                             {/* Loading indicator */}
                             {loadingToggle === client._id && (
@@ -2172,6 +1386,19 @@ export default function ClientManagement({
                           title="Edit Client"
                         >
                           <Edit className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 cursor-pointer w-8 p-0 text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClient(client);
+                          }}
+                          title="Delete Client"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -2237,6 +1464,6 @@ export default function ClientManagement({
           )}
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }

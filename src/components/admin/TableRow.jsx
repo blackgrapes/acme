@@ -1,7 +1,6 @@
 // File: src/components/admin/components/TableRow.jsx
 "use client";
 import { Button } from "@/components/ui/button";
-import RequirePermission from "@/components/RequirePermission";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, EyeOff, Video, ImageIcon, MoreHorizontal, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
@@ -21,16 +20,12 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 
-const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEditItem }) => {
+const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEditItem, canUpdate, canDelete }) => {
   const [previewImages, setPreviewImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
   const [deletingItem, setDeletingItem] = useState(false);
-
-  // Fixed permissions for frontend management
-  const deletePermission = "frontend-delete";
-  const updatePermission = "frontend-update";
 
   const getItemName = () => {
     switch (activeCategory.id) {
@@ -81,7 +76,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!previewImages) return;
-      
+
       if (e.key === 'Escape') {
         closePreview();
       } else if (e.key === 'ArrowRight') {
@@ -152,9 +147,9 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
         {/* Desktop View with Horizontal Scroll */}
         <div className="hidden sm:flex min-w-max">
           {renderDesktopRowContent(item, activeCategory, handleImageClick, getImagesForItem)}
-          
+
           {/* Common Columns */}
-          <CommonColumns 
+          <CommonColumns
             item={item}
             activeCategory={activeCategory}
             onToggleVisibility={handleToggleVisibility}
@@ -163,40 +158,42 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
             getItemName={getItemName}
             formatDate={formatDate}
             togglingVisibility={togglingVisibility}
-            deletePermission={deletePermission}
-            updatePermission={updatePermission}
+
+            canDelete={canDelete}
+            canUpdate={canUpdate}
           />
         </div>
 
         {/* Mobile View - Stacked Layout */}
         <div className="sm:hidden p-4 space-y-3">
           {renderMobileRowContent(item, activeCategory, handleImageClick, getImagesForItem)}
-          
+
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="flex items-center gap-2">
               <StatusBadge showOnHome={item.showOnHome} />
-              <RequirePermission permission={updatePermission}>
-                <VisibilityToggle 
+              {canUpdate && (
+                <VisibilityToggle
                   item={item}
                   onToggleVisibility={handleToggleVisibility}
                   togglingVisibility={togglingVisibility}
                   mobile={true}
                 />
-              </RequirePermission>
+              )}
             </div>
-            
+
             <div className="flex items-center gap-1">
               <p className="text-xs text-muted-foreground">
                 {item.updatedAt ? formatDate(item.updatedAt) : 'Recently'}
               </p>
-              <MobileActions 
+              <MobileActions
                 item={item}
                 activeCategory={activeCategory}
                 getItemName={getItemName}
                 onDeleteItem={handleDeleteClick}
                 onEditItem={handleEditClick}
                 togglingVisibility={togglingVisibility}
-                deletePermission={deletePermission}
+                togglingVisibility={togglingVisibility}
+                canDelete={canDelete}
               />
             </div>
           </div>
@@ -205,11 +202,11 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
 
       {/* Image Preview Modal */}
       {previewImages && previewImages.length > 0 && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={closePreview}
         >
-          <div 
+          <div
             className="bg-card rounded-xl max-w-4xl max-h-[90vh] w-full relative"
             onClick={(e) => e.stopPropagation()}
           >
@@ -222,7 +219,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
             >
               <X className="h-6 w-6" />
             </Button>
-            
+
             {/* Navigation Arrows for multiple images */}
             {previewImages.length > 1 && (
               <>
@@ -244,7 +241,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
                 </Button>
               </>
             )}
-            
+
             {/* Image Container */}
             <div className="p-4 max-h-[80vh] overflow-hidden">
               <img
@@ -253,14 +250,14 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
                 className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
               />
             </div>
-            
+
             {/* Image Counter for multiple images */}
             {previewImages.length > 1 && (
               <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                 {currentImageIndex + 1} / {previewImages.length}
               </div>
             )}
-            
+
             {/* Thumbnail Strip for multiple images */}
             {previewImages.length > 1 && (
               <div className="px-6 py-3 border-t border-border">
@@ -269,11 +266,10 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`flex-shrink-0 w-12 cursor-pointer h-12 rounded border-2 overflow-hidden transition-all ${
-                        index === currentImageIndex 
-                          ? 'border-primary ring-2 ring-primary/50' 
-                          : 'border-border hover:border-primary/50'
-                      }`}
+                      className={`flex-shrink-0 w-12 cursor-pointer h-12 rounded border-2 overflow-hidden transition-all ${index === currentImageIndex
+                        ? 'border-primary ring-2 ring-primary/50'
+                        : 'border-border hover:border-primary/50'
+                        }`}
                     >
                       <img
                         src={img}
@@ -301,7 +297,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
               Are you sure you want to delete <strong>"{getItemName()}"</strong>? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           <DialogFooter className="flex flex-col sm:flex-row gap-3">
             <DialogClose asChild>
               <Button
@@ -312,7 +308,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
                 Cancel
               </Button>
             </DialogClose>
-            <RequirePermission permission={deletePermission}>
+            {canDelete && (
               <Button
                 variant="destructive"
                 onClick={handleConfirmDelete}
@@ -331,7 +327,7 @@ const TableRow = ({ item, activeCategory, onToggleVisibility, onDeleteItem, onEd
                   </>
                 )}
               </Button>
-            </RequirePermission>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -374,7 +370,7 @@ const renderMobileRowContent = (item, activeCategory, onImageClick, getImagesFor
 // WeProvide Desktop Row
 const WeProvideDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
-  
+
   return (
     <>
       {/* Image - w-16 */}
@@ -447,7 +443,7 @@ const WeProvideDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
 // WeProvide Mobile Row
 const WeProvideMobileRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
-  
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
@@ -476,7 +472,7 @@ const WeProvideMobileRow = ({ item, onImageClick, getImagesForItem }) => {
           </p>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-2 flex-wrap">
         <Badge variant="outline" className="text-xs">
           Slug: {item.slug}
@@ -496,7 +492,7 @@ const WeProvideMobileRow = ({ item, onImageClick, getImagesForItem }) => {
 const GalleryDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
   const hasMultipleImages = images.length > 1;
-  
+
   return (
     <>
       {/* Media - w-16 */}
@@ -563,7 +559,7 @@ const GalleryDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
 const GalleryMobileRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
   const hasMultipleImages = images.length > 1;
-  
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
@@ -616,7 +612,7 @@ const GalleryMobileRow = ({ item, onImageClick, getImagesForItem }) => {
 // Clients Desktop Row
 const ClientsDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
-  
+
   return (
     <>
       {/* Logo - w-16 */}
@@ -661,7 +657,7 @@ const ClientsDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
 // Clients Mobile Row
 const ClientsMobileRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
-  
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
@@ -697,7 +693,7 @@ const ClientsMobileRow = ({ item, onImageClick, getImagesForItem }) => {
 // Testimonials Desktop Row
 const TestimonialsDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
-  
+
   return (
     <>
       {/* Video - w-16 */}
@@ -749,7 +745,7 @@ const TestimonialsDesktopRow = ({ item, onImageClick, getImagesForItem }) => {
 // Testimonials Mobile Row
 const TestimonialsMobileRow = ({ item, onImageClick, getImagesForItem }) => {
   const images = getImagesForItem();
-  
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
@@ -790,17 +786,17 @@ const TestimonialsMobileRow = ({ item, onImageClick, getImagesForItem }) => {
 };
 
 // Common Columns Component - Status, Last Updated, Visibility, Actions
-const CommonColumns = ({ 
-  item, 
-  activeCategory, 
-  onToggleVisibility, 
-  onDeleteItem, 
-  onEditItem, 
-  getItemName, 
-  formatDate, 
+const CommonColumns = ({
+  item,
+  activeCategory,
+  onToggleVisibility,
+  onDeleteItem,
+  onEditItem,
+  getItemName,
+  formatDate,
   togglingVisibility,
-  deletePermission,
-  updatePermission 
+  canDelete,
+  canUpdate
 }) => {
   return (
     <>
@@ -818,19 +814,19 @@ const CommonColumns = ({
 
       {/* Visibility - w-32 */}
       <div className="w-32 px-3 sm:px-4 py-3 sm:py-4 hidden md:flex items-center flex-shrink-0">
-        <RequirePermission permission={updatePermission}>
-          <VisibilityToggle 
+        {canUpdate && (
+          <VisibilityToggle
             item={item}
             onToggleVisibility={onToggleVisibility}
             togglingVisibility={togglingVisibility}
           />
-        </RequirePermission>
+        )}
       </div>
 
       {/* Actions - w-20 */}
       <div className="w-20 px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-end flex-shrink-0">
         <div className="flex items-center gap-1">
-          <RequirePermission permission={deletePermission}>
+          {canDelete && (
             <Button
               variant="ghost"
               size="sm"
@@ -840,7 +836,7 @@ const CommonColumns = ({
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
-          </RequirePermission>
+          )}
         </div>
       </div>
     </>
@@ -848,14 +844,14 @@ const CommonColumns = ({
 };
 
 // Mobile Actions Component
-const MobileActions = ({ 
-  item, 
-  activeCategory, 
-  getItemName, 
-  onDeleteItem, 
-  onEditItem, 
+const MobileActions = ({
+  item,
+  activeCategory,
+  getItemName,
+  onDeleteItem,
+  onEditItem,
   togglingVisibility,
-  deletePermission 
+  canDelete
 }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
@@ -864,8 +860,8 @@ const MobileActions = ({
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" className="bg-white">
-      <RequirePermission permission={deletePermission}>
-        <DropdownMenuItem 
+      {canDelete && (
+        <DropdownMenuItem
           onClick={onDeleteItem}
           className="text-destructive focus:text-destructive focus:bg-red-50"
           disabled={togglingVisibility}
@@ -873,7 +869,7 @@ const MobileActions = ({
           <Trash2 className="h-4 w-4 mr-2" />
           Delete
         </DropdownMenuItem>
-      </RequirePermission>
+      )}
     </DropdownMenuContent>
   </DropdownMenu>
 );
@@ -881,16 +877,14 @@ const MobileActions = ({
 // Common Status Badge Component
 const StatusBadge = ({ showOnHome }) => (
   <span
-    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-      showOnHome
-        ? "bg-green-100 text-green-800"
-        : "bg-gray-100 text-gray-800"
-    }`}
+    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${showOnHome
+      ? "bg-green-100 text-green-800"
+      : "bg-gray-100 text-gray-800"
+      }`}
   >
     <div
-      className={`h-1.5 w-1.5 rounded-full ${
-        showOnHome ? "bg-green-600" : "bg-gray-600"
-      }`}
+      className={`h-1.5 w-1.5 rounded-full ${showOnHome ? "bg-green-600" : "bg-gray-600"
+        }`}
     />
     {showOnHome ? "Active" : "Inactive"}
   </span>
@@ -903,9 +897,8 @@ const VisibilityToggle = ({ item, onToggleVisibility, togglingVisibility, mobile
     size="sm"
     onClick={onToggleVisibility}
     disabled={togglingVisibility}
-    className={`${mobile ? "h-7 text-xs cursor-pointer" : "h-8 cursor-pointer justify-start text-xs"} ${
-      togglingVisibility ? "opacity-50 cursor-not-allowed" : ""
-    }`}
+    className={`${mobile ? "h-7 text-xs cursor-pointer" : "h-8 cursor-pointer justify-start text-xs"} ${togglingVisibility ? "opacity-50 cursor-not-allowed" : ""
+      }`}
   >
     {togglingVisibility ? (
       <>

@@ -7,9 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function DocumentsPage() {
   const [clientDocuments, setClientDocuments] = useState([]);
-  const [currentCategory, setCurrentCategory] = useState({ 
-    id: "all", 
-    name: "All Documents" 
+  const [currentCategory, setCurrentCategory] = useState({
+    id: "all",
+    name: "All Documents"
   });
   const [availableCategories, setAvailableCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,18 +17,18 @@ export default function DocumentsPage() {
 
   const getToken = () => {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('authToken') || 
-           sessionStorage.getItem('authToken') ||
-           document.cookie.split('; ').find(row => row.startsWith('authToken='))?.split('=')[1];
+    return localStorage.getItem('authToken') ||
+      sessionStorage.getItem('authToken') ||
+      document.cookie.split('; ').find(row => row.startsWith('authToken='))?.split('=')[1];
   };
 
   const fetchClientDocuments = async (category = "all") => {
     try {
       setLoading(true);
       const token = getToken();
-      
+
       console.log('Token available:', !!token);
-      
+
       if (!token) {
         console.error('No auth token found');
         setClientDocuments([]);
@@ -57,7 +57,7 @@ export default function DocumentsPage() {
           total: data.total,
           documents: data.documents?.length || 0
         });
-        
+
         if (data.success) {
           const clientDocs = data.documents
             .filter(doc => doc.isCompanyDocument === false)
@@ -80,7 +80,7 @@ export default function DocumentsPage() {
               documentEndDate: doc.documentEndDate,
               documentPeriod: doc.documentPeriod
             }));
-          
+
           console.log('Filtered client documents:', clientDocs.length);
           console.log('Sample document:', clientDocs[0]);
           setClientDocuments(clientDocs);
@@ -122,23 +122,18 @@ export default function DocumentsPage() {
           total: data.totalCategories,
           categories: data.categories?.length || 0
         });
-        
+
         if (data.success && data.categories) {
-          const clientSpecificTypes = [
-            "agreement", "attendance", "bills", "salary-sheet", "pay-slip",
-            "esi", "pf", "employee-details", "training", "night-checking", "paid-gst"
-          ];
-          
-          const filtered = data.categories
-            .filter(cat => clientSpecificTypes.includes(cat.type))
-            .map(cat => ({
-              id: cat.type,
-              name: cat.name || cat.type,
-              count: cat.count || 0
-            }));
-          
-          console.log('Available categories:', filtered);
-          setAvailableCategories(filtered);
+          // ✅ Dynamic Categories: Show all categories returned by API
+          // This includes client-specific types AND any types from uploaded documents
+          const dynamicCategories = data.categories.map(cat => ({
+            id: cat.type,
+            name: cat.name || cat.type,
+            count: cat.count || 0
+          }));
+
+          console.log('Available dynamic categories:', dynamicCategories);
+          setAvailableCategories(dynamicCategories);
         }
       }
     } catch (error) {

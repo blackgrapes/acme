@@ -171,7 +171,7 @@ const userSchema = new mongoose.Schema(
     // Status & Tracking
     status: {
       type: String,
-      enum: ["Active", "Inactive", "Pending", "Suspended","Disabled"],
+      enum: ["Active", "Inactive", "Pending", "Suspended", "Disabled"],
       default: "Active",
     },
 
@@ -191,7 +191,7 @@ const userSchema = new mongoose.Schema(
     },
 
     // Documents - CONDITIONAL FIELD
-   documents: [
+    documents: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Document",
@@ -306,11 +306,11 @@ userSchema.pre("save", async function (next) {
 });
 
 // Indexes for better query performance
-userSchema.index({ email: 1 }, { unique: true });
+// email index is already defined in the schema with unique: true
 userSchema.index({ role: 1 });
 userSchema.index({ status: 1 });
 userSchema.index({ companyName: 1 });
 userSchema.index({ joinDate: -1 });
-userSchema.index({ contractNumber: 1 }, { sparse: true });
+// contractNumber index is already defined in the schema with sparse: true
 userSchema.index({ documents: 1 });
 export default mongoose.models.User || mongoose.model("User", userSchema);

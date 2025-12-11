@@ -15,77 +15,46 @@ export async function POST(request) {
       name,
       email,
       phone,
-      emergencyContact,
-      gender,
-      dateOfBirth,
+      phone2,
       address,
-      type,
-      experience,
-      salary,
-      location,
-      specialization = [],
-      certifications = [],
-      documents = [],
+      gender,
+      codeNumber,
     } = await request.json();
 
-    console.log("📝 Guard registration data:", { name, email, type });
+    console.log("📝 Guard registration data:", { name, email, codeNumber });
 
     // Validation
-    if (
-      !name ||
-      !email ||
-      !phone ||
-      !gender ||
-      !dateOfBirth ||
-      !address ||
-      !type ||
-      !experience ||
-      !salary ||
-      !location
-    ) {
+    if (!name || !email || !phone || !codeNumber) {
       console.log("❌ Missing required fields");
       return NextResponse.json(
-        { error: "All required fields must be filled" },
+        { error: "Name, Email, Phone, and Code Number are required" },
         { status: 400 }
       );
     }
 
-    // Check if guard already exists
+    // Check if guard already exists (email, phone, or guardId/codeNumber)
     const existingGuard = await Guard.findOne({
-      $or: [{ email }, { phone }],
+      $or: [{ email }, { phone }, { guardId: codeNumber }],
     });
 
     if (existingGuard) {
       console.log("❌ Guard already exists:", email);
       return NextResponse.json(
-        { error: "Guard with this email or phone already exists" },
+        { error: "Guard with this Email, Phone, or Code Number already exists" },
         { status: 400 }
       );
     }
 
-    // Generate guard ID manually
-    const guardCount = await Guard.countDocuments();
-    const guardId = `GUA-${String(guardCount + 1).padStart(3, "0")}`;
-
-    console.log("🆔 Generated Guard ID:", guardId);
-
-    // Create new guard with manual guardId
+    // Create new guard using codeNumber as guardId
     const newGuard = await Guard.create({
       name,
       email,
       phone,
-      emergencyContact: emergencyContact || "",
-      gender,
-      dateOfBirth: new Date(dateOfBirth),
-      address,
-      type,
-      experience,
-      salary,
-      location,
-      specialization,
-      certifications,
-      documents,
-      guardId, // Manually add the generated ID
+      phone2: phone2 || "",
+      address: address || "",
+      gender: gender || "",
+      guardId: codeNumber, // Use manual code number as ID
+      codeNumber, // Keep redundant copy if needed, or just rely on guardId. Model has both.
       status: "Available",
       joinDate: new Date(),
       lastActive: new Date(),

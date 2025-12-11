@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronRight,
   Building,
+  LifeBuoy,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -24,7 +25,7 @@ export default function UnifiedSidebar({
   companyDocumentCategories = [],
   isMobile = false,
   pendingRequestsCount,
-  onNavigate = () => {},
+  onNavigate = () => { },
 }) {
   const [documentDropdownOpen, setDocumentDropdownOpen] = useState(false);
   const [companyDocumentDropdownOpen, setCompanyDocumentDropdownOpen] = useState(false);
@@ -116,11 +117,10 @@ export default function UnifiedSidebar({
             {/* Overview Button */}
             <Button
               variant={isActive("overview") ? "default" : "ghost"}
-              className={`w-full cursor-pointer justify-start shadow-sm truncate ${
-                isActive("overview")
-                  ? "bg-primary text-white"
-                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
+              className={`w-full cursor-pointer justify-start shadow-sm truncate ${isActive("overview")
+                ? "bg-primary text-white"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
               onClick={() => handleNavigation("overview")}
             >
               <Home className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -132,11 +132,10 @@ export default function UnifiedSidebar({
               <div className="space-y-1 w-full">
                 <Button
                   variant={activeTab.startsWith("documents") ? "default" : "ghost"}
-                  className={`w-full cursor-pointer justify-start shadow-sm truncate ${
-                    activeTab.startsWith("documents")
-                      ? "bg-primary text-white"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
+                  className={`w-full cursor-pointer justify-start shadow-sm truncate ${activeTab.startsWith("documents")
+                    ? "bg-primary text-white"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
                   onClick={() => {
                     setDocumentDropdownOpen(!documentDropdownOpen);
                     if (!documentDropdownOpen && !pathname.includes("/documents")) {
@@ -160,11 +159,10 @@ export default function UnifiedSidebar({
                   <div className="pl-6 space-y-1 pt-1 w-full">
                     <Button
                       variant={activeTab === "documents" ? "default" : "ghost"}
-                      className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
-                        activeTab === "documents"
-                          ? "bg-primary text-white"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      }`}
+                      className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${activeTab === "documents"
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
                       onClick={() => {
                         handleDocumentCategoryChange({
                           id: "all",
@@ -183,11 +181,10 @@ export default function UnifiedSidebar({
                             ? "default"
                             : "ghost"
                         }
-                        className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
-                          activeTab === `documents-${category.id}`
-                            ? "bg-primary text-white"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                        }`}
+                        className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${activeTab === `documents-${category.id}`
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                          }`}
                         onClick={() => {
                           handleDocumentCategoryChange(category);
                         }}
@@ -212,11 +209,10 @@ export default function UnifiedSidebar({
                   variant={
                     activeTab.startsWith("company-documents") ? "default" : "ghost"
                   }
-                  className={`w-full cursor-pointer justify-start shadow-sm truncate ${
-                    activeTab.startsWith("company-documents")
-                      ? "bg-primary text-white"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
+                  className={`w-full cursor-pointer justify-start shadow-sm truncate ${activeTab.startsWith("company-documents")
+                    ? "bg-primary text-white"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
                   onClick={() => {
                     setCompanyDocumentDropdownOpen(!companyDocumentDropdownOpen);
                     if (
@@ -245,11 +241,10 @@ export default function UnifiedSidebar({
                       variant={
                         activeTab === "company-documents" ? "default" : "ghost"
                       }
-                      className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
-                        activeTab === "company-documents"
-                          ? "bg-primary text-white"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      }`}
+                      className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${activeTab === "company-documents"
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
                       onClick={() => {
                         handleCompanyDocumentCategoryChange({
                           id: "all",
@@ -268,11 +263,10 @@ export default function UnifiedSidebar({
                             ? "default"
                             : "ghost"
                         }
-                        className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${
-                          activeTab === `company-documents-${category.id}`
-                            ? "bg-primary text-white"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                        }`}
+                        className={`w-full cursor-pointer justify-start text-sm shadow-sm truncate ${activeTab === `company-documents-${category.id}`
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                          }`}
                         onClick={() => {
                           handleCompanyDocumentCategoryChange(category);
                         }}
@@ -293,16 +287,15 @@ export default function UnifiedSidebar({
             {/* DOCUMENT REQUESTS SECTION - SINGLE BUTTON */}
             <Button
               variant={isActive("document-requests") ? "default" : "ghost"}
-              className={`w-full cursor-pointer justify-start shadow-sm truncate relative ${
-                isActive("document-requests")
-                  ? "bg-primary text-white"
-                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
+              className={`w-full cursor-pointer justify-start shadow-sm truncate relative ${isActive("document-requests")
+                ? "bg-primary text-white"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
               onClick={() => handleNavigation("document-requests")} // Updated
             >
               <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
               <span className="truncate">Document Requests</span>
-              
+
               {/* Badge for pending requests */}
               {pendingRequestsCount > 0 && (
                 <div className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs flex-shrink-0 text-primary rounded-full">
@@ -314,15 +307,25 @@ export default function UnifiedSidebar({
             {/* Management Button */}
             <Button
               variant={isActive("management") ? "default" : "ghost"}
-              className={`w-full cursor-pointer justify-start shadow-sm truncate ${
-                isActive("management")
-                  ? "bg-primary text-white"
-                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
+              className={`w-full cursor-pointer justify-start shadow-sm truncate ${isActive("management")
+                ? "bg-primary text-white"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
               onClick={() => handleNavigation("management")}
             >
               <Users className="h-4 w-4 mr-2 flex-shrink-0" />
               <span className="truncate">Management</span>
+            </Button>
+            <Button
+              variant={isActive("support") ? "default" : "ghost"}
+              className={`w-full cursor-pointer justify-start shadow-sm truncate ${isActive("support")
+                  ? "bg-primary text-white"
+                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              onClick={() => handleNavigation("support")}
+            >
+              <LifeBuoy className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Support</span>
             </Button>
           </div>
         </nav>

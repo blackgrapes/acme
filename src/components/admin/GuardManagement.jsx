@@ -6,7 +6,7 @@ import StatsCards from "./GuardComponents/StatsCards";
 import CategoryTabs from "./CategoryTabs";
 import ActionBar from "./GuardComponents/ActionBar";
 import ContentTable from "./GuardComponents/ContentTable";
-import { Loader2 } from "lucide-react"; 
+import { Loader2 } from "lucide-react";
 import {
   Shield,
   User,
@@ -71,7 +71,7 @@ export default function GuardManagement({ handleGuardRowClick }) {
   const [guards, setGuards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // ✅ SINGLE DIALOG STATE FOR BOTH ADD AND EDIT
   const [isGuardDialogOpen, setIsGuardDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState('add'); // 'add' or 'edit'
@@ -83,16 +83,10 @@ export default function GuardManagement({ handleGuardRowClick }) {
     name: "",
     email: "",
     phone: "",
-    emergencyContact: "",
-    gender: "",
-    dateOfBirth: "",
+    phone2: "",
     address: "",
-    type: "",
-    experience: "",
-    salary: "",
-    location: "",
-    specialization: "",
-    certifications: "",
+    codeNumber: "",
+    gender: "",
   });
 
   // ✅ ADD GUARD HANDLER - RESET FORM ADD KARO
@@ -106,24 +100,18 @@ export default function GuardManagement({ handleGuardRowClick }) {
   const handleEditGuard = (guard) => {
     setDialogMode('edit');
     setEditingGuard(guard);
-    
+
     // Form data ko guard ki current values se fill karo
     setFormData({
       name: guard.name || "",
       email: guard.email || "",
       phone: guard.phone || "",
-      emergencyContact: guard.emergencyContact || "",
+      phone2: guard.phone2 || "",
+      codeNumber: guard.guardId || "", // Map guardId to codeNumber
       gender: guard.gender || "",
-      dateOfBirth: guard.dateOfBirth || "",
       address: guard.address || "",
-      type: guard.type || "",
-      experience: guard.experience || "",
-      salary: guard.salary || "",
-      location: guard.location || "",
-      specialization: guard.specialization?.join(', ') || "",
-      certifications: guard.certifications?.join(', ') || "",
     });
-    
+
     setIsGuardDialogOpen(true);
   };
 
@@ -136,12 +124,6 @@ export default function GuardManagement({ handleGuardRowClick }) {
       // Process specialization and certifications into arrays
       const submissionData = {
         ...formData,
-        specialization: formData.specialization
-          ? formData.specialization.split(',').map(s => s.trim()).filter(s => s)
-          : [],
-        certifications: formData.certifications
-          ? formData.certifications.split(',').map(s => s.trim()).filter(s => s)
-          : [],
       };
 
       let response;
@@ -168,10 +150,10 @@ export default function GuardManagement({ handleGuardRowClick }) {
       const result = await response.json();
 
       if (response.ok) {
-        const successMessage = dialogMode === 'add' 
-          ? "Guard registered successfully!" 
+        const successMessage = dialogMode === 'add'
+          ? "Guard registered successfully!"
           : "Guard updated successfully!";
-        
+
         showSuccess(result.message || successMessage);
         setIsGuardDialogOpen(false);
         resetForm();
@@ -194,6 +176,29 @@ export default function GuardManagement({ handleGuardRowClick }) {
     }
   };
 
+  // ✅ DELETE GUARD HANDLER
+  const handleDeleteGuard = async (guard) => {
+    if (!confirm(`Are you sure you want to delete ${guard.name}?`)) return;
+
+    try {
+      const response = await fetch(`/api/auth/guard/${guard._id}`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        showSuccess(result.message || "Guard deleted successfully");
+        loadData(); // Refresh list
+      } else {
+        showError(result.error || "Failed to delete guard");
+      }
+    } catch (error) {
+      console.error("Error deleting guard:", error);
+      showError("Failed to delete guard");
+    }
+  };
+
   // ✅ FORM INPUT CHANGE HANDLER
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -208,16 +213,10 @@ export default function GuardManagement({ handleGuardRowClick }) {
       name: "",
       email: "",
       phone: "",
-      emergencyContact: "",
+      phone2: "",
+      codeNumber: "",
       gender: "",
-      dateOfBirth: "",
       address: "",
-      type: "",
-      experience: "",
-      salary: "",
-      location: "",
-      specialization: "",
-      certifications: "",
     });
   };
 
@@ -363,6 +362,7 @@ export default function GuardManagement({ handleGuardRowClick }) {
           onGuardClick={handleGuardRowClick}
           statsData={statsData}
           onEditGuard={handleEditGuard}
+          onDeleteGuard={handleDeleteGuard} // ✅ Pass delete handler
         />
 
         {/* ✅ SINGLE DIALOG FOR BOTH ADD AND EDIT */}
@@ -370,22 +370,24 @@ export default function GuardManagement({ handleGuardRowClick }) {
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-foreground">
-                {dialogMode === 'add' ? 'Add New Security Guard' : `Edit Security Guard - ${editingGuard?.name}`}
+                {dialogMode === "add"
+                  ? "Add New Security Guard"
+                  : `Edit Security Guard - ${editingGuard?.name}`}
               </DialogTitle>
               <DialogDescription>
-                {dialogMode === 'add' 
-                  ? 'Create a new guard profile with complete details.' 
-                  : 'Update guard profile details.'}
+                {dialogMode === "add"
+                  ? "Create a new guard profile with complete details."
+                  : "Update guard profile details."}
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="grid gap-6 py-4 grid-cols-1 md:grid-cols-2">
                 {/* Personal Information */}
                 <div className="md:col-span-2">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
-                    Personal Information
+                    Basic Information
                   </h3>
                 </div>
 
@@ -420,7 +422,7 @@ export default function GuardManagement({ handleGuardRowClick }) {
 
                 <div className="space-y-3">
                   <Label htmlFor="guardPhone" className="text-sm font-medium">
-                    Phone Number *
+                    Phone Number 1 *
                   </Label>
                   <Input
                     id="guardPhone"
@@ -434,20 +436,22 @@ export default function GuardManagement({ handleGuardRowClick }) {
 
                 <div className="space-y-3">
                   <Label htmlFor="guardEmergencyContact" className="text-sm font-medium">
-                    Emergency Contact
+                    Phone Number 2 (Optional)
                   </Label>
                   <Input
-                    id="guardEmergencyContact"
+                    id="guardPhone2"
                     placeholder="+91 87654 32109"
                     className="border-primary/20 focus:border-primary"
-                    value={formData.emergencyContact}
-                    onChange={(e) => handleInputChange("emergencyContact", e.target.value)}
+                    value={formData.phone2} // Fallback for transition
+                    onChange={(e) =>
+                      handleInputChange("phone2", e.target.value)
+                    }
                   />
                 </div>
 
                 <div className="space-y-3">
                   <Label htmlFor="guardGender" className="text-sm font-medium">
-                    Gender *
+                    Gender (Optional)
                   </Label>
                   <Select
                     value={formData.gender}
@@ -465,132 +469,39 @@ export default function GuardManagement({ handleGuardRowClick }) {
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="guardDob" className="text-sm font-medium">
-                    Date of Birth *
-                  </Label>
-                  <Input
-                    id="guardDob"
-                    type="date"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Professional Details */}
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    Professional Details
-                  </h3>
-                </div>
-
-                <div className="space-y-3 md:col-span-2">
-                  <Label htmlFor="guardType" className="text-sm font-medium">
-                    Guard Type *
-                  </Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value) => handleInputChange("type", value)}
+                  <Label
+                    htmlFor="guardCodeNumber"
+                    className="text-sm font-medium"
                   >
-                    <SelectTrigger className="border-primary/20 focus:border-primary">
-                      <SelectValue placeholder="Select Guard Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Security Guard">Security Guard</SelectItem>
-                      <SelectItem value="Security Officer">Security Officer</SelectItem>
-                      <SelectItem value="Personal Security Officer">Personal Security Officer</SelectItem>
-                      <SelectItem value="Security Supervisor">Security Supervisor</SelectItem>
-                      <SelectItem value="Lady Security Guard">Lady Security Guard</SelectItem>
-                      <SelectItem value="Security Gunmen">Security Gunmen</SelectItem>
-                      <SelectItem value="Ex-men Security Guard & Bodyguards">Ex-men Security Guard & Bodyguards</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="guardExperience" className="text-sm font-medium">
-                    Experience (Years) *
+                    Code Number *
                   </Label>
                   <Input
-                    id="guardExperience"
-                    type="number"
-                    placeholder="5"
+                    id="guardCodeNumber"
+                    placeholder="e.g. 007"
                     className="border-primary/20 focus:border-primary"
-                    value={formData.experience}
-                    onChange={(e) => handleInputChange("experience", e.target.value)}
+                    value={formData.codeNumber}
+                    onChange={(e) =>
+                      handleInputChange("codeNumber", e.target.value)
+                    }
                     required
                   />
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="guardSalary" className="text-sm font-medium">
-                    Monthly Salary *
-                  </Label>
-                  <Input
-                    id="guardSalary"
-                    placeholder="₹35,000"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.salary}
-                    onChange={(e) => handleInputChange("salary", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="guardLocation" className="text-sm font-medium">
-                    Location *
-                  </Label>
-                  <Input
-                    id="guardLocation"
-                    placeholder="Mumbai"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange("location", e.target.value)}
-                    required
-                  />
+                  <p className="text-xs text-muted-foreground">
+                    This will be used as the Guard ID.
+                  </p>
                 </div>
 
                 <div className="space-y-3 md:col-span-2">
                   <Label htmlFor="guardAddress" className="text-sm font-medium">
-                    Address *
+                    Address (Optional)
                   </Label>
                   <Textarea
                     id="guardAddress"
                     placeholder="Complete residential address..."
                     className="border-primary/20 focus:border-primary min-h-[80px]"
                     value={formData.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Specialization Input */}
-                <div className="space-y-3 md:col-span-2">
-                  <Label htmlFor="guardSpecialization" className="text-sm font-medium">
-                    Specializations (comma separated)
-                  </Label>
-                  <Input
-                    id="guardSpecialization"
-                    placeholder="Crowd Control, Executive Protection, Emergency Response"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.specialization}
-                    onChange={(e) => handleInputChange("specialization", e.target.value)}
-                  />
-                </div>
-
-                {/* Certifications Input */}
-                <div className="space-y-3 md:col-span-2">
-                  <Label htmlFor="guardCertifications" className="text-sm font-medium">
-                    Certifications (comma separated)
-                  </Label>
-                  <Input
-                    id="guardCertifications"
-                    placeholder="CPR Certified, Security License, Firearms Permit"
-                    className="border-primary/20 focus:border-primary"
-                    value={formData.certifications}
-                    onChange={(e) => handleInputChange("certifications", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("address", e.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -607,19 +518,24 @@ export default function GuardManagement({ handleGuardRowClick }) {
                   type="submit"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   disabled={submitting}
-                  permission={dialogMode === 'add' ? 'guards-create' : 'guards-update'}
+                  permission={
+                    dialogMode === "add" ? "guards-create" : "guards-update"
+                  }
                 >
                   {submitting ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : dialogMode === 'add' ? (
+                  ) : dialogMode === "add" ? (
                     <Plus className="h-4 w-4 mr-2" />
                   ) : (
                     <Edit2 className="h-4 w-4 mr-2" />
                   )}
-                  {submitting 
-                    ? (dialogMode === 'add' ? "Adding..." : "Updating...") 
-                    : (dialogMode === 'add' ? "Add Guard" : "Update Guard")
-                  }
+                  {submitting
+                    ? dialogMode === "add"
+                      ? "Adding..."
+                      : "Updating..."
+                    : dialogMode === "add"
+                      ? "Add Guard"
+                      : "Update Guard"}
                 </Button>
               </DialogFooter>
             </form>

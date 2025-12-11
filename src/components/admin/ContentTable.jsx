@@ -9,6 +9,8 @@ const ContentTable = ({
   loading,
   onToggleVisibility,
   onDeleteItem,
+  canUpdate,
+  canDelete,
 }) => (
   <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
     <div className="px-4 sm:px-6 py-4 border-b border-border">
@@ -22,7 +24,7 @@ const ContentTable = ({
             {filteredItems.length === 1 ? "item" : "items"} found
           </p>
         </div>
-        
+
         {/* Scroll hint for mobile */}
         <div className="sm:hidden flex items-center gap-2 text-xs text-muted-foreground">
           <div className="animate-bounce">←→</div>
@@ -34,11 +36,13 @@ const ContentTable = ({
     {loading ? (
       <LoadingState />
     ) : filteredItems.length > 0 ? (
-      <TableContent 
+      <TableContent
         activeCategory={activeCategory}
         filteredItems={filteredItems}
         onToggleVisibility={onToggleVisibility}
         onDeleteItem={onDeleteItem}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
       />
     ) : (
       <EmptyState />
@@ -64,7 +68,7 @@ const EmptyState = () => (
   </div>
 );
 
-const TableContent = ({ activeCategory, filteredItems, onToggleVisibility, onDeleteItem }) => (
+const TableContent = ({ activeCategory, filteredItems, onToggleVisibility, onDeleteItem, canUpdate, canDelete }) => (
   <div className="overflow-x-auto">
     {/* Horizontal scroll container */}
     <div className="min-w-max">
@@ -77,6 +81,8 @@ const TableContent = ({ activeCategory, filteredItems, onToggleVisibility, onDel
             activeCategory={activeCategory}
             onToggleVisibility={onToggleVisibility}
             onDeleteItem={onDeleteItem}
+            canUpdate={canUpdate}
+            canDelete={canDelete}
           />
         ))}
       </div>

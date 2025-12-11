@@ -65,6 +65,7 @@ export default function SecurityDashboard() {
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
+      console.log("DashboardContent: fetching data...");
       setLoading(true);
 
       // Get token for authenticated requests
@@ -134,7 +135,7 @@ export default function SecurityDashboard() {
       const activeGuards = guards.filter(
         (g) => g.status === "active" || g.isActive
       ).length;
-      
+
       // CORRECTION: Tumhari API se aaya data
       const totalRequests = documentRequests.length;
       const pendingRequests = documentRequests.filter(
@@ -165,6 +166,7 @@ export default function SecurityDashboard() {
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
+      console.log("DashboardContent: fetch done");
       setLoading(false);
     }
   };
@@ -204,7 +206,7 @@ export default function SecurityDashboard() {
 
   // Tumhari API ke hisaab se fields
   // Request model: { clientName, clientEmail, documentName, documentType, description, status, createdAt }
-  
+
   // Status badge colors for requests
   const requestStatusColors = {
     pending: "bg-amber-100 text-amber-700",
@@ -410,8 +412,8 @@ export default function SecurityDashboard() {
             stat.trend === "up"
               ? ArrowUpRight
               : stat.trend === "down"
-              ? ArrowDownRight
-              : AlertCircle;
+                ? ArrowDownRight
+                : AlertCircle;
 
           return (
             <Card
@@ -439,19 +441,18 @@ export default function SecurityDashboard() {
                     </p>
                   </div>
                   <span
-                    className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
-                      stat.trend === "up"
-                        ? "bg-success/15 text-success"
-                        : stat.trend === "down"
+                    className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${stat.trend === "up"
+                      ? "bg-success/15 text-success"
+                      : stat.trend === "down"
                         ? "bg-destructive/15 text-destructive"
                         : "bg-warning/15 text-warning"
-                    }`}
+                      }`}
                   >
                     <TrendIcon className="h-3.5 w-3.5" />
                     {stat.changeValue}
                   </span>
                 </div>
-                
+
               </CardContent>
             </Card>
           );
@@ -460,146 +461,143 @@ export default function SecurityDashboard() {
 
       {/* ======== Main Content Grid ======== */}
       <div className="grid gap-6 lg:grid-cols-3">
-         <div className="lg:col-span-2 space-y-6">
-    {/* Recent Documents Table - LIMIT TO 5 DOCUMENTS */}
-    <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <FileText className="h-5 w-5 text-primary" /> Recent Documents
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Latest 6 documents shared with clients
-          </CardDescription>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/admin-dashboard/documents">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 rounded-lg cursor-pointer"
-            >
-              <Filter className="h-4 w-4" /> View All
-            </Button>
-          </Link>
-          <Link href="/admin-dashboard/documents">
-            <Button size="sm" className="gap-2 cursor-pointer rounded-lg bg-primary">
-              <Upload className="h-4 w-4" /> Upload New
-            </Button>
-          </Link>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {dashboardData.documents.length > 0 ? (
-           
-            dashboardData.documents.slice(0, 6).map((doc, index) => {
-              const clientName =
-                doc.targetClient?.name ||
-                doc.specificClients?.[0]?.name ||
-                (doc.isCompanyDocument
-                  ? "All Clients"
-                  : "Unknown Client");
-
-              return (
-                <div
-                  key={index}
-                  className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`p-3 rounded-xl ${
-                        doc.status === "approved"
-                          ? "bg-green-100"
-                          : doc.status === "pending"
-                          ? "bg-amber-100"
-                          : "bg-gray-100"
-                      }`}
-                    >
-                      <FileText
-                        className={`h-5 w-5 ${
-                          doc.status === "approved"
-                            ? "text-green-600"
-                            : doc.status === "pending"
-                            ? "text-amber-600"
-                            : "text-gray-600"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground">
-                        {doc.name || "Unnamed Document"}
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {doc.isCompanyDocument
-                          ? "Company Document • "
-                          : "Client Document • "}
-                        Shared with: {clientName} •{" "}
-                        {new Date(
-                          doc.uploadDate || doc.createdAt
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      className={`rounded-full ${
-                        doc.status === "approved"
-                          ? "bg-green-100 text-green-600"
-                          : doc.status === "pending"
-                          ? "bg-amber-100 text-amber-600"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {doc.status?.charAt(0).toUpperCase() +
-                        doc.status?.slice(1)}
-                    </Badge>
-                    <div className="flex gap-1">
-                      {doc.fileUrl && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 cursor-pointer"
-                          onClick={() =>
-                            window.open(doc.fileUrl, "_blank")
-                          }
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No documents found</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Upload your first document to get started
-              </p>
-            </div>
-          )}
-          
-          {/* Additional message if there are more than 5 documents */}
-          {dashboardData.documents.length > 5 && (
-            <div className="text-center pt-2">
-              <p className="text-sm text-muted-foreground">
-                Showing 6 of {dashboardData.documents.length} documents •{" "}
-                <Link 
-                  href="/admin-dashboard/documents" 
-                  className="text-primary hover:underline cursor-pointer"
-                >
-                  View all documents
+        <div className="lg:col-span-2 space-y-6">
+          {/* Recent Documents Table - LIMIT TO 5 DOCUMENTS */}
+          <Card className="rounded-3xl border-border/70 bg-card/95 shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                  <FileText className="h-5 w-5 text-primary" /> Recent Documents
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Latest 6 documents shared with clients
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Link href="/admin-dashboard/documents">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 rounded-lg cursor-pointer"
+                  >
+                    <Filter className="h-4 w-4" /> View All
+                  </Button>
                 </Link>
-              </p>
-            </div>
-          )}
+                <Link href="/admin-dashboard/documents">
+                  <Button size="sm" className="gap-2 cursor-pointer rounded-lg bg-primary">
+                    <Upload className="h-4 w-4" /> Upload New
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {dashboardData.documents.length > 0 ? (
+
+                  dashboardData.documents.slice(0, 6).map((doc, index) => {
+                    const clientName =
+                      doc.targetClient?.name ||
+                      doc.specificClients?.[0]?.name ||
+                      (doc.isCompanyDocument
+                        ? "All Clients"
+                        : "Unknown Client");
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`p-3 rounded-xl ${doc.status === "approved"
+                              ? "bg-green-100"
+                              : doc.status === "pending"
+                                ? "bg-amber-100"
+                                : "bg-gray-100"
+                              }`}
+                          >
+                            <FileText
+                              className={`h-5 w-5 ${doc.status === "approved"
+                                ? "text-green-600"
+                                : doc.status === "pending"
+                                  ? "text-amber-600"
+                                  : "text-gray-600"
+                                }`}
+                            />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-foreground">
+                              {doc.name || "Unnamed Document"}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                              {doc.isCompanyDocument
+                                ? "Company Document • "
+                                : "Client Document • "}
+                              Shared with: {clientName} •{" "}
+                              {new Date(
+                                doc.uploadDate || doc.createdAt
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            className={`rounded-full ${doc.status === "approved"
+                              ? "bg-green-100 text-green-600"
+                              : doc.status === "pending"
+                                ? "bg-amber-100 text-amber-600"
+                                : "bg-gray-100 text-gray-600"
+                              }`}
+                          >
+                            {doc.status?.charAt(0).toUpperCase() +
+                              doc.status?.slice(1)}
+                          </Badge>
+                          <div className="flex gap-1">
+                            {doc.fileUrl && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 cursor-pointer"
+                                onClick={() =>
+                                  window.open(doc.fileUrl, "_blank")
+                                }
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No documents found</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Upload your first document to get started
+                    </p>
+                  </div>
+                )}
+
+                {/* Additional message if there are more than 5 documents */}
+                {dashboardData.documents.length > 5 && (
+                  <div className="text-center pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Showing 6 of {dashboardData.documents.length} documents •{" "}
+                      <Link
+                        href="/admin-dashboard/documents"
+                        className="text-primary hover:underline cursor-pointer"
+                      >
+                        View all documents
+                      </Link>
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </CardContent>
-    </Card>
-  </div>
 
         {/* Right Column: Document Requests & Quick Actions */}
         <div className="space-y-6">
@@ -648,11 +646,11 @@ export default function SecurityDashboard() {
                           {request.status || "pending"}
                         </Badge>
                       </div>
-                      
+
                       <p className="text-xs text-muted-foreground leading-snug">
                         {request.description || "No description provided"}
                       </p>
-                      
+
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-foreground">
@@ -701,7 +699,7 @@ export default function SecurityDashboard() {
                   </p>
                 </div>
               )}
-              
+
               {/* CORRECTION: Link to correct page */}
               <Link href="/admin-dashboard/requests">
                 <Button variant="outline" className="w-full gap-2 cursor-pointer">
@@ -829,13 +827,12 @@ export default function SecurityDashboard() {
                 className="flex items-center gap-4 rounded-2xl border border-border/60 bg-background/80 p-4 transition-colors hover:border-primary/30"
               >
                 <span
-                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
-                    item.status === "success"
-                      ? "bg-success/10 text-success"
-                      : item.status === "warning"
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.status === "success"
+                    ? "bg-success/10 text-success"
+                    : item.status === "warning"
                       ? "bg-warning/10 text-warning"
                       : "bg-primary/10 text-primary"
-                  }`}
+                    }`}
                 >
                   <Icon className="h-6 w-6" />
                 </span>
@@ -846,13 +843,12 @@ export default function SecurityDashboard() {
                   <p className="text-xs text-muted-foreground">
                     {item.sublabel}
                   </p>
-                  <p className={`mt-1 text-xs font-semibold ${
-                    item.status === "success"
-                      ? "text-success"
-                      : item.status === "warning"
+                  <p className={`mt-1 text-xs font-semibold ${item.status === "success"
+                    ? "text-success"
+                    : item.status === "warning"
                       ? "text-warning"
                       : "text-primary"
-                  }`}>
+                    }`}>
                     {item.trend}
                   </p>
                 </div>

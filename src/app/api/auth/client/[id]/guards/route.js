@@ -35,7 +35,7 @@ export async function GET(request, { params }) {
       avatar: guard.avatar || guard.name?.charAt(0).toUpperCase() || "G",
       designation: guard.type || "Security Guard",
       guardId: guard.guardId || "N/A",
-      joinDate: guard.joinDate ? 
+      joinDate: guard.joinDate ?
         new Date(guard.joinDate).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
@@ -115,6 +115,9 @@ export async function POST(request, { params }) {
     };
     await guard.save();
 
+    // ✅ NO NEED TO LINK DOCUMENTS - Dynamic visibility via relatedGuard + currentAssignment
+    console.log(`✅ Guard ${guard.guardId} assigned to client ${client._id}. Documents will be visible dynamically.`);
+
     return NextResponse.json({
       success: true,
       message: "Guard assigned successfully"
@@ -132,7 +135,7 @@ export async function DELETE(request, { params }) {
   try {
     await connectDB();
     const { id } = params;
-    
+
     // Get guardId from query parameters
     const url = new URL(request.url);
     const guardId = url.searchParams.get("guardId");
@@ -180,8 +183,11 @@ export async function DELETE(request, { params }) {
 
     // Update guard's status and current assignment
     guard.status = "Available";
-    guard.currentAssignment = null;
+    guard.currentAssignment = null; // ✅ This clears the assignment - documents will no longer be visible
     await guard.save();
+
+    // ✅ NO NEED TO UNLINK DOCUMENTS - Dynamic visibility handles this automatically
+    console.log(`✅ Guard ${guard.guardId} removed from client ${client._id}. Documents will no longer be visible.`);
 
     return NextResponse.json({
       success: true,
@@ -200,12 +206,12 @@ export async function DELETE(request, { params }) {
 function formatAddress(address) {
   if (!address) return "Not specified";
   if (typeof address === 'string') return address;
-  
+
   const parts = [];
   if (address.street) parts.push(address.street);
   if (address.city) parts.push(address.city);
   if (address.state) parts.push(address.state);
   if (address.postalCode) parts.push(address.postalCode);
-  
+
   return parts.join(", ") || "Not specified";
 }

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import DocumentManagement from "@/components/admin/DocumentManagement";
+import { toast } from "sonner";
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
@@ -51,11 +52,18 @@ export default function DocumentsPage() {
         const data = await response.json();
         setDocuments(data.documents || []);
       } else {
-        console.error("Failed to fetch documents");
+        console.error("Failed to fetch documents:", response.status, response.statusText);
+        let errorMsg = "Failed to load documents.";
+        try {
+          const errData = await response.json();
+          if (errData.error) errorMsg = errData.error;
+        } catch (e) { /* ignore */ }
+        toast.error(`${errorMsg} Please refresh.`);
         setDocuments([]);
       }
     } catch (error) {
       console.error("Error fetching documents:", error);
+      toast.error("Error loading documents");
       setDocuments([]);
     } finally {
       setLoading(false);

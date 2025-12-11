@@ -9,6 +9,7 @@ import ActionBar from "./ActionBar";
 import ContentTable from "./ContentTable";
 import { WeProvideDialog, GalleryDialog, ClientsDialog, TestimonialsDialog } from "./Dialogs";
 import { Shield, ImageIcon, Users, MessageSquare } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const FRONTEND_CATEGORIES = [
   {
@@ -38,6 +39,20 @@ const FRONTEND_CATEGORIES = [
 ];
 
 export default function FrontendManagement({ settings }) {
+  const { hasPermission } = useAuth();
+  // Consolidated Frontend Permissions
+  const canCreate = hasPermission("frontend-create");
+  const canUpdate = hasPermission("frontend-update");
+  const canDelete = hasPermission("frontend-delete");
+
+  console.log("FrontendManagement Permissions Debug:", {
+    canCreate,
+    canUpdate,
+    canDelete,
+    permissionCheck: "frontend-create",
+    hasPermissionResult: hasPermission("frontend-create")
+  });
+
   const [activeCategory, setActiveCategory] = useState(FRONTEND_CATEGORIES[0]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,9 +95,9 @@ export default function FrontendManagement({ settings }) {
   // Enhanced filtering based on schema fields
   const filteredItems = items.filter((item) => {
     if (!searchQuery) return true;
-    
+
     const searchLower = searchQuery.toLowerCase();
-    
+
     switch (activeCategory.id) {
       case "weprovide":
         return (
@@ -137,6 +152,7 @@ export default function FrontendManagement({ settings }) {
   };
 
   const toggleVisibility = async (id, currentStatus) => {
+    if (!canUpdate) return; // Permission check
     try {
       const response = await fetch(`/api/frontend/${activeCategory.id}/${id}`, {
         method: "PUT",
@@ -154,6 +170,7 @@ export default function FrontendManagement({ settings }) {
   };
 
   const deleteItem = async (id, itemName) => {
+    if (!canDelete) return; // Permission check
     // if (!confirm(`Delete this ${itemName}?`)) return;
 
     try {
@@ -204,9 +221,9 @@ export default function FrontendManagement({ settings }) {
 
         {/* Stats Cards - Only show if we have data */}
         {(items.length > 0 || loading) && (
-          <StatsCards 
-            items={items} 
-            activeCategory={activeCategory} 
+          <StatsCards
+            items={items}
+            activeCategory={activeCategory}
           />
         )}
 
@@ -226,6 +243,7 @@ export default function FrontendManagement({ settings }) {
           dialogOpen={dialogOpen}
           onDialogChange={setDialogOpen}
           renderDialogContent={renderDialogContent}
+          canCreate={canCreate} // Pass permission
         />
 
         {/* Content Table */}
@@ -235,6 +253,8 @@ export default function FrontendManagement({ settings }) {
           loading={loading}
           onToggleVisibility={toggleVisibility}
           onDeleteItem={deleteItem}
+          canUpdate={canUpdate} // Pass permission
+          canDelete={canDelete} // Pass permission
         />
       </div>
     </div>

@@ -35,7 +35,8 @@ export function AssignGuardDialog({ open, onOpenChange, clientId, onAssign }) {
         (guard) =>
           guard.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           guard.guardId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          guard.location.toLowerCase().includes(searchQuery.toLowerCase())
+          guard.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          guard.guardId.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredGuards(filtered);
     } else {
@@ -78,14 +79,14 @@ export function AssignGuardDialog({ open, onOpenChange, clientId, onAssign }) {
       // Get current client data first
       const clientResponse = await fetch(`/api/auth/client/${clientId}`);
       const clientData = await clientResponse.json();
-      
+
       if (!clientResponse.ok) {
         throw new Error("Failed to fetch client data");
       }
 
       const currentAssignedGuards = clientData.client.assignedGuards || [];
       const newGuardIds = selectedGuards.map(guard => guard._id);
-      
+
       // Combine existing and new guards, remove duplicates
       const updatedGuardIds = [...new Set([...currentAssignedGuards, ...newGuardIds])];
 
@@ -200,11 +201,10 @@ export function AssignGuardDialog({ open, onOpenChange, clientId, onAssign }) {
                 return (
                   <div
                     key={guard._id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      isSelected
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-muted/50"
-                    }`}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${isSelected
+                      ? "border-primary bg-primary/5"
+                      : "hover:bg-muted/50"
+                      }`}
                     onClick={() => toggleGuardSelection(guard)}
                   >
                     <div className="flex items-center justify-between">
@@ -226,35 +226,21 @@ export function AssignGuardDialog({ open, onOpenChange, clientId, onAssign }) {
                               {guard.guardId}
                             </Badge>
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-4">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {guard.location}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                              {guard.rating || "No rating"}/5
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Shield className="h-3 w-3" />
-                              {guard.type}
-                            </span>
-                          </div>
                         </div>
                       </div>
-                      <Badge
-                        variant={
-                          guard.status === "Available" ? "default" : "secondary"
-                        }
-                        className={
-                          guard.status === "Available"
-                            ? "bg-green-500 text-white"
-                            : ""
-                        }
-                      >
-                        {guard.status}
-                      </Badge>
                     </div>
+                    <Badge
+                      variant={
+                        guard.status === "Available" ? "default" : "secondary"
+                      }
+                      className={
+                        guard.status === "Available"
+                          ? "bg-green-500 text-white"
+                          : ""
+                      }
+                    >
+                      {guard.status}
+                    </Badge>
                   </div>
                 );
               })
@@ -271,6 +257,6 @@ export function AssignGuardDialog({ open, onOpenChange, clientId, onAssign }) {
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }
