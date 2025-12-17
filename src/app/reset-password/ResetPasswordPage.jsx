@@ -53,15 +53,15 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast({
-        title: "Password Too Short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
+    // if (password.length < 6) {
+    //   toast({
+    //     title: "Password Too Short",
+    //     description: "Password must be at least 6 characters long.",
+    //     variant: "destructive",
+    //   });
+    //   setLoading(false);
+    //   return;
+    // }
 
     try {
       const res = await fetch("/api/auth/reset-password", {
@@ -159,8 +159,6 @@ export default function ResetPasswordPage() {
                       className="pl-10 pr-10 bg-[hsl(var(--accent)/0.08)] border border-[hsl(var(--border)/0.3)] focus:ring-2 focus:ring-[hsl(var(--primary))] focus:border-transparent transition-all rounded-lg"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
                     />
                     <button
                       type="button"

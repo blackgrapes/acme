@@ -87,7 +87,7 @@ async function seed() {
     const clientRole = await Role.create({
       name: "Client",
       description: "Access to client dashboard only",
-      permissions: ["client-dashboard-read"],
+      permissions: ["client-dashboard-read","documents-read","reports-view"],
       status: "Active",
     });
 
